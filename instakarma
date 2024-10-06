@@ -39,13 +39,13 @@ def get_karma(conn: Connection, name: str, logger: Logger) -> int:
 
 
 def grant_karma(conn: Connection, granter: str, recipient: str, delta: int, logger: Logger) -> None:
+    add_entity(conn, granter, logger)
+    add_entity(conn, recipient, logger)
+
     if entity_disabled(conn, recipient):
         logger.info(f"Not granting karma to disabled entity '{recipient}'")
         # TODO: send message to Slack saying recipient is not participating in Instakarma
         return
-
-    add_entity(conn, granter, logger)
-    add_entity(conn, recipient, logger)
 
     try:
         # insert into the `actions` table using subqueries to look up `entity_id` for granter and recipient
@@ -92,12 +92,34 @@ def init_db(logger: Logger) -> None:
             conn.executescript(ddl)
 
 
-def list_alphabetical() -> None:
-    pass
+def list_alphabetical(logger: Logger) -> None:
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor: Cursor = conn.execute("SELECT karma, entity_name "
+                                          "FROM entities "
+                                          "WHERE disabled = FALSE "
+                                          "ORDER BY entity_name;")
+            results = cursor.fetchall()
+            for entity_name, karma in results:
+                print(f"{entity_name} {karma}")
+    except sqlite3.Error as e:
+        logger.error(f"SQLite error occurred: {e}.")
+        raise
 
 
-def list_ranked() -> None:
-    pass
+def list_ranked(logger: Logger) -> None:
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor: Cursor = conn.execute("SELECT karma, entity_name "
+                                          "FROM entities "
+                                          "WHERE disabled = FALSE "
+                                          "ORDER BY karma DESC;")
+            results = cursor.fetchall()
+            for karma, entity_name in results:
+                print(f"{karma}\t{entity_name}")
+    except sqlite3.Error as e:
+        logger.error(f"SQLite error occurred: {e}.")
+        raise
 
 
 def monitor_slack() -> None:
@@ -105,10 +127,10 @@ def monitor_slack() -> None:
 
 
 def test(logger: Logger) -> None:
-    try:
-        os.remove(DB_FILE)
-    except FileNotFoundError:
-        pass
+    # try:
+    #     os.remove(DB_FILE)
+    # except FileNotFoundError:
+    #     pass
     init_db(logger)
 
     with sqlite3.connect(DB_FILE) as conn:
@@ -130,16 +152,30 @@ def test(logger: Logger) -> None:
             conn.rollback()
 
 
-def view_logs():
-    pass
+def view_all_grants(logger: Logger):
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            cursor: Cursor = conn.execute("SELECT r.entity_name AS recipient_name, "
+                                                 "g.entity_name AS granter_name, "
+                                                 "a.delta,"
+                                                 "a.timestamp "
+                                          "FROM actions a "
+                                          "JOIN entities r on a.recipient_id = r.entity_id "
+                                          "JOIN entities g on a.granter_id = g.entity_id "
+                                          "ORDER BY a.timestamp;")
+            results = cursor.fetchall()
+            for recipient_name, granter_name, delta, timestamp in results:
+                print(f"{timestamp},{granter_name},{delta},{recipient_name}")
+    except sqlite3.Error as e:
+        logger.error(f"SQLite error occurred: {e}.")
+        raise
 
 
 def main() -> None:
     logging.basicConfig(level=logging.DEBUG,
                         format='%(asctime)s - %(levelname)s - %(message)s',
                         datefmt='%m/%d/%Y %I:%M:%S %p',
-                        filename='instakarma.log',
-                        filemode='w')
+                        filename='instakarma.log')
 
     logger = logging.getLogger(__name__)
 
@@ -155,7 +191,7 @@ def main() -> None:
     group.add_argument('-la', '--list-alphabetical', action='store_true', help='List users in alphabetical order')
     group.add_argument('-lr', '--list-ranked', action='store_true', help='List users in karma order')
     group.add_argument('-m', '--monitor-slack', action='store_true', help='monitor Slack (this is normal mode)')
-    group.add_argument('-v', '--view-logs', action='store_true', help='View logs')
+    group.add_argument('-v', '--view-all-grants', action='store_true', help='View history of all karma grants')
     group.add_argument('--test', action='store_true', help='For debugging only -- remove this in prod')
 
     args = parser.parse_args()
@@ -165,18 +201,15 @@ def main() -> None:
     elif args.init_db:
         init_db(logger)
     elif args.list_alphabetical:
-        list_alphabetical()
+        list_alphabetical(logger)
     elif args.list_ranked:
-        list_ranked()
+        list_ranked(logger)
     elif args.monitor_slack:
         monitor_slack()
     elif args.test:
         test(logger)
-        logger.info("This is an info message.")
-        logger.error("This is an error message.")
-        logger.debug("This is a debug message.")
-    elif args.view_logs:
-        view_logs()
+    elif args.view_all_grants:
+        view_all_grants(logger)
     else:
         parser.print_help()
 
