@@ -11,7 +11,6 @@ from logging import Logger
 from sqlite3 import Connection, Cursor
 from typing import Final
 
-
 # --- CONSTANTS ---
 
 ALL_GRANTS_CSV_FILE: Final[str] = 'all_grants.csv'
@@ -26,25 +25,54 @@ logging.basicConfig(level=logging.DEBUG,
 LOGGER: Final[Logger] = logging.getLogger(__name__)
 
 
+# --- DB METHODS ---
+
+def get_db_connection() -> Connection:
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        return conn
+    except sqlite3.Error as e:
+        msg: str = f"Error connecting to database: {e}"
+        LOGGER.error(msg)
+        sys.exit(msg)
+
+
+def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
+    try:
+        cursor: Cursor = conn.execute(query, parms)
+        return cursor
+    except sqlite3.Error as e:
+        LOGGER.error(f"SQLite error: {e}")
+        conn.rollback()
+        raise e
+
+
 # --- HELPER METHODS --
 
 def add_entity(conn: Connection, entity_name: str) -> None:
     try:
-        conn.execute("INSERT OR IGNORE INTO entities (entity_name) "
-                     "VALUES (?)",
-                     (entity_name,))
+        execute_query(conn,
+                      "INSERT OR IGNORE INTO entities (entity_name) "
+                      "VALUES (?)",
+                      (entity_name,))
+        conn.commit()  # no-op if query was a SELECT
     except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error when adding entity: {e}. Rolling back.")
-        conn.rollback()
+        LOGGER.error(f"Error when adding entity")
         raise e
 
 
 def get_karma(conn: Connection, entity_name: str) -> int:
     try:
-        cursor: Cursor = conn.execute("SELECT karma "
-                                      "FROM entities "
-                                      "WHERE entity_name = ?",
-                                      (entity_name,))
+        # cursor: Cursor = conn.execute("SELECT karma "
+        #                               "FROM entities "
+        #                               "WHERE entity_name = ?",
+        #                               (entity_name,))
+        cursor: Cursor = execute_query(conn,
+                                       "SELECT karma "
+                                       "FROM entities "
+                                       "WHERE entity_name = ?",
+                                       (entity_name,))
+
         result = cursor.fetchone()
         if result[0]:
             return result[0]
@@ -53,7 +81,7 @@ def get_karma(conn: Connection, entity_name: str) -> int:
             raise ValueError
 
     except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error when getting karma for entity '{entity_name}': {e}. Rolling back.")
+        LOGGER.error(f"Error when getting karma for entity '{entity_name}'")
         raise e
 
 
@@ -68,34 +96,49 @@ def grant_karma(conn: Connection, granter: str, recipient: str, delta: int) -> N
 
     try:
         # insert into the `actions` table using subqueries to look up `entity_id` for granter and recipient
-        conn.execute("""INSERT INTO grants (granter_id, recipient_id, delta)
+        execute_query(conn, """INSERT INTO grants (granter_id, recipient_id, delta)
                             SELECT
                                 (SELECT entity_id FROM entities WHERE entity_name = ?),
                                 (SELECT entity_id FROM entities WHERE entity_name = ?),
                                 ?""",
-                     (granter, recipient, delta))
+                      (granter, recipient, delta))
+        # conn.execute("""INSERT INTO grants (granter_id, recipient_id, delta)
+        #                     SELECT
+        #                         (SELECT entity_id FROM entities WHERE entity_name = ?),
+        #                         (SELECT entity_id FROM entities WHERE entity_name = ?),
+        #                         ?""",
+        #              (granter, recipient, delta))
 
-        conn.execute("UPDATE entities "
-                     "SET karma = karma + ? "
-                     "WHERE entity_name = ?",
-                     (delta, recipient))
+        execute_query(conn,
+                      """UPDATE entities
+                      SET karma = karma + ?
+                      WHERE entity_name = ?""",
+                      (delta, recipient))
+        # conn.execute("UPDATE entities "
+        #              "SET karma = karma + ? "
+        #              "WHERE entity_name = ?",
+        #              (delta, recipient))
         conn.commit()
 
     except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error when granting {delta} karma from {granter} to {recipient}: {e}. Rolling back.")
-        conn.rollback()
+        LOGGER.error(f"SQLite error when granting {delta} karma from {granter} to {recipient}: {e}")
         raise e
 
 
 def is_entity_disabled(conn: Connection, entity_name: str) -> bool:
     try:
-        cursor: Cursor = conn.execute("SELECT disabled "
-                                      "FROM entities "
-                                      "WHERE entity_name = ?",
-                                      (entity_name,))
+        cursor: Cursor = execute_query(conn,
+                                       """SELECT disabled
+                                      FROM entities 
+                                      WHERE entity_name = ?""",
+                                       (entity_name,))
+        # cursor: Cursor = conn.execute("SELECT disabled "
+        #                               "FROM entities "
+        #                               "WHERE entity_name = ?",
+        #                               (entity_name,))
         return cursor.fetchone()[0]
     except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error when checking if `{entity_name}` is disabled: {e}")
+        LOGGER.error(f"Error when checking if '{entity_name}' is disabled: {e}")
         raise e
 
 
@@ -104,17 +147,16 @@ def is_entity_disabled(conn: Connection, entity_name: str) -> bool:
 def disable_entity(entity_name: str) -> None:
     try:
         with sqlite3.connect(DB_FILE) as conn:
-            conn.execute("UPDATE entities "
-                         "SET disabled = TRUE "
-                         "WHERE entity_name = ?",
-                         (entity_name,))
-            conn.commit()
+            execute_query(conn,
+                          """UPDATE entities
+                         SET disabled = TRUE
+                         WHERE entity_name = ?""",
+                          (entity_name,))
             msg: str = f"Entity '{entity_name}' has been disabled"
             print(msg)
             LOGGER.info(msg)
     except sqlite3.Error as e:
-        conn.rollback()
-        msg: str = f"SQLite error when disabling '{entity_name}': {e}. Rolling back."
+        msg: str = f"Error when disabling '{entity_name}': {e}"
         print(msg)
         LOGGER.error(msg)
 
@@ -140,19 +182,30 @@ def enable_entity(entity_name: str) -> None:
 def export_all_grants() -> None:
     try:
         with sqlite3.connect(DB_FILE) as conn:
-            cursor: Cursor = conn.execute("SELECT r.entity_name AS recipient_name, "
-                                          "g.entity_name AS granter_name, "
-                                          "gr.delta, "
-                                          "gr.timestamp "
-                                          "FROM grants gr "
-                                          "JOIN entities r on gr.recipient_id = r.entity_id "
-                                          "JOIN entities g on gr.granter_id = g.entity_id "
-                                          "ORDER BY gr.timestamp;")
+            cursor: Cursor = execute_query(conn,
+                                           """SELECT r.entity_name AS recipient_name,
+                                          g.entity_name AS granter_name,
+                                          gr.delta,
+                                          gr.timestamp
+                                          FROM grants gr
+                                          JOIN entities r on gr.recipient_id = r.entity_id
+                                          JOIN entities g on gr.granter_id = g.entity_id
+                                          ORDER BY gr.timestamp;""",
+                                           ())
+            # cursor: Cursor = conn.execute("SELECT r.entity_name AS recipient_name, "
+            #                               "g.entity_name AS granter_name, "
+            #                               "gr.delta, "
+            #                               "gr.timestamp "
+            #                               "FROM grants gr "
+            #                               "JOIN entities r on gr.recipient_id = r.entity_id "
+            #                               "JOIN entities g on gr.granter_id = g.entity_id "
+            #                               "ORDER BY gr.timestamp;")
             results = cursor.fetchall()
 
     except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error when retrieving all grants: {e}.")
-        sys.exit("Error -- see log for details.")
+        msg: str = f"SQLite error when retrieving all grants: {e}"
+        LOGGER.error(msg)
+        sys.exit(msg)
 
     with open(ALL_GRANTS_CSV_FILE, 'w') as file:
         file.write('TIMESTAMP,KARMA GRANTER,KARMA AMOUNT,KARMA RECIPIENT\n')
@@ -174,8 +227,9 @@ def init_db() -> None:
             try:
                 conn.executescript(ddl)
             except sqlite3.Error as e:
-                LOGGER.error(f"SQLite error when creating DB: {e}.")
-                sys.exit(f"SQLite error: {e}")
+                msg: str = f"SQLite error when creating DB: {e}"
+                LOGGER.error(msg)
+                sys.exit(msg)
     msg: str = f"Database at {DB_FILE} initialized"
     print(msg)
     LOGGER.info(msg)
