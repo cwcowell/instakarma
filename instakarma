@@ -45,6 +45,12 @@ def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
         conn.rollback()
         raise e
 
+def backup_db(destination_file: str) -> None:
+    with sqlite3.connect(DB_FILE) as source, sqlite3.connect(destination_file) as destination:
+        source.backup(destination)
+    msg: str = f"'{DB_FILE}' backed up to '{destination_file}'"
+    LOG.info(msg)
+    print(msg)
 
 # --- HELPER METHODS --
 
@@ -168,7 +174,7 @@ def export_grant_history() -> None:
                                            """
 SELECT r.entity_name AS recipient_name,
 g.entity_name AS granter_name,
-gr.delta,
+gr.amount,
 gr.timestamp
 FROM grants gr
 JOIN entities r on gr.recipient_id = r.entity_id
@@ -246,11 +252,12 @@ def test() -> None:
 
     with get_db_connection() as conn:
         try:
-            grant_karma(conn, "@alice", "@bob", 1)
-            grant_karma(conn, "@bob", "@charlie", 1)
-            grant_karma(conn, "@charlie", "@alice", -1)
-            grant_karma(conn, "@alice", "@bob", 1)
-            grant_karma(conn, "@charlie", "@bob", 1)
+            for i in range (3):
+                grant_karma(conn, "@alice", "@bob", 1)
+                grant_karma(conn, "@bob", "@charlie", 1)
+                grant_karma(conn, "@charlie", "@alice", -1)
+                grant_karma(conn, "@alice", "@bob", 1)
+                grant_karma(conn, "@charlie", "@bob", 1)
 
             try:
                 print("Karma for @alice:", get_karma(conn, "@alice"))
@@ -278,6 +285,9 @@ def main() -> None:
 
     group = parser.add_mutually_exclusive_group()
 
+    group.add_argument('--backup-db',
+                       metavar='<BACKUP-FILE-NAME>',
+                       help='Copy contents of DB to <BACKUP-FILE-NAME>')
     group.add_argument('--disable',
                        metavar='<ENTITY-TO-DISABLE>',
                        help='Disable an entity, like @Bob or Python')
@@ -305,7 +315,9 @@ def main() -> None:
 
     args: argparse.Namespace = parser.parse_args()
 
-    if args.disable:
+    if args.backup_db:
+        backup_db(destination_file=args.backup_db)
+    elif args.disable:
         change_entity_status(entity_name=args.disable, status='disabled')
     elif args.enable:
         change_entity_status(entity_name=args.enable, status='enabled')
