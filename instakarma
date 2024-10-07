@@ -2,38 +2,37 @@
 
 import argparse
 import logging
-import os
 import sqlite3
 import sys
 
 from argparse import ArgumentParser
 from logging import Logger
 from sqlite3 import Connection, Cursor
-from typing import Final
+from typing import Final, Literal
 
 # --- CONSTANTS ---
 
-ALL_GRANTS_CSV_FILE: Final[str] = 'all_grants.csv'
 DB_FILE: Final[str] = 'instakarma.db'
 DB_DDL_FILE: Final[str] = 'instakarma_ddl.sql'
+GRANTS_CSV_FILE: Final[str] = 'all_grants.csv'
 LOG_FILE: Final[str] = 'instakarma.log'
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%m/%d/%Y %I:%M:%S %p',
                     filename=LOG_FILE)
-LOGGER: Final[Logger] = logging.getLogger(__name__)
+LOG: Final[Logger] = logging.getLogger(__name__)
 
 
 # --- DB METHODS ---
 
 def get_db_connection() -> Connection:
     try:
-        conn = sqlite3.connect(DB_FILE)
-        return conn
+        with sqlite3.connect(DB_FILE) as conn:
+            return conn
     except sqlite3.Error as e:
-        msg: str = f"Error connecting to database: {e}"
-        LOGGER.error(msg)
+        msg: str = f"Error connecting to database file '{DB_FILE}': {e}"
+        LOG.error(msg)
         sys.exit(msg)
 
 
@@ -42,7 +41,7 @@ def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
         cursor: Cursor = conn.execute(query, parms)
         return cursor
     except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error: {e}")
+        LOG.error(f"Rolling back because of error: {e}\nQuery: {query}\nParms: {parms}")
         conn.rollback()
         raise e
 
@@ -51,218 +50,187 @@ def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
 
 def add_entity(conn: Connection, entity_name: str) -> None:
     try:
+        # Add an entity to the table if it doesn't already exist, and do nothing if it does already exist
         execute_query(conn,
-                      "INSERT OR IGNORE INTO entities (entity_name) "
-                      "VALUES (?)",
+                      """
+INSERT OR IGNORE INTO entities (entity_name)
+VALUES (?)""",
                       (entity_name,))
-        conn.commit()  # no-op if query was a SELECT
+        conn.commit()
     except sqlite3.Error as e:
-        LOGGER.error(f"Error when adding entity")
+        LOG.error(f"Error when adding entity '{entity_name}': {e}")
         raise e
 
 
 def get_karma(conn: Connection, entity_name: str) -> int:
     try:
-        # cursor: Cursor = conn.execute("SELECT karma "
-        #                               "FROM entities "
-        #                               "WHERE entity_name = ?",
-        #                               (entity_name,))
         cursor: Cursor = execute_query(conn,
-                                       "SELECT karma "
-                                       "FROM entities "
-                                       "WHERE entity_name = ?",
+                                       """
+SELECT karma
+FROM entities
+WHERE entity_name = ? AND disabled = FALSE""",
                                        (entity_name,))
-
         result = cursor.fetchone()
-        if result[0]:
+        if result:
             return result[0]
         else:
-            LOGGER.error(f"Error: no karma returned for {entity_name}")
+            LOG.info(f"Error: entity '{entity_name}' is either disabled or doesn't exist in 'entities' table")
             raise ValueError
 
     except sqlite3.Error as e:
-        LOGGER.error(f"Error when getting karma for entity '{entity_name}'")
+        LOG.error(f"Error when getting karma for '{entity_name}'")
         raise e
 
 
-def grant_karma(conn: Connection, granter: str, recipient: str, delta: int) -> None:
+def grant_karma(conn: Connection, granter: str, recipient: str, amount: int) -> None:
+    if granter == recipient:
+        LOG.error(f"Entity '{granter}' can't grant self-karma")
+        # TODO: SEND SLACK MESSAGE DENYING SELF-KARMA
+        return
+
     add_entity(conn, granter)
     add_entity(conn, recipient)
 
     if is_entity_disabled(conn, recipient):
-        LOGGER.info(f"Not granting karma to disabled entity '{recipient}'")
+        LOG.info(f"Can't grant karma to disabled entity '{recipient}'")
         # TODO: send message to Slack saying recipient is not participating in Instakarma
         return
 
     try:
-        # insert into the `actions` table using subqueries to look up `entity_id` for granter and recipient
-        execute_query(conn, """INSERT INTO grants (granter_id, recipient_id, delta)
-                            SELECT
-                                (SELECT entity_id FROM entities WHERE entity_name = ?),
-                                (SELECT entity_id FROM entities WHERE entity_name = ?),
-                                ?""",
-                      (granter, recipient, delta))
-        # conn.execute("""INSERT INTO grants (granter_id, recipient_id, delta)
-        #                     SELECT
-        #                         (SELECT entity_id FROM entities WHERE entity_name = ?),
-        #                         (SELECT entity_id FROM entities WHERE entity_name = ?),
-        #                         ?""",
-        #              (granter, recipient, delta))
+        # insert into the 'grants' table using subqueries to look up 'entity_id' for granter and recipient
+        execute_query(conn,
+                      """
+INSERT INTO grants (granter_id, recipient_id, amount)
+SELECT
+    (SELECT entity_id FROM entities WHERE entity_name = ?),
+    (SELECT entity_id FROM entities WHERE entity_name = ?),
+    ?
+                        """,
+                      (granter, recipient, amount))
 
         execute_query(conn,
-                      """UPDATE entities
-                      SET karma = karma + ?
-                      WHERE entity_name = ?""",
-                      (delta, recipient))
-        # conn.execute("UPDATE entities "
-        #              "SET karma = karma + ? "
-        #              "WHERE entity_name = ?",
-        #              (delta, recipient))
+                      """
+UPDATE entities
+SET karma = karma + ?
+WHERE entity_name = ?""",
+                      (amount, recipient))
+
         conn.commit()
 
     except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error when granting {delta} karma from {granter} to {recipient}: {e}")
+        LOG.error(f"Error when granting '{amount}' karma from '{granter}' to '{recipient}': {e}")
         raise e
 
 
 def is_entity_disabled(conn: Connection, entity_name: str) -> bool:
     try:
         cursor: Cursor = execute_query(conn,
-                                       """SELECT disabled
-                                      FROM entities 
-                                      WHERE entity_name = ?""",
+                                       """
+SELECT disabled
+FROM entities 
+WHERE entity_name = ?""",
                                        (entity_name,))
-        # cursor: Cursor = conn.execute("SELECT disabled "
-        #                               "FROM entities "
-        #                               "WHERE entity_name = ?",
-        #                               (entity_name,))
         return cursor.fetchone()[0]
     except sqlite3.Error as e:
-        LOGGER.error(f"Error when checking if '{entity_name}' is disabled: {e}")
+        LOG.error(f"Error when checking if '{entity_name}' is disabled: {e}")
         raise e
 
 
 # --- main operations ---
 
-def disable_entity(entity_name: str) -> None:
+def change_entity_status(entity_name: str, status: Literal['disabled', 'enabled']) -> None:
+    if status not in ['disabled', 'enabled']:
+        msg: str = f"Unknown status passed to change_entity_status(): '{status}'. Must be 'disabled' or 'enabled'"
+        LOG.error(msg)
+        sys.exit(msg)
     try:
-        with sqlite3.connect(DB_FILE) as conn:
+        with get_db_connection() as conn:
             execute_query(conn,
-                          """UPDATE entities
-                         SET disabled = TRUE
-                         WHERE entity_name = ?""",
+                          f"""
+    UPDATE entities
+    SET disabled = {'TRUE' if status == 'disabled' else 'FALSE'}
+    WHERE entity_name = ?""",
                           (entity_name,))
-            msg: str = f"Entity '{entity_name}' has been disabled"
-            print(msg)
-            LOGGER.info(msg)
-    except sqlite3.Error as e:
-        msg: str = f"Error when disabling '{entity_name}': {e}"
-        print(msg)
-        LOGGER.error(msg)
-
-
-def enable_entity(entity_name: str) -> None:
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            conn.execute("UPDATE entities "
-                         "SET disabled = FALSE "
-                         "WHERE entity_name = ?",
-                         (entity_name,))
             conn.commit()
-            msg: str = f"Entity '{entity_name}' has been enabled"
-            print(msg)
-            LOGGER.info(msg)
-    except sqlite3.Error as e:
-        conn.rollback()
-        msg: str = f"SQLite error when enabling '{entity_name}': {e}. Rolling back."
+        msg: str = f"Entity '{entity_name}' has been {'disabled' if status == 'disabled' else 'enabled'}"
         print(msg)
-        LOGGER.error(msg)
+        LOG.info(msg)
+    except sqlite3.Error as e:
+        msg: str = f"Error when {"disabling" if status == 'disabled' else "enabling"} '{entity_name}': {e}"
+        print(msg)
+        LOG.error(msg)
 
 
-def export_all_grants() -> None:
+def export_grant_history() -> None:
     try:
         with sqlite3.connect(DB_FILE) as conn:
             cursor: Cursor = execute_query(conn,
-                                           """SELECT r.entity_name AS recipient_name,
-                                          g.entity_name AS granter_name,
-                                          gr.delta,
-                                          gr.timestamp
-                                          FROM grants gr
-                                          JOIN entities r on gr.recipient_id = r.entity_id
-                                          JOIN entities g on gr.granter_id = g.entity_id
-                                          ORDER BY gr.timestamp;""",
+                                           """
+SELECT r.entity_name AS recipient_name,
+g.entity_name AS granter_name,
+gr.delta,
+gr.timestamp
+FROM grants gr
+JOIN entities r on gr.recipient_id = r.entity_id
+JOIN entities g on gr.granter_id = g.entity_id
+ORDER BY gr.timestamp;""",
                                            ())
-            # cursor: Cursor = conn.execute("SELECT r.entity_name AS recipient_name, "
-            #                               "g.entity_name AS granter_name, "
-            #                               "gr.delta, "
-            #                               "gr.timestamp "
-            #                               "FROM grants gr "
-            #                               "JOIN entities r on gr.recipient_id = r.entity_id "
-            #                               "JOIN entities g on gr.granter_id = g.entity_id "
-            #                               "ORDER BY gr.timestamp;")
             results = cursor.fetchall()
 
     except sqlite3.Error as e:
-        msg: str = f"SQLite error when retrieving all grants: {e}"
-        LOGGER.error(msg)
+        msg: str = f"Error when retrieving all grants: {e}"
+        LOG.error(msg)
         sys.exit(msg)
 
-    with open(ALL_GRANTS_CSV_FILE, 'w') as file:
+    with open(GRANTS_CSV_FILE, 'w') as file:
         file.write('TIMESTAMP,KARMA GRANTER,KARMA AMOUNT,KARMA RECIPIENT\n')
         for recipient_name, granter_name, delta, timestamp in results:
             file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
 
-    msg: str = f"All grants exported as CSV to {ALL_GRANTS_CSV_FILE}"
+    msg: str = f"All grants exported as CSV to {GRANTS_CSV_FILE}"
     print(msg)
-    LOGGER.info(msg)
+    LOG.info(msg)
 
 
 def init_db() -> None:
+    import os
     if os.path.exists(DB_FILE):
-        LOGGER.info(f"Database file '{DB_FILE}' already exists. No changes made.")
-    else:
-        with sqlite3.connect(DB_FILE) as conn:
-            with open('instakarma_ddl.sql') as ddl_file:
-                ddl: str = ddl_file.read()
-            try:
-                conn.executescript(ddl)
-            except sqlite3.Error as e:
-                msg: str = f"SQLite error when creating DB: {e}"
-                LOGGER.error(msg)
-                sys.exit(msg)
-    msg: str = f"Database at {DB_FILE} initialized"
-    print(msg)
-    LOGGER.info(msg)
+        LOG.info(f"Database file '{DB_FILE}' already exists. No changes made.")
+        return
+
+    with get_db_connection() as conn:
+        with open(DB_DDL_FILE) as ddl_file:
+            ddl: str = ddl_file.read()
+        try:
+            conn.executescript(ddl)
+            conn.commit()
+            msg: str = f"Database at {DB_FILE} initialized"
+            print(msg)
+            LOG.info(msg)
+        except sqlite3.Error as e:
+            msg: str = f"Error when creating DB: {e}"
+            LOG.error(msg)
+            sys.exit(msg)
 
 
-def list_alphabetical() -> None:
+def list_entities(order: Literal['karma', 'entity_name']) -> None:
+    if order not in ['karma', 'entity_name']:
+        LOG.error(f"Unknown order passed to list(): '{order}'. Must be 'karma' or 'name'")
+        return
     try:
-        with sqlite3.connect(DB_FILE) as conn:
-            cursor: Cursor = conn.execute("SELECT karma, entity_name "
-                                          "FROM entities "
-                                          "WHERE disabled = FALSE "
-                                          "ORDER BY entity_name;")
-            results = cursor.fetchall()
-            for entity_name, karma in results:
-                print(f"{entity_name} {karma}")
+        with get_db_connection() as conn:
+            cursor: Cursor = conn.execute(f"""
+    SELECT karma, entity_name
+    FROM entities
+    WHERE disabled = FALSE
+    ORDER BY {order} {'DESC' if order == 'karma' else 'ASC'}""")
+        results = cursor.fetchall()
+        for entity_name, karma in results:
+            print(f"{karma} {entity_name}")
     except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error when retrieving alphabetical list of karma: {e}.")
-        sys.exit(f"SQLite error: {e}")
-
-
-def list_ranked() -> None:
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            cursor: Cursor = conn.execute("SELECT karma, entity_name "
-                                          "FROM entities "
-                                          "WHERE disabled = FALSE "
-                                          "ORDER BY karma DESC;")
-            results = cursor.fetchall()
-            for karma, entity_name in results:
-                print(f"{karma}\t{entity_name}")
-    except sqlite3.Error as e:
-        LOGGER.error(f"SQLite error when retrieving ranked list of karma: {e}.")
-        sys.exit(f"SQLite error: {e}")
+        msg: str = f"Error when retrieving list of entities: {e}"
+        LOG.error(msg)
+        sys.exit(msg)
 
 
 def monitor_slack() -> None:
@@ -276,7 +244,7 @@ def test() -> None:
     #     pass
     init_db()
 
-    with sqlite3.connect(DB_FILE) as conn:
+    with get_db_connection() as conn:
         try:
             grant_karma(conn, "@alice", "@bob", 1)
             grant_karma(conn, "@bob", "@charlie", 1)
@@ -284,16 +252,23 @@ def test() -> None:
             grant_karma(conn, "@alice", "@bob", 1)
             grant_karma(conn, "@charlie", "@bob", 1)
 
-            conn.commit()
+            try:
+                print("Karma for @alice:", get_karma(conn, "@alice"))
+            except ValueError:
+                LOG.info(f"could not get karma for '@alice' -- maybe disabled")
 
-            print("Karma for @alice:", get_karma(conn, "@alice"))
-            print("Karma for @bob:", get_karma(conn, "@bob"))
-            print("Karma for @charlie:", get_karma(conn, "@charlie"))
+            try:
+                print("Karma for @bob:", get_karma(conn, "@bob"))
+            except ValueError:
+                LOG.info(f"could not get karma for '@bob' -- maybe disabled")
+
+            try:
+                print("Karma for @charlie:", get_karma(conn, "@charlie"))
+            except ValueError:
+                LOG.info(f"could not get karma for '@charlie' -- maybe disabled")
 
         except sqlite3.Error as e:
-            LOGGER.error(f"SQLite error when granting or getting karma: {e}. Rolling back.")
-            conn.rollback()
-            sys.exit(f"SQLite error: {e}")
+            sys.exit(f"Error: {e}")
 
 
 def main() -> None:
@@ -303,45 +278,45 @@ def main() -> None:
 
     group = parser.add_mutually_exclusive_group()
 
-    group.add_argument('--disable-entity',
+    group.add_argument('--disable',
                        metavar='<ENTITY-TO-DISABLE>',
                        help='Disable an entity, like @Bob or Python')
-    group.add_argument('--enable-entity',
+    group.add_argument('--enable',
                        metavar='<ENTITY-TO-ENABLE>',
                        help='Enable an entity, like @Bob or Python')
-    group.add_argument('--export-all-grants',
+    group.add_argument('--export-grant-history',
                        action='store_true',
-                       help='View history of all karma grants')
+                       help='Export history of all karma grants as CSV')
     group.add_argument('--init-db',
                        action='store_true',
                        help='Non-destructively initialize the DB')
-    group.add_argument('--list-alphabetical',
+    group.add_argument('--list-by-name',
                        action='store_true',
-                       help='List users in alphabetical order')
-    group.add_argument('--list-ranked',
+                       help='List users by name')
+    group.add_argument('--list-by-karma',
                        action='store_true',
-                       help='List users in karma order')
+                       help='List users by karma')
     group.add_argument('--monitor-slack',
                        action='store_true',
-                       help='monitor Slack (this is normal mode)')
+                       help='monitor Slack (the whole point of this app)')
     group.add_argument('--test',
                        action='store_true',
                        help='For debugging only -- remove this in prod')
 
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
-    if args.disable_entity:
-        disable_entity(entity_name=args.disable_entity)
-    elif args.enable_entity:
-        enable_entity(entity_name=args.enable_entity)
-    elif args.export_all_grants:
-        export_all_grants()
+    if args.disable:
+        change_entity_status(entity_name=args.disable, status='disabled')
+    elif args.enable:
+        change_entity_status(entity_name=args.enable, status='enabled')
+    elif args.export_grant_history:
+        export_grant_history()
     elif args.init_db:
         init_db()
-    elif args.list_alphabetical:
-        list_alphabetical()
-    elif args.list_ranked:
-        list_ranked()
+    elif args.list_by_karma:
+        list_entities(order='karma')
+    elif args.list_by_name:
+        list_entities(order='entity_name')
     elif args.monitor_slack:
         monitor_slack()
     elif args.test:

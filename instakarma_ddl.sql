@@ -17,11 +17,11 @@ CREATE TABLE entities (
 
 -- Log individual karma grants for auditing
 CREATE TABLE grants (
-    grant_id    INTEGER  PRIMARY KEY, -- SQLite autoincrements primary keys automatically
-    granter_id   INTEGER  NOT NULL,
-    recipient_id INTEGER  NOT NULL,
-    delta        INTEGER  NOT NULL CHECK (delta IN (-1, 1)),
-    timestamp    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    grant_id      INTEGER  PRIMARY KEY, -- SQLite autoincrements primary keys automatically
+    granter_id    INTEGER  NOT NULL,
+    recipient_id  INTEGER  NOT NULL,
+    amount        INTEGER  NOT NULL CHECK (amount IN (-1, 1)),
+    timestamp     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (granter_id) REFERENCES entities (entity_id),
     FOREIGN KEY (recipient_id) REFERENCES entities (entity_id)
 );
