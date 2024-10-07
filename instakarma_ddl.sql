@@ -16,8 +16,8 @@ CREATE TABLE entities (
 );
 
 -- Log individual karma grants for auditing
-CREATE TABLE actions (
-    action_id    INTEGER  PRIMARY KEY, -- SQLite autoincrements primary keys automatically
+CREATE TABLE grants (
+    grant_id    INTEGER  PRIMARY KEY, -- SQLite autoincrements primary keys automatically
     granter_id   INTEGER  NOT NULL,
     recipient_id INTEGER  NOT NULL,
     delta        INTEGER  NOT NULL CHECK (delta IN (-1, 1)),
