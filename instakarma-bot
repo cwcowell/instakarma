@@ -1,44 +1,27 @@
+#!/usr/bin/env python3
+from slack_sdk.web import SlackResponse
+
+from constants import *
+from exceptions import *
+
 import logging.handlers
-from logging.handlers import RotatingFileHandler
-from logging import Logger
 import os
 import sqlite3
-from sqlite3 import Connection, Cursor
 import sys
-from typing import Final
+
+from logging import Logger
+from logging.handlers import RotatingFileHandler
+from sqlite3 import Connection, Cursor
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-# ---
-# Constants
-# ---
-
-DB_FILE: Final[str] = 'db/instakarma.db'
-DB_DDL_FILE: Final[str] = 'db/instakarma_ddl.sql'
-
-LOG_FILE: Final[str] = 'log/instakarma.log'
-LOG_FILE_SIZE: Final[int] = 1024 * 1024 * 5
-LOG_FILE_COUNT: Final[int] = 3
-
 
 # ---
-# Custom exceptions/errors
+# Logging utilities
 # ---
 
-class SelfGrantError(Exception):
-    pass
-
-
-class DisabledEntityError(Exception):
-    pass
-
-
-# ---
-# Utilities
-# ---
-
-def configure_logger() -> Logger:
+def init_logger() -> Logger:
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)  # make logs dirs, if needed
     logger: Logger = logging.getLogger(__name__)
     logger.setLevel('INFO')
@@ -59,7 +42,7 @@ def log_error_and_quit(msg: str) -> None:
 
 
 # ---
-# DB operations
+# DB utilities
 # ---
 
 def get_db_connection() -> Connection:
@@ -130,22 +113,29 @@ def is_entity_disabled(conn: Connection, entity: str) -> bool:
         raise e
 
 
-def extract_recipients(msg_text: str, action: str) -> list[str]:
-    recipients: list[str] = []
-    words: list[str] = msg_text.split()
-    for word in words:
-        if word.endswith(action):
-            recipient: str = word[:-len(action)]
-            if recipient:
-                recipients.append(recipient)
-    return recipients
-
-
 def detect_granter_and_recipients(msg_details: dict, action: str) -> (str, list[str]):
     granter: str = msg_details['user']
     msg_text: str = msg_details['text']
     recipients: list[str] = extract_recipients(msg_text, action)
     return granter, recipients
+
+
+def extract_recipients(msg_text: str, action: str) -> list[str]:
+    recipients: list[str] = []
+    words: list[str] = msg_text.split()
+    for word in words:
+        if word.endswith(action):
+            recipient_user_id: str = word[:-len(action)]
+            if recipient_user_id:
+                recipient_user_info: SlackResponse = app.client.users_identity(token=SLACK_USER_TOKEN,
+                                                                               user=recipient_user_id)
+                recipient_user_name: str = recipient_user_info['user']['name']
+
+                # if the recipient is a user and not an entity like 'ruby', add '@' to start of user_name
+                if recipient_user_id.startswith('<@'):
+                    recipient = '@' + recipient
+                recipients.append(recipient_user_name)
+    return recipients
 
 
 # ---
@@ -221,15 +211,32 @@ app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 # Listen for "++" in any message in any channel the bot subscribes to.
 @app.message(r'\+\+')
-def add_karma_handler(message: dict, say) -> None:
+def double_plus_handler(message: dict, say) -> None:
     granter: str
     recipients: list[str]
     granter, recipients = detect_granter_and_recipients(message, '++')
     with get_db_connection() as conn:
         for recipient in recipients:
-            grant_karma(conn, granter, recipient, 1)
+            try:
+                grant_karma(conn, granter, recipient, 1)
+                recipient_total_karma: int = get_karma(conn, recipient)
+                say(f"{recipient} leveled up ({recipient_total_karma} karma).")
+                say(f"user with angle brackets and @: <@{message['user']}>")
+            except SelfGrantError:
+                say("You can't grant karma to yourself.")
+
+
+# Listen for "--" in any message in any channel the bot subscribes to.
+@app.message(r'\-\-')
+def double_minus_handler(message: dict, say) -> None:
+    granter: str
+    recipients: list[str]
+    granter, recipients = detect_granter_and_recipients(message, '--')
+    with get_db_connection() as conn:
+        for recipient in recipients:
+            grant_karma(conn, granter, recipient, -1)
             recipient_total_karma: int = get_karma(conn, recipient)
-            say(f"{recipient} leveled up ({recipient_total_karma} karma)")
+            say(f"{recipient} leveled down ({recipient_total_karma} karma)")
 
 
 # # Listen for "--" in any message in any channel the bot subscribes to.
@@ -243,7 +250,7 @@ def add_karma_handler(message: dict, say) -> None:
 
 
 if __name__ == "__main__":
-    logger = configure_logger()
-    init_db()  # non-destructively create a DB if it isn't there already
+    logger: Logger = init_logger()  # global var, instead of passing it all around
+    init_db()  # non-destructively create a DB
     SocketModeHandler(app=app,
                       app_token=os.environ["SLACK_APP_TOKEN"]).start()
