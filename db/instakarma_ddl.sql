@@ -10,7 +10,7 @@ PRAGMA synchronous = NORMAL;
 CREATE TABLE entities (
     entity_id   INTEGER  PRIMARY KEY,     -- SQLite autoincrements primary keys automatically
     entity_name TEXT     NOT NULL UNIQUE, -- a Slack username like `@foo` or anything else like `Python`
-    karma       INTEGER  NOT NULL DEFAULT 0,
+    karma       INTEGER  NOT NULL DEFAULT 0, -- this could be calculated from grants table, but is here for efficiency
     disabled    BOOLEAN  NOT NULL DEFAULT FALSE,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

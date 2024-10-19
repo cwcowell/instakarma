@@ -13,7 +13,7 @@ from typing import Final, Literal
 # --- CONSTANTS ---
 
 DB_FILE: Final[str] = 'instakarma.db'
-DB_DDL_FILE: Final[str] = 'instakarma_ddl.sql'
+DB_DDL_FILE: Final[str] = 'db/instakarma_ddl.sql'
 GRANTS_CSV_FILE: Final[str] = 'all_grants.csv'
 LOG_FILE: Final[str] = 'instakarma.log'
 

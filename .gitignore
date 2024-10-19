@@ -1,3 +1,7 @@
 # IntelliJ IDEA config files
 .idea/
 *.iml
+db/instakarma.db
+db/instakarma.db-shm
+db/instakarma.db-wal
+logs/*
