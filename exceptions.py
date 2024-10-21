@@ -1,5 +1,5 @@
 class SelfGrantError(Exception):
-    """A greedy user has tried to grant themsleves karma.
+    """A greedy user has tried to grant themselves karma.
 
     This should be handled.
     """
@@ -7,8 +7,16 @@ class SelfGrantError(Exception):
 
 
 class DisabledEntityError(Exception):
-    """A has tried to grant karma to a disabled entity.
+    """A user has tried to grant karma to a disabled entity.
 
+    This should be handled.
+    """
+    pass
+
+
+class UserIdNotInDbError:
+    """Tried to look up a user by 'user_id' in 'entities' table, but wasn't found.
+    
     This should be handled.
     """
     pass
