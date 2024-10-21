@@ -61,9 +61,9 @@ def add_entity(conn: Connection, entity_name: str) -> None:
         # Add an entity to the table if it doesn't already exist, and do nothing if it does already exist
         execute_query(conn,
                       """
-INSERT OR IGNORE INTO entities (entity_name)
+INSERT OR IGNORE INTO entities (name)
 VALUES (?)""",
-                      (entity_name,))
+                      (name,))
         conn.commit()
     except sqlite3.Error as e:
         LOG.error(f"Error when adding entity '{entity_name}': {e}")

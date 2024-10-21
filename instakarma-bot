@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 from constants import *
 from exceptions import *
 
@@ -72,6 +71,7 @@ def init_db() -> None:
 def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
     try:
         cursor: Cursor = conn.execute(query, parms)
+        conn.commit()
         return cursor
     except sqlite3.Error as e:
         logger.error(f"Rolling back because of error: {e} --- Query: {query} --- Parms: {parms}")
@@ -83,23 +83,6 @@ def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
 # Helpers
 # ---
 
-def add_user(conn: Connection, user_id: str) -> None:  # TODO: DO WE NEED TWO METHODS, ONE FOR ADDING USER_IDs and one for adding user_names? Not sure what format we get new users in.
-    if entity_name.startswith('@'):
-        # call API to get user_name for this user_id
-
-    try:
-        # Add an entity to the table if it doesn't already exist. Do nothing if it already exists.
-        execute_query(conn,
-                      """
-                      INSERT OR IGNORE INTO entities (entity_name, user_id)
-                      VALUES (?)
-                      """,
-                      (entity_name, user_id))
-        conn.commit()
-    except sqlite3.Error as e:
-        logger.error(f"Couldn't add entity '{entity_name}': {e}")
-        raise e
-
 
 def is_entity_disabled(conn: Connection, entity: str) -> bool:
     try:
@@ -107,7 +90,7 @@ def is_entity_disabled(conn: Connection, entity: str) -> bool:
                                        """
                                        SELECT disabled
                                        FROM entities
-                                       WHERE entity_name = ?
+                                       WHERE name = ?
                                        """,
                                        (entity,))
         return cursor.fetchone()[0]
@@ -120,21 +103,34 @@ def convert_user_id_to_user_name(conn: Connection, user_id: str) -> str:
     try:
         cursor: Cursor = execute_query(conn,
                                        """
-                                       SELECT entity_name
+                                       SELECT name
                                        FROM entities
                                        WHERE user_id = ?;
                                        """,
                                        (user_id,))
-        first_row_of_results = cursor.fetchone()
-        if first_row_of_results:
-            return cursor.fetchone()[0]
-        logger.info(f"No entity_name found in DB for entity with user_id of '{user_id}'. "
-                    f"Fetching via API and storing in DB.")
-        user_name: str = get_user_name_from_slack(user_id)
-        return user_name
     except sqlite3.Error as e:
-        logger.error(f"Couldn't look up entity_name for entity with user_id of '{user_id}': {e}")
+        logger.error(f"Couldn't look up 'entity.name' for 'entity.user_id' of '{user_id}': {e}")
         raise e
+
+    first_row_of_results = cursor.fetchone()
+    if first_row_of_results:
+        return cursor.fetchone()[0]
+    logger.info(f"No name found in DB for entity with user_id of '{user_id}'. "
+                f"Fetching via API and storing in DB.")
+    user_name: str = get_user_name_from_slack(user_id)
+    try:
+        execute_query(conn,
+                      """
+                      UPDATE entities
+                      SET name = ?
+                      WHERE user_id = ?;
+                      """,
+                      (user_name, user_id))
+    except sqlite3.Error as e:
+        logger.error(f"Couldn't update 'entities' table to set 'name' for 'user_id' of '{user_id}': {e}")
+        raise e
+
+    return user_name
 
 
 def get_user_name_from_slack(user_id: str) -> str:
@@ -145,7 +141,7 @@ def get_user_name_from_slack(user_id: str) -> str:
     return user_name
 
 
-def detect_recognized_user_recipients(msg_text: str) -> list[tuple[str, str]]:
+def detect_recognized_user_recipients(conn: Connection, msg_text: str) -> list[tuple[str, str]]:
     # Capture "foo" and "++" from "<@foo>++" and "<@foo> ++".
     # This covers cases where the recipient is a user who is registered in Slack
     recipient_is_recognized_user_regex: str = r'<@(.*?)>\s?((\+\+)|(--))'
@@ -154,14 +150,14 @@ def detect_recognized_user_recipients(msg_text: str) -> list[tuple[str, str]]:
     for match in regex_matches:
         recipient_user_id: str = match[0]
         action: str = match[1]
-        recipient_user_name: str = convert_user_id_to_user_name(recipient_user_id)
+        recipient_user_name: str = convert_user_id_to_user_name(conn, recipient_user_id)
         recognized_user_recipients.append((recipient_user_name, action))
     return recognized_user_recipients
 
 
 def detect_unrecognized_user_recipients(msg_text: str) -> list[str]:
     # Capture "foo" from "@foo++" and "@foo ++" where there's no "<" before the "@"
-    # This covers cases of trying to grant karma to a user who isn't registered in Slack.
+    # This covers cases of trying to grant karma to a user not registered in Slack.
     # We'll send back an error message in this case.
     recipient_is_unrecognized_user_regex: str = r'(?<!<)@(\w+)\s*(?:\+\+|--)'
     regex_matches = re.findall(recipient_is_unrecognized_user_regex, msg_text)
@@ -195,7 +191,7 @@ def get_karma(conn: Connection, entity: str) -> int:
                                        """
                                        SELECT karma
                                        FROM entities
-                                       WHERE entity_name = ? AND disabled = FALSE
+                                       WHERE name = ? AND disabled = FALSE
                                        """,
                                        (entity,))
         result = cursor.fetchone()
@@ -212,15 +208,15 @@ def get_karma(conn: Connection, entity: str) -> int:
 
 def grant_karma(conn: Connection, granter_user_id: str, recipient_user_name: str, amount: int) -> None:
     granter_user_info = app.client.users_info(user=granter_user_id)
-    granter_user_name = granter_user_info['user']['name'] # TODO: HAVEN'T CHECKED IF THIS WORKS YET
+    granter_user_name = granter_user_info['user']['name']
     granter_user_name = '@' + granter_user_name
 
     if granter_user_name == recipient_user_name:
         logger.info(f"Entity '{granter_user_name}' can't grant self-karma")
         raise SelfGrantError
 
-    add_entity(conn, granter_user_name)
-    add_entity(conn, recipient_user_name)
+    # add_entity(conn, granter_user_name)
+    add_entity(conn, name=recipient_user_name)
 
     if is_entity_disabled(conn, recipient_user_name):
         logger.info(f"Can't grant karma to disabled entity '{recipient_user_name}'")
@@ -232,8 +228,8 @@ def grant_karma(conn: Connection, granter_user_id: str, recipient_user_name: str
                       """
                       INSERT INTO grants (granter_id, recipient_id, amount)
                       SELECT
-                          (SELECT entity_id FROM entities WHERE entity_name = ?),
-                          (SELECT entity_id FROM entities WHERE entity_name = ?),
+                          (SELECT entity_id FROM entities WHERE name = ?),
+                          (SELECT entity_id FROM entities WHERE name = ?),
                           ?
                       """,
                       (granter_user_name, recipient_user_name, amount))
@@ -242,7 +238,7 @@ def grant_karma(conn: Connection, granter_user_id: str, recipient_user_name: str
                       """
                       UPDATE entities
                       SET karma = karma + ?
-                      WHERE entity_name = ?
+                      WHERE name = ?
                       """,
                       (amount, recipient_user_name))
         conn.commit()
@@ -254,24 +250,49 @@ def grant_karma(conn: Connection, granter_user_id: str, recipient_user_name: str
         raise e
 
 
+def add_entity(conn: Connection, user_id=None, name=None) -> None:
+    """ Add an entity to the table if it doesn't already exist. Do nothing if it already exists.
+
+    You must pass `user_id` or `name` or both:
+        * If you pass a `user_id` only, it assumes you're adding a user. It retrieves the `name` for
+        that `user_id`, and sets both fields in the DB row.
+        * If you pass a `name` only, it assumes you're adding a non-person entity and sets only the `user_id`
+        field in the DB row.
+    """
+    if not (user_id or name):
+        log_error_and_quit("Fatal: called `add_entry()` without passing either `user_id` or `name`")
+
+    if not name:
+        name: str = get_user_name_from_slack(user_id)
+
+    try:
+        execute_query(conn,
+                      """
+                      INSERT OR IGNORE INTO entities (name, user_id)
+                      VALUES (?, ?)
+                      """,
+                      (name, user_id))
+    except sqlite3.Error as e:
+        logger.error(f"Couldn't add entity '{name}': {e}")
+        raise e
+
+
 # ---
 # Main logic
 # ---
 
 app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
-
 # Listen for "++" or "--" in any message in any channel the bot subscribes to.
 @app.message(r'(\+\+)|(--)')
 def grant_handler(message: dict, say) -> None:
     with get_db_connection() as conn:
         granter_user_id: str = message['user']
-        granter_user_name: str = convert_user_id_to_user_name(conn, granter_user_id)
-        print(f"granter user name: {granter_user_name}")
+        add_entity(conn, user_id=granter_user_id)
 
         message_text: str = message['text']
 
-        recognized_user_recipients: list[tuple[str, str]] = detect_recognized_user_recipients(message_text)
+        recognized_user_recipients: list[tuple[str, str]] = detect_recognized_user_recipients(conn, message_text)
         print("recognized user recipients: " + str(recognized_user_recipients))
 
         unrecognized_user_recipients: list[str] = detect_unrecognized_user_recipients(message_text)
@@ -280,19 +301,36 @@ def grant_handler(message: dict, say) -> None:
         object_recipients: list[tuple[str, str]] = detect_object_recipients(message_text)
         print("object recipients: " + str(object_recipients))
 
-    #     for recipient in recognized_user_recipients:
-    #         try:
-    #             grant_karma(conn, granter, recipient, 1)
-    #             recipient_total_karma: int = get_karma(conn, recipient)
-    #             say(f"{recipient} leveled up ({recipient_total_karma} karma).")
-    #             say(f"user with angle brackets and @: <@{message['user']}>")
-    #         except SelfGrantError:
-    #             say("You can't grant karma to yourself.")
+        for recipient in recognized_user_recipients:
+            try:
+                recipient_user_name: str = recipient[0]
+                action: str = recipient[1]
+                amount = 1 if action == '++' else -1
+                grant_karma(conn, granter_user_id, recipient_user_name, amount)
+                recipient_total_karma: int = get_karma(conn, recipient_user_name)
+                verb: str = 'leveled up' if action == '++' else 'took a hit'
+                say(f"<{recipient_user_name}> {verb} (now has {recipient_total_karma} karma).")
+            except SelfGrantError:
+                say("You can't grant karma to yourself.")
 
+        for recipient in object_recipients:
+            recipient_user_name: str = recipient[0]
+            action: str = recipient[1]
+            if action == '++':
+                amount: int = 1
+                verb: str = "leveled up"
+            else:
+                amount: int = -1
+                verb: str = "took a hit"
+            grant_karma(conn, granter_user_id, recipient_user_name, amount)
+            recipient_total_karma: int = get_karma(conn, recipient_user_name)
+            say(f"{recipient_user_name} {verb} (now has {recipient_total_karma} karma).")
+
+        for recipient in unrecognized_user_recipients:
+            say(f"Sorry, Instakarma doesn't recognize user {recipient}.")
 
 
 if __name__ == "__main__":
     logger: Logger = init_logger()  # global var, instead of passing it all around
     init_db()  # non-destructively create a DB
-    SocketModeHandler(app=app,
-                      app_token=os.environ["SLACK_APP_TOKEN"]).start()
+    SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"]).start()
