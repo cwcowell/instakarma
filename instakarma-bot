@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-from slack_sdk.web import SlackResponse
 
 from constants import *
 from exceptions import *
 
 import logging.handlers
 import os
+import re
 import sqlite3
 import sys
 
@@ -83,15 +83,18 @@ def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
 # Helpers
 # ---
 
-def add_entity(conn: Connection, entity_name: str) -> None:
+def add_user(conn: Connection, user_id: str) -> None:  # TODO: DO WE NEED TWO METHODS, ONE FOR ADDING USER_IDs and one for adding user_names? Not sure what format we get new users in.
+    if entity_name.startswith('@'):
+        # call API to get user_name for this user_id
+
     try:
         # Add an entity to the table if it doesn't already exist. Do nothing if it already exists.
         execute_query(conn,
                       """
-                      INSERT OR IGNORE INTO entities (entity_name)
+                      INSERT OR IGNORE INTO entities (entity_name, user_id)
                       VALUES (?)
                       """,
-                      (entity_name,))
+                      (entity_name, user_id))
         conn.commit()
     except sqlite3.Error as e:
         logger.error(f"Couldn't add entity '{entity_name}': {e}")
@@ -103,39 +106,83 @@ def is_entity_disabled(conn: Connection, entity: str) -> bool:
         cursor: Cursor = execute_query(conn,
                                        """
                                        SELECT disabled
-                                       FROM entities 
+                                       FROM entities
                                        WHERE entity_name = ?
                                        """,
                                        (entity,))
         return cursor.fetchone()[0]
     except sqlite3.Error as e:
-        logger.error(f"Error when checking if '{entity}' is disabled: {e}")
+        logger.error(f"Couldn't check if '{entity}' is disabled: {e}")
         raise e
 
 
-def detect_granter_and_recipients(msg_details: dict, action: str) -> (str, list[str]):
-    granter: str = msg_details['user']
-    msg_text: str = msg_details['text']
-    recipients: list[str] = extract_recipients(msg_text, action)
-    return granter, recipients
+def convert_user_id_to_user_name(conn: Connection, user_id: str) -> str:
+    try:
+        cursor: Cursor = execute_query(conn,
+                                       """
+                                       SELECT entity_name
+                                       FROM entities
+                                       WHERE user_id = ?;
+                                       """,
+                                       (user_id,))
+        first_row_of_results = cursor.fetchone()
+        if first_row_of_results:
+            return cursor.fetchone()[0]
+        logger.info(f"No entity_name found in DB for entity with user_id of '{user_id}'. "
+                    f"Fetching via API and storing in DB.")
+        user_name: str = get_user_name_from_slack(user_id)
+        return user_name
+    except sqlite3.Error as e:
+        logger.error(f"Couldn't look up entity_name for entity with user_id of '{user_id}': {e}")
+        raise e
 
 
-def extract_recipients(msg_text: str, action: str) -> list[str]:
-    recipients: list[str] = []
-    words: list[str] = msg_text.split()
-    for word in words:
-        if word.endswith(action):
-            recipient_user_id: str = word[:-len(action)]
-            if recipient_user_id:
-                recipient_user_info: SlackResponse = app.client.users_identity(token=SLACK_USER_TOKEN,
-                                                                               user=recipient_user_id)
-                recipient_user_name: str = recipient_user_info['user']['name']
+def get_user_name_from_slack(user_id: str) -> str:
+    """Use Slack API to convert a user ID (e.g., 'U07R69E3YKB') into a user name (e.g., '@elvis')."""
+    user_info = app.client.users_info(user=user_id)
+    user_name = user_info['user']['name']
+    user_name = '@' + user_name
+    return user_name
 
-                # if the recipient is a user and not an entity like 'ruby', add '@' to start of user_name
-                if recipient_user_id.startswith('<@'):
-                    recipient = '@' + recipient
-                recipients.append(recipient_user_name)
-    return recipients
+
+def detect_recognized_user_recipients(msg_text: str) -> list[tuple[str, str]]:
+    # Capture "foo" and "++" from "<@foo>++" and "<@foo> ++".
+    # This covers cases where the recipient is a user who is registered in Slack
+    recipient_is_recognized_user_regex: str = r'<@(.*?)>\s?((\+\+)|(--))'
+    regex_matches = re.findall(recipient_is_recognized_user_regex, msg_text)
+    recognized_user_recipients: list[tuple[str, str]] = []
+    for match in regex_matches:
+        recipient_user_id: str = match[0]
+        action: str = match[1]
+        recipient_user_name: str = convert_user_id_to_user_name(recipient_user_id)
+        recognized_user_recipients.append((recipient_user_name, action))
+    return recognized_user_recipients
+
+
+def detect_unrecognized_user_recipients(msg_text: str) -> list[str]:
+    # Capture "foo" from "@foo++" and "@foo ++" where there's no "<" before the "@"
+    # This covers cases of trying to grant karma to a user who isn't registered in Slack.
+    # We'll send back an error message in this case.
+    recipient_is_unrecognized_user_regex: str = r'(?<!<)@(\w+)\s*(?:\+\+|--)'
+    regex_matches = re.findall(recipient_is_unrecognized_user_regex, msg_text)
+    unrecognized_user_recipients: list[str] = []
+    for match in regex_matches:
+        recipient_name: str = match
+        unrecognized_user_recipients.append(recipient_name)
+    return unrecognized_user_recipients
+
+
+def detect_object_recipients(msg_text: str) -> list[tuple[str, str]]:
+    # Capture "foo" and "++" from "foo++" and "foo ++ only when there's no @ before "foo".
+    # This covers cases where the recipient is a non-person, like "banyan" or "the-internet"
+    recipient_is_object_regex: str = r'\b(?<!@)([\w-]+)\s?((\+\+)|(--))'
+    regex_matches = re.findall(recipient_is_object_regex, msg_text)
+    object_recipients: list[tuple[str, str]] = []
+    for match in regex_matches:
+        recipient_name: str = match[0].lower()
+        action: str = match[1]
+        object_recipients.append((recipient_name, action))
+    return object_recipients
 
 
 # ---
@@ -163,16 +210,20 @@ def get_karma(conn: Connection, entity: str) -> int:
         raise e
 
 
-def grant_karma(conn: Connection, granter: str, recipient: str, amount: int) -> None:
-    if granter == recipient:
-        logger.info(f"Entity '{granter}' can't grant self-karma")
+def grant_karma(conn: Connection, granter_user_id: str, recipient_user_name: str, amount: int) -> None:
+    granter_user_info = app.client.users_info(user=granter_user_id)
+    granter_user_name = granter_user_info['user']['name'] # TODO: HAVEN'T CHECKED IF THIS WORKS YET
+    granter_user_name = '@' + granter_user_name
+
+    if granter_user_name == recipient_user_name:
+        logger.info(f"Entity '{granter_user_name}' can't grant self-karma")
         raise SelfGrantError
 
-    add_entity(conn, granter)
-    add_entity(conn, recipient)
+    add_entity(conn, granter_user_name)
+    add_entity(conn, recipient_user_name)
 
-    if is_entity_disabled(conn, recipient):
-        logger.info(f"Can't grant karma to disabled entity '{recipient}'")
+    if is_entity_disabled(conn, recipient_user_name):
+        logger.info(f"Can't grant karma to disabled entity '{recipient_user_name}'")
         raise DisabledEntityError
 
     try:
@@ -185,7 +236,7 @@ def grant_karma(conn: Connection, granter: str, recipient: str, amount: int) -> 
                           (SELECT entity_id FROM entities WHERE entity_name = ?),
                           ?
                       """,
-                      (granter, recipient, amount))
+                      (granter_user_name, recipient_user_name, amount))
         # make an entry in the 'entities' table, which tracks total karma for each user
         execute_query(conn,
                       """
@@ -193,12 +244,13 @@ def grant_karma(conn: Connection, granter: str, recipient: str, amount: int) -> 
                       SET karma = karma + ?
                       WHERE entity_name = ?
                       """,
-                      (amount, recipient))
+                      (amount, recipient_user_name))
         conn.commit()
-        logger.info(f'{granter} granted {amount} karma to {recipient}')
+        logger.info(f'{granter_user_name} granted {amount} karma to {recipient_user_name}')
 
     except sqlite3.Error as e:
-        logger.error(f"Error when granting '{amount}' karma from '{granter}' to '{recipient}': {e}")
+        logger.error(f"Error when granting '{amount}' karma "
+                     f"from '{granter_user_name}' to '{recipient_user_name}': {e}")
         raise e
 
 
@@ -209,44 +261,34 @@ def grant_karma(conn: Connection, granter: str, recipient: str, amount: int) -> 
 app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 
-# Listen for "++" in any message in any channel the bot subscribes to.
-@app.message(r'\+\+')
-def double_plus_handler(message: dict, say) -> None:
-    granter: str
-    recipients: list[str]
-    granter, recipients = detect_granter_and_recipients(message, '++')
+# Listen for "++" or "--" in any message in any channel the bot subscribes to.
+@app.message(r'(\+\+)|(--)')
+def grant_handler(message: dict, say) -> None:
     with get_db_connection() as conn:
-        for recipient in recipients:
-            try:
-                grant_karma(conn, granter, recipient, 1)
-                recipient_total_karma: int = get_karma(conn, recipient)
-                say(f"{recipient} leveled up ({recipient_total_karma} karma).")
-                say(f"user with angle brackets and @: <@{message['user']}>")
-            except SelfGrantError:
-                say("You can't grant karma to yourself.")
+        granter_user_id: str = message['user']
+        granter_user_name: str = convert_user_id_to_user_name(conn, granter_user_id)
+        print(f"granter user name: {granter_user_name}")
 
+        message_text: str = message['text']
 
-# Listen for "--" in any message in any channel the bot subscribes to.
-@app.message(r'\-\-')
-def double_minus_handler(message: dict, say) -> None:
-    granter: str
-    recipients: list[str]
-    granter, recipients = detect_granter_and_recipients(message, '--')
-    with get_db_connection() as conn:
-        for recipient in recipients:
-            grant_karma(conn, granter, recipient, -1)
-            recipient_total_karma: int = get_karma(conn, recipient)
-            say(f"{recipient} leveled down ({recipient_total_karma} karma)")
+        recognized_user_recipients: list[tuple[str, str]] = detect_recognized_user_recipients(message_text)
+        print("recognized user recipients: " + str(recognized_user_recipients))
 
+        unrecognized_user_recipients: list[str] = detect_unrecognized_user_recipients(message_text)
+        print("unrecognized user recipients: " + str(unrecognized_user_recipients))
 
-# # Listen for "--" in any message in any channel the bot subscribes to.
-# @app.message(r'\-\-')
-# def subtract_karma_handler(msg_details: dict, say) -> None:
-#     msg_text: str = msg_details['text']
-#     total_karma: int = 0
-#     recipient: str = extract_recipient(msg_text, '++')
-#     if recipient:
-#         say(f"{recipient} leveled up ({total_karma} karma)")
+        object_recipients: list[tuple[str, str]] = detect_object_recipients(message_text)
+        print("object recipients: " + str(object_recipients))
+
+    #     for recipient in recognized_user_recipients:
+    #         try:
+    #             grant_karma(conn, granter, recipient, 1)
+    #             recipient_total_karma: int = get_karma(conn, recipient)
+    #             say(f"{recipient} leveled up ({recipient_total_karma} karma).")
+    #             say(f"user with angle brackets and @: <@{message['user']}>")
+    #         except SelfGrantError:
+    #             say("You can't grant karma to yourself.")
+
 
 
 if __name__ == "__main__":

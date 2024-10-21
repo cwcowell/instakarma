@@ -1,21 +1,22 @@
--- Data definitions for SQLite 3.45
+-- data definitions for SQLite 3.45
 
 PRAGMA foreign_keys = ON; -- Weirdly required by SQLite
 
--- Optimizations for expected workload
+-- optimizations for expected workload: DB spread across multiple files
 PRAGMA journal_mode = WAL;
 PRAGMA synchronous = NORMAL;
 
--- Store current (not historical) karma for all entities
+-- store current (not historical) karma for all entities
 CREATE TABLE entities (
-    entity_id   INTEGER  PRIMARY KEY,     -- SQLite autoincrements primary keys automatically
-    entity_name TEXT     NOT NULL UNIQUE, -- a Slack username like `@foo` or anything else like `Python`
-    karma       INTEGER  NOT NULL DEFAULT 0, -- this could be calculated from grants table, but is here for efficiency
-    disabled    BOOLEAN  NOT NULL DEFAULT FALSE,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    entity_id   INTEGER  PRIMARY KEY, -- SQLite autoincrements primary keys automatically
+    entity_name TEXT     NOT NULL UNIQUE, -- Slack username like `@bob`, or name of non-user entity like `Banyan`
+    user_id     TEXT     UNIQUE, -- Slack user ID; not used for entities like 'Banyan'
+    karma       INTEGER  NOT NULL DEFAULT 0, -- could be calculated from grants table, but is here for efficiency
+    disabled    BOOLEAN  NOT NULL DEFAULT FALSE, -- 'true' means entity doesn't want to participate in instakarma
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP -- no plans for use, but might be useful in future?
 );
 
--- Log individual karma grants for auditing
+-- log individual karma grants for auditing
 CREATE TABLE grants (
     grant_id      INTEGER  PRIMARY KEY, -- SQLite autoincrements primary keys automatically
     granter_id    INTEGER  NOT NULL,
@@ -26,4 +27,7 @@ CREATE TABLE grants (
     FOREIGN KEY (recipient_id) REFERENCES entities (entity_id)
 );
 
--- Automatically creates implicit index on `entity_name` in `entities` table due to `UNIQUE` keyword
+-- speed up lookups of what entity_name a user_id corresponds to
+-- CREATE INDEX idx_user_id ON entities(user_id); -- compare performance with and without this, or just delete it
+
+-- automatically creates implicit index on `entity_name` in `entities` table due to `UNIQUE` keyword
