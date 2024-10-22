@@ -6,6 +6,7 @@ import os
 import sqlite3
 import time
 
+
 def init_db() -> None:
     try:
         os.remove(DB_FILE)
@@ -17,24 +18,26 @@ def init_db() -> None:
         conn.executescript(ddl)
         conn.commit()
 
-def add_entity(i_as_str: str) -> None:
-    with sqlite3.connect(DB_FILE) as conn:
-        conn.execute("""
-                     INSERT INTO entities (name, user_id)
-                     VALUES (?, ?)
-                     """,
-                     (i_as_str, i_as_str))
-        conn.commit()
+
+def add_entity(conn: sqlite3.Connection, i_as_str: str) -> None:
+    conn.execute("""
+                 INSERT INTO entities (name, user_id)
+                 VALUES (?, ?)
+                 """,
+                 (i_as_str, i_as_str))
+    conn.commit()
+
 
 if __name__ == "__main__":
     init_db()
     i: int = 0
     start = time.perf_counter()
-    while time.perf_counter() - start < 30.0:
-        i_as_str: str = str(i)
-        add_entity(i_as_str)
-        i += 1
-
     with sqlite3.connect(DB_FILE) as conn:
+        while time.perf_counter() - start < 30.0:
+            add_entity(conn, str(i))
+            i += 1
+
+        conn.commit()
+
         cursor: sqlite3.Cursor = conn.execute("SELECT COUNT(*) FROM entities;")
         print(f"total rows: {cursor.fetchone()[0]}")
