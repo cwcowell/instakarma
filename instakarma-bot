@@ -55,7 +55,6 @@ def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
 # Helpers
 # ---
 
-
 def is_entity_disabled(conn: Connection, entity: str) -> bool:
     try:
         cursor: Cursor = execute_query(conn,
@@ -71,7 +70,7 @@ def is_entity_disabled(conn: Connection, entity: str) -> bool:
         raise e
 
 
-def convert_user_id_to_user_name(conn: Connection, user_id: str) -> str:
+def get_name_from_user_id(conn: Connection, user_id: str) -> str:
     try:
         cursor: Cursor = execute_query(conn,
                                        """
@@ -87,8 +86,8 @@ def convert_user_id_to_user_name(conn: Connection, user_id: str) -> str:
     first_row_of_results = cursor.fetchone()
     if first_row_of_results:
         return first_row_of_results[0]
-    logger.info(f"No name in DB for entity with user_id: '{user_id}'. Fetching via API and storing in DB.")
-    user_name: str = get_user_name_from_slack(user_id)
+    logger.debug(f"No name in DB for entity with user_id: '{user_id}'. Fetching via API and updating entity row.")
+    user_name: str = get_name_from_slack(user_id)
     try:
         execute_query(conn,
                       """
@@ -103,12 +102,57 @@ def convert_user_id_to_user_name(conn: Connection, user_id: str) -> str:
     return user_name
 
 
-def get_user_name_from_slack(user_id: str) -> str:
+def get_name_from_slack(user_id: str) -> str:
     """Use Slack API to convert a user ID (e.g., 'U07R69E3YKB') into a user name (e.g., '@elvis')."""
     user_info = app.client.users_info(user=user_id)
-    user_name = user_info['user']['name']
-    user_name = '@' + user_name
-    return user_name
+    name = user_info['user']['name']
+    name = '@' + name
+    return name
+
+
+def get_user_id_from_slack(name: str) -> str:
+    """Use Slack API to convert a name (e.g., `@elvis`) into a user_id (e.g., 'U07R69E3YKB')."""
+    users_info_page = app.client.users_list()
+
+    users_info: list = users_info_page.data['members']
+    for user_info in users_info:
+        name_from_slack = '@' + user_info['name']
+        if name_from_slack == name:
+            return user_info['id']
+
+    raise NameNotFoundInSlackError
+
+
+def get_user_id_from_name(conn: Connection, name: str) -> str:
+    try:
+        cursor: Cursor = execute_query(conn,
+                                       """
+                                       SELECT user_id
+                                       FROM entities
+                                       WHERE name = ?;
+                                       """,
+                                       (name,))
+    except sqlite3.Error as e:
+        logger.error(f"Couldn't look up 'entity.user_id' for 'entity.name' of '{name}': {e}")
+        raise e
+
+    first_row_of_results = cursor.fetchone()
+    if first_row_of_results:
+        return first_row_of_results[0]
+    logger.debug(f"No user_id in DB for entity with name: '{name}'. Fetching via API and updating entity row.")
+    user_id: str = get_user_id_from_slack(name)
+    try:
+        execute_query(conn,
+                      """
+                      UPDATE entities
+                      SET user_id = ?
+                      WHERE name = ?;
+                      """,
+                      (name, user_id))
+    except sqlite3.Error as e:
+        logger.error(f"Couldn't update 'entities' table to set 'user_id' for 'name' of '{name}': {e}")
+        raise e
+    return user_id
 
 
 def detect_recognized_user_recipients(conn: Connection, msg_text: str) -> list[tuple[str, str]]:
@@ -120,7 +164,7 @@ def detect_recognized_user_recipients(conn: Connection, msg_text: str) -> list[t
     for match in regex_matches:
         recipient_user_id: str = match[0]
         action: str = match[1]
-        recipient_user_name: str = convert_user_id_to_user_name(conn, recipient_user_id)
+        recipient_user_name: str = get_name_from_user_id(conn, recipient_user_id)
         recognized_user_recipients.append((recipient_user_name, action))
     return recognized_user_recipients
 
@@ -178,7 +222,6 @@ def get_karma(conn: Connection, entity: str) -> int:
 
 def grant_karma(conn: Connection, granter_user_name: str, recipient_user_name: str, amount: int) -> None:
     add_entity(conn, name=recipient_user_name)
-    # TODO: WHAT HAPPENS IF YOU MAKE AN ENTRY IN 'ENTITIES' WITH JUST USERNAME, AND THEN THAT USER TRIES TO GRANT KARMA?
     if is_entity_disabled(conn, recipient_user_name):
         logger.info(f"Can't grant karma to disabled entity '{recipient_user_name}'")
         raise DisabledEntityError
@@ -211,14 +254,23 @@ def grant_karma(conn: Connection, granter_user_name: str, recipient_user_name: s
         raise e
 
 
-def add_entity(conn: Connection, user_id=None, name=None) -> None:
+def add_entity(conn: Connection, user_id=None, name=None) -> (str, str):
     """
     Add an entity to the table if it doesn't already exist.
 
     You must pass `user_id` or `name` or both. If the user already exists in the DB, this is a no-op.
+
+    Returns the user_id and name.
     """
     if not (user_id or name):
         log_error_and_quit("Fatal: called `add_entry()` without passing either `user_id` or `name`")
+
+    if not name:
+        name: str = get_name_from_user_id(conn, user_id)
+
+    if not user_id:
+        user_id: str = get_user_id_from_name(conn, name)
+
     try:
         execute_query(conn,
                       """
@@ -229,6 +281,8 @@ def add_entity(conn: Connection, user_id=None, name=None) -> None:
     except sqlite3.Error as e:
         logger.error(f"Couldn't add entity '{name}': {e}")
         raise e
+
+    return user_id, name
 
 
 # ---
@@ -242,18 +296,17 @@ app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 def grant_handler(message: dict, say) -> None:
     with get_db_connection() as conn:
         granter_user_id: str = message['user']
-        granter_user_name: str = convert_user_id_to_user_name(conn, granter_user_id)
-        add_entity(conn, user_id=granter_user_id, name=granter_user_name)
+        _, granter_user_name = add_entity(conn, user_id=granter_user_id)
         message_text: str = message['text']
 
         recognized_user_recipients: list[tuple[str, str]] = detect_recognized_user_recipients(conn, message_text)
-        print("recognized user recipients: " + str(recognized_user_recipients))
+        logger.debug("recognized user recipients: " + str(recognized_user_recipients))
 
         object_recipients: list[tuple[str, str]] = detect_object_recipients(message_text)
-        print("object recipients: " + str(object_recipients))
+        logger.debug("object recipients: " + str(object_recipients))
 
         unrecognized_user_recipients: list[tuple[str, str]] = detect_unrecognized_user_recipients(message_text)
-        print("unrecognized user recipients: " + str(unrecognized_user_recipients))
+        logger.debug("unrecognized user recipients: " + str(unrecognized_user_recipients))
 
         for recipient in recognized_user_recipients:
             recipient_user_name: str = recipient[0]

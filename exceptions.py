@@ -21,6 +21,13 @@ class UserIdNotInDbError:
     """
     pass
 
+class NameNotFoundInSlackError:
+    """Tried to look up a user by `name` in Slack, but wasn't found.
+
+    This should be handled.
+    """
+    pass
+
 
 # class UserIdToEntityNameMappingError(Exception):
 #     """The 'entities' table doesn't have a value for the 'entity_name' column in a row with a given

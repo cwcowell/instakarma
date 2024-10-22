@@ -9,7 +9,7 @@ import sys
 def init_logger() -> Logger:
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)  # make logs dirs, if needed
     logger: Logger = logging.getLogger(__name__)
-    logger.setLevel('INFO')
+    logger.setLevel(LOG_LEVEL)
     formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s',
                                   datefmt='%m/%d/%Y %I:%M:%S %p')
     handler = RotatingFileHandler(filename=LOG_FILE,
