@@ -2,9 +2,9 @@
 
 PRAGMA foreign_keys = ON; -- Weirdly required by SQLite
 
--- optimizations for expected workload: DB spread across multiple files
--- PRAGMA journal_mode = WAL;
--- PRAGMA synchronous = NORMAL;
+-- optimizations for expected workload -- this might spread the DB spread across multiple files
+PRAGMA journal_mode = WAL;
+PRAGMA synchronous = NORMAL;
 
 -- store current (not historical) karma for all entities
 CREATE TABLE entities
