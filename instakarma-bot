@@ -55,7 +55,9 @@ def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
 # Helpers
 # ---
 
-def is_entity_disabled(conn: Connection, entity: str) -> bool:
+def is_entity_disabled(conn: Connection, name: str) -> bool:
+    is_disabled: bool = False
+    logger.debug(f"Asking DB if row with 'entity.name' of '{name}' is disabled")
     try:
         cursor: Cursor = execute_query(conn,
                                        """
@@ -63,14 +65,20 @@ def is_entity_disabled(conn: Connection, entity: str) -> bool:
                                        FROM entities
                                        WHERE name = ?
                                        """,
-                                       (entity,))
+                                       (name,))
         result = cursor.fetchone()
-        if not result:
-            return False
+        if result and result[0]:
+            is_disabled = True
+
+        if is_disabled:
+            logger.debug(f"DB says row with 'entity.name' of '{name}' is disabled")
+            return True
         else:
-            return result[0]
+            logger.debug(f"DB says row with 'entity.name' of '{name}' is not disabled")
+            return False
+
     except sqlite3.Error as e:
-        logger.error(f"Couldn't check if '{entity}' is disabled: {e}")
+        logger.error(f"Couldn't check if '{name}' is disabled: {e}")
         raise e
 
 
@@ -138,8 +146,10 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
 
 def get_name_from_slack(user_id: str) -> str:
     """Use Slack API to convert a user ID (e.g., 'U07R69E3YKB') into a user name (e.g., '@elvis')."""
+    logger.debug(f"Asking Slack API for user info for user with user_id '{user_id}'")
     user_info = app.client.users_info(user=user_id)
     name = user_info['user']['name']
+    logger.debug(f"Slack API returned name '{name}' for user with user_id '{user_id}'")
     name = '@' + name
     return name
 
