@@ -33,7 +33,7 @@ if __name__ == "__main__":
     i: int = 0
     start = time.perf_counter()
     with sqlite3.connect(DB_FILE) as conn:
-        while time.perf_counter() - start < 30.0:
+        while time.perf_counter() - start < 1.0:
             add_entity(conn, str(i))
             i += 1
 
