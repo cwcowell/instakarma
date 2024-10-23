@@ -345,6 +345,33 @@ def grant_handler(message: dict, say) -> None:
                 say(f"Sorry, {recipient_name} is not participating in Instakarma.")
 
 
+@app.command('/instakarma')
+def handle_instakarma_command(ack, command, say) -> None:
+    ack()
+    text = command['text'].lower()
+
+    if text == 'help':
+        say(
+            text="How to use Instakarma",
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": ("*How to use instakarma*\n"
+                                 "• `@robin++` - Give 1 karma to Slack user `@robin`\n"
+                                 "• `python++` - Give 1 karma to non-user `python`\n"
+                                 "• `python--` - Remove 1 karma from non-user `python`\n"
+                                 "• `/instakarma leaderboard` - Who's got the most karma?\n"
+                                 "• `/instakarma disable-me` - Decline to participate in instakarma\n"
+                                 "• `/instakarma enable-me` - Participate in instakarma\n")
+                    }
+                }
+            ],
+            # Make response only visible to the user who typed the command
+            ephemeral=True
+        )
+
 if __name__ == "__main__":
     logger: Logger = init_logger()  # global var, instead of passing it all around
     init_db()  # non-destructively create a DB
