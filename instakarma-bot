@@ -226,7 +226,6 @@ def get_karma(conn: Connection, entity: str) -> int:
 
 def grant_karma(conn: Connection, granter_name: str, recipient_name: str, amount: int) -> None:
     if is_entity_disabled(conn, recipient_name):
-        logger.info(f"Can't grant karma to disabled entity '{recipient_name}'")
         raise DisabledEntityError
 
     try:
@@ -282,8 +281,9 @@ app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 def grant_handler(message: dict, say) -> None:
     with get_db_connection() as conn:
         granter_user_id: str = message['user']
-        # _, granter_user_name = add_entity(conn, user_id=granter_user_id)
         message_text: str = message['text']
+
+        # TODO: check if granter is disabled, and if so, log and print a message
 
         valid_user_recipients: list[tuple[str, str]] = detect_valid_user_recipients(conn, message_text)
         logger.debug("recognized user recipients: " + str(valid_user_recipients))
@@ -307,10 +307,14 @@ def grant_handler(message: dict, say) -> None:
                 say(f"Sorry, you can't self-grant karma.")
                 continue
 
-            grant_karma(conn, granter_name, recipient_name, amount)
-            recipient_total_karma: int = get_karma(conn, recipient_name)
-            verb: str = 'leveled up' if action == '++' else 'took a hit'
-            say(f"<{recipient_name}> {verb}, now has {recipient_total_karma} karma.")
+            try:
+                grant_karma(conn, granter_name, recipient_name, amount)
+                recipient_total_karma: int = get_karma(conn, recipient_name)
+                verb: str = 'leveled up' if action == '++' else 'took a hit'
+                say(f"<{recipient_name}> {verb}, now has {recipient_total_karma} karma.")
+            except DisabledEntityError as dee:
+                logger.info(f"'{granter_name}' can't grant karma to disabled entity '{recipient_name}'")
+                say(f"Sorry, {recipient_name} is not participating in Instakarma.")
 
         for recipient in invalid_user_recipients:
             granter_name: str = get_name_from_user_id(conn, granter_user_id)
@@ -332,9 +336,13 @@ def grant_handler(message: dict, say) -> None:
                 amount: int = -1
                 verb: str = "took a hit"
             add_object_entity(conn, recipient_name)
-            grant_karma(conn, granter_name, recipient_name, amount)
-            recipient_total_karma: int = get_karma(conn, recipient_name)
-            say(f"{recipient_name} {verb}, now has {recipient_total_karma} karma.")
+            try:
+                grant_karma(conn, granter_name, recipient_name, amount)
+                recipient_total_karma: int = get_karma(conn, recipient_name)
+                say(f"{recipient_name} {verb}, now has {recipient_total_karma} karma.")
+            except DisabledEntityError as dee:
+                logger.info(f"'{granter_name}' can't grant karma to disabled entity '{recipient_name}'")
+                say(f"Sorry, {recipient_name} is not participating in Instakarma.")
 
 
 if __name__ == "__main__":
