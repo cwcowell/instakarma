@@ -12,6 +12,12 @@ from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 
+class Action(Enum):
+    """Every attempt to grant karma must have an Action associated with it, so we know
+    the grants increases or de"""
+    INCREMENT = 1
+    DECREMENT = -1
+
 # ---
 # DB utilities
 # ---
