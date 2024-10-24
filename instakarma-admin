@@ -76,7 +76,7 @@ def get_karma(conn: Connection, entity_name: str) -> int:
                                        """
 SELECT karma
 FROM entities
-WHERE entity_name = ? AND disabled = FALSE""",
+WHERE entity = ? AND disabled = FALSE""",
                                        (entity_name,))
         result = cursor.fetchone()
         if result:
@@ -241,10 +241,6 @@ def list_entities(order: Literal['karma', 'entity_name']) -> None:
         sys.exit(msg)
 
 
-def monitor_slack() -> None:
-    pass
-
-
 def test() -> None:
     # try:
     #     os.remove(DB_FILE)
@@ -308,9 +304,6 @@ def main() -> None:
     group.add_argument('--list-by-karma',
                        action='store_true',
                        help='List users by karma')
-    group.add_argument('--monitor-slack',
-                       action='store_true',
-                       help='monitor Slack (the whole point of this app)')
     group.add_argument('--test',
                        action='store_true',
                        help='For debugging only -- remove this in prod')
@@ -331,8 +324,6 @@ def main() -> None:
         list_entities(order='karma')
     elif args.list_by_name:
         list_entities(order='entity_name')
-    elif args.monitor_slack:
-        monitor_slack()
     elif args.test:
         test()
     else:

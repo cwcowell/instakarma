@@ -3,20 +3,33 @@
 from exceptions import *
 from log import *
 
+from enum import Enum
 import os
 import re
 import sqlite3
 from sqlite3 import Connection, Cursor
+from typing import Literal
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 
+# ---
+# Enums
+# ---
+
 class Action(Enum):
     """Every attempt to grant karma must have an Action associated with it, so we know
-    the grants increases or de"""
+    the grant increases or decreases the recipient's karma."""
     INCREMENT = 1
     DECREMENT = -1
+
+
+class Status(Enum):
+    """Slack users can disable themselves if they don't want to participate in instakarma."""
+    ENABLED: str = 'enabled'
+    DISABLED: str = 'disabled'
+
 
 # ---
 # DB utilities
@@ -276,6 +289,30 @@ def add_object_entity(conn: Connection, name: str) -> None:
         raise e
 
 
+def change_user_status(conn: Connection, name: str, status: Status) -> None:
+    try:
+        execute_query(conn,
+                      f"""
+                            UPDATE entities
+                            SET disabled = {'TRUE' if status == Status.DISABLED else 'FALSE'}
+                            WHERE name = ?
+                            """,
+                      (name,))
+        logger.info(f"Entity '{name}' now has status '{status.value}'")
+    except sqlite3.Error as e:
+        logger.error(f"Error setting user '{name}' status to '{status.value}': {e}")
+
+
+def get_action_amount_and_verb(recipient: tuple[str, str]) -> (Action, int, str):
+    if recipient[1] == '++':
+        logger.debug("setting action to INCREMENT, amount to 1, verb to 'leveled up'")
+        return Action.INCREMENT, 1, 'leveled up'
+    if recipient[1] == '--':
+        logger.debug("setting action to DECREMENT, amount to -1, verb to 'took a hit'")
+        return Action.DECREMENT, -1, 'took a hit'
+    log_error_and_quit(f"Unrecognized action is neither '++' nor '--': '{recipient[1]}'")
+
+
 # ---
 # Main logic
 # ---
@@ -289,8 +326,6 @@ def grant_handler(message: dict, say) -> None:
         granter_user_id: str = message['user']
         message_text: str = message['text']
 
-        # TODO: check if granter is disabled, and if so, log and print a message
-
         valid_user_recipients: list[tuple[str, str]] = detect_valid_user_recipients(conn, message_text)
         logger.debug("recognized user recipients: " + str(valid_user_recipients))
 
@@ -300,47 +335,47 @@ def grant_handler(message: dict, say) -> None:
         object_recipients: list[tuple[str, str]] = detect_object_recipients(message_text)
         logger.debug("object recipients: " + str(object_recipients))
 
+        action: Action
+        amount: int
+        verb: str
+
         for recipient in valid_user_recipients:
             recipient_user_id: str = recipient[0]
-            action: str = recipient[1]
+            action, amount, verb = get_action_amount_and_verb(recipient)
 
             granter_name: str = get_name_from_user_id(conn, granter_user_id)
             recipient_name: str = get_name_from_user_id(conn, recipient_user_id)
-            amount = 1 if action == '++' else -1
+
+            if action == Action.DECREMENT:
+                logger.info(f"'{granter_name}' tried to grant {amount} karma to a user")
+                say("Sorry, you can only remove karma from entities, not users.")
+                continue
 
             if recipient_name == granter_name:
-                logger.info(f"'{granter_name}' tried to self-grant {amount} karma.")
+                logger.info(f"'{granter_name}' tried to self-grant {amount} karma")
                 say(f"Sorry, you can't self-grant karma.")
                 continue
 
             try:
                 grant_karma(conn, granter_name, recipient_name, amount)
                 recipient_total_karma: int = get_karma(conn, recipient_name)
-                verb: str = 'leveled up' if action == '++' else 'took a hit'
-                say(f"<{recipient_name}> {verb}, now has {recipient_total_karma} karma.")
+                say(f"<{recipient_name}> {verb}, now has {recipient_total_karma} karma")
             except DisabledEntityError as dee:
                 logger.info(f"'{granter_name}' can't grant karma to disabled entity '{recipient_name}'")
-                say(f"Sorry, {recipient_name} is not participating in Instakarma.")
+                say(f"Sorry, {recipient_name} isn't participating in Instakarma.")
 
         for recipient in invalid_user_recipients:
             granter_name: str = get_name_from_user_id(conn, granter_user_id)
             recipient_name: str = recipient[0]
-            action: str = recipient[1]
-            amount: int = 1 if action == '++' else -1
+            action, amount, verb = get_action_amount_and_verb(recipient)
             logger.info(f"'{granter_name}' tried to grant '{amount}' karma "
                         f"to unrecognized user '{recipient_name}'")
-            say(f"Sorry, I don't recognize the user '{recipient_name}'.")
+            say(f"Sorry, I don't recognize the user {recipient_name}.")
 
         for recipient in object_recipients:
             granter_name: str = get_name_from_user_id(conn, granter_user_id)
             recipient_name: str = recipient[0]
-            action: str = recipient[1]
-            if action == '++':
-                amount: int = 1
-                verb: str = "leveled up"
-            else:
-                amount: int = -1
-                verb: str = "took a hit"
+            action, amount, verb = get_action_amount_and_verb(recipient)
             add_object_entity(conn, recipient_name)
             try:
                 grant_karma(conn, granter_name, recipient_name, amount)
@@ -366,9 +401,10 @@ def handle_instakarma_command(ack, command, say) -> None:
                         "type": "mrkdwn",
                         "text": ("*How to use instakarma*\n"
                                  "• `@robin++` - Give 1 karma to Slack user `@robin`\n"
-                                 "• `python++` - Give 1 karma to non-user `python`\n"
+                                 "• `python++` - Give 1 karma to entity `python`\n"
                                  "• `python--` - Remove 1 karma from non-user `python`\n"
                                  "• `/instakarma leaderboard` - Who's got the most karma?\n"
+                                 "• `/instakarma loserboard` - What entities have the least karma?\n"
                                  "• `/instakarma disable-me` - Decline to participate in instakarma\n"
                                  "• `/instakarma enable-me` - Participate in instakarma\n")
                     }
@@ -377,6 +413,19 @@ def handle_instakarma_command(ack, command, say) -> None:
             # Make response only visible to the user who typed the command
             ephemeral=True
         )
+
+    if text == 'disable-me':
+        name: str = '@' + command['user_name']
+        with get_db_connection() as conn:
+            change_user_status(conn, name, Status.DISABLED)
+        say(f"{name} is disabled in instakarma.")
+
+    if text == 'enable-me':
+        name: str = '@' + command['user_name']
+        with get_db_connection() as conn:
+            change_user_status(conn, name, Status.ENABLED)
+        say(f"{name} is enabled in instakarma.")
+
 
 if __name__ == "__main__":
     logger: Logger = init_logger()  # global var, instead of passing it all around
