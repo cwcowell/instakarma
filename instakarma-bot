@@ -497,3 +497,5 @@ if __name__ == "__main__":
     logger: Logger = init_logger()  # global var, instead of passing it all around
     init_db()  # non-destructively create a DB
     SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"]).start()
+
+# TODO: add logger.info before all SQL queries. Maybe in execute.query(), but maybe elsewhere too.
