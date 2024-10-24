@@ -4,7 +4,6 @@ import logging.handlers
 from logging import Logger
 from logging.handlers import RotatingFileHandler
 import os
-import sys
 
 def init_logger() -> Logger:
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)  # make logs dirs, if needed
@@ -19,8 +18,3 @@ def init_logger() -> Logger:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return logger
-
-
-def log_error_and_quit(msg: str) -> None:
-    logger.error(msg)
-    sys.exit(msg)

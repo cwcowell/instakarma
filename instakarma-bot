@@ -3,12 +3,12 @@
 from exceptions import *
 from log import *
 
-from enum import Enum
+from enum import Enum, auto
 import os
 import re
 import sqlite3
 from sqlite3 import Connection, Cursor
-from typing import Literal
+import sys
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -20,9 +20,9 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 class Action(Enum):
     """Every attempt to grant karma must have an Action associated with it, so we know
-    the grant increases or decreases the recipient's karma."""
-    INCREMENT = 1
-    DECREMENT = -1
+    if the grant increases or decreases the recipient's karma."""
+    INCREMENT = auto()
+    DECREMENT = auto()
 
 
 class Status(Enum):
@@ -56,7 +56,7 @@ def init_db() -> None:
             conn.commit()
             logger.info(f"Creating new DB at '{DB_FILE}' using DDL '{DB_DDL_FILE}'")
         except sqlite3.Error as e:
-            log_error_and_quit(f"Error when creating DB: {e}")
+            log_error_and_quit(f"Couldn't create DB: {e}")
 
 
 def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
@@ -73,6 +73,12 @@ def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
 # ---
 # Helpers
 # ---
+
+def log_error_and_quit(msg: str) -> None:
+    logger.critical(msg)
+    print(f"FATAL ERROR. {msg}")
+    os._exit(1)  # sys.exit() is handled by the Slack app, so we have to pull out the big guns
+
 
 def is_entity_disabled(conn: Connection, name: str) -> bool:
     is_disabled: bool = False
@@ -270,8 +276,7 @@ def grant_karma(conn: Connection, granter_name: str, recipient_name: str, amount
         logger.info(f"'{granter_name}' granted '{amount}' karma to '{recipient_name}'")
 
     except sqlite3.Error as e:
-        logger.error(f"Error when granting '{amount}' karma "
-                     f"from '{granter_name}' to '{recipient_name}': {e}")
+        logger.error(f"Couldn't grant '{amount}' karma from '{granter_name}' to '{recipient_name}': {e}")
         raise e
 
 
@@ -300,7 +305,7 @@ def change_user_status(conn: Connection, name: str, status: Status) -> None:
                       (name,))
         logger.info(f"Entity '{name}' now has status '{status.value}'")
     except sqlite3.Error as e:
-        logger.error(f"Error setting user '{name}' status to '{status.value}': {e}")
+        logger.error(f"Couldn't set user '{name}' status to '{status.value}': {e}")
 
 
 def get_action_amount_and_verb(recipient: tuple[str, str]) -> (Action, int, str):
