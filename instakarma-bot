@@ -8,7 +8,6 @@ import os
 import re
 import sqlite3
 from sqlite3 import Connection, Cursor
-import sys
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -228,7 +227,7 @@ def detect_object_recipients(msg_text: str) -> list[tuple[str, str]]:
 # Karma logic
 # ---
 
-def get_karma(conn: Connection, entity: str) -> int:
+def get_karma(conn: Connection, name: str) -> int:
     try:
         cursor: Cursor = execute_query(conn,
                                        """
@@ -236,16 +235,60 @@ def get_karma(conn: Connection, entity: str) -> int:
                                        FROM entities
                                        WHERE name = ? AND disabled = FALSE
                                        """,
-                                       (entity,))
+                                       (name,))
         result = cursor.fetchone()
         if result:
             return result[0]
         else:
-            logger.info(f"Entity '{entity}' is disabled or doesn't exist in 'entities' table")
+            logger.info(f"entity with name '{name}' is disabled or doesn't exist in 'entities' table")
             raise ValueError
-
     except sqlite3.Error as e:
-        logger.error(f"Couldn't get karma for '{entity}'")
+        logger.error(f"Couldn't get karma for entity with name '{name}'")
+        raise e
+
+
+def get_status(conn: Connection, name: str) -> Status:
+    try:
+        cursor: Cursor = execute_query(conn,
+                                       """
+                                       SELECT disabled
+                                       FROM entities
+                                       WHERE name = ?
+                                       """,
+                                       (name,))
+        result = cursor.fetchone()
+        if result:
+            return Status.DISABLED if result[0] else Status.ENABLED
+        logger.info(f"Entity with name '{name}' doesn't exist in 'entities' table")
+        raise ValueError
+    except sqlite3.Error as e:
+        logger.error(f"Couldn't get karma for '{name}'")
+        raise e
+
+
+def get_biggest_granters(conn: Connection, recipient_name: str) -> list[tuple[str, int]]:
+    try:
+        cursor: Cursor = execute_query(conn,
+                                       f"""
+                                       SELECT e_granter.name as top_granter_name,
+                                              COUNT(*) as times_granted
+                                       FROM grants g
+                                       JOIN entities e_granter ON g.granter_id = e_granter.entity_id
+                                       JOIN entities e_recipient ON g.recipient_id = e_recipient.entity_id
+                                       WHERE e_recipient.name = ?
+                                       GROUP BY g.granter_id
+                                       ORDER BY times_granted DESC
+                                       LIMIT {NUM_TOP_GRANTERS};
+                                       """,
+                                       (recipient_name,))
+        biggest_granters: list[tuple[str, int]] = []
+        for row in cursor.fetchall():
+            granter_name: str = row[0]
+            times_granted: int = int(row[1])
+            biggest_granters.append((granter_name, int(times_granted)))
+        return biggest_granters
+    except sqlite3.Error as e:
+        logger.error(f"Couldn't get biggest granters to user with name '{recipient_name}': {e}")
         raise e
 
 
@@ -326,7 +369,7 @@ app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 # Listen for "++" or "--" in any message in any channel the bot subscribes to.
 @app.message(r'(\+\+)|(--)')
-def grant_handler(message: dict, say) -> None:
+def handle_karma_grants(message: dict, say) -> None:
     with get_db_connection() as conn:
         granter_user_id: str = message['user']
         message_text: str = message['text']
@@ -353,7 +396,7 @@ def grant_handler(message: dict, say) -> None:
 
             if action == Action.DECREMENT:
                 logger.info(f"'{granter_name}' tried to grant {amount} karma to a user")
-                say("Sorry, you can only remove karma from entities, not users.")
+                say('Sorry, you can only remove karma from things (like "python"), not people (like @elvis).')
                 continue
 
             if recipient_name == granter_name:
@@ -431,6 +474,24 @@ def handle_instakarma_command(ack, command, say) -> None:
             change_user_status(conn, name, Status.ENABLED)
         say(f"{name} is enabled in instakarma.")
 
+    if text == 'stats':
+        name: str = '@' + command['user_name']
+        with get_db_connection() as conn:
+            status: Status = get_status(conn, name)
+            if status == status.DISABLED:
+                say("You're disabled in Instakarma -- re-enable with `/instakarma enable-me`")
+                return
+            total_karma: int = get_karma(conn, name)
+        say(f"You have {str(total_karma)} karma.")
+
+        biggest_granters: list[tuple[str, int]] = get_biggest_granters(conn, name)
+        if biggest_granters:
+            say(f"Your top karma granters:")
+        for biggest_granter in biggest_granters:
+            say(f"• {biggest_granter[0]} has given you {str(biggest_granter[1])} karma")
+            say(f"• {biggest_granter[0]} has given you {str(biggest_granter[1])} karma")
+        # TODO: convert this to use blocks so I can specify Markdown and bullet list these items
+        # TODO: add stat: Who you have given the most karma to
 
 if __name__ == "__main__":
     logger: Logger = init_logger()  # global var, instead of passing it all around
