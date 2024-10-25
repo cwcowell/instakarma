@@ -266,7 +266,7 @@ def get_status(conn: Connection, name: str) -> Status:
         raise e
 
 
-def get_biggest_granters(conn: Connection, recipient_name: str) -> list[tuple[str, int]]:
+def get_top_granters(conn: Connection, recipient_name: str) -> list[tuple[str, int]]:
     try:
         cursor: Cursor = execute_query(conn,
                                        f"""
@@ -289,6 +289,32 @@ def get_biggest_granters(conn: Connection, recipient_name: str) -> list[tuple[st
         return biggest_granters
     except sqlite3.Error as e:
         logger.error(f"Couldn't get biggest granters to user with name '{recipient_name}': {e}")
+        raise e
+
+
+def get_top_recipients(conn: Connection, granter_name: str) -> list[tuple[str, int]]:
+    try:
+        cursor: Cursor = execute_query(conn,
+                                       f"""
+                                       SELECT e_recipient.name as top_recpient_name,
+                                              COUNT(*) as times_received
+                                       FROM grants g
+                                       JOIN entities e_granter ON g.granter_id = e_granter.entity_id
+                                       JOIN entities e_recipient ON g.recipient_id = e_recipient.entity_id
+                                       WHERE e_granter.name = ?
+                                       GROUP BY g.recipient_id
+                                       ORDER BY times_received DESC
+                                       LIMIT {NUM_TOP_RECIPIENTS};
+                                       """,
+                                       (granter_name,))
+        biggest_recipients: list[tuple[str, int]] = []
+        for row in cursor.fetchall():
+            recipient_name: str = row[0]
+            times_granted: int = int(row[1])
+            biggest_recipients.append((recipient_name, int(times_granted)))
+        return biggest_recipients
+    except sqlite3.Error as e:
+        logger.error(f"Couldn't get biggest recipients from user with name '{granter_name}': {e}")
         raise e
 
 
@@ -331,7 +357,7 @@ def add_object_entity(conn: Connection, name: str) -> None:
                       INSERT OR IGNORE INTO entities (name)
                       VALUES (?)
                       """,
-                      (name, ))
+                      (name,))
     except sqlite3.Error as e:
         logger.error(f"Couldn't add object entity '{name}': {e}")
         raise e
@@ -366,6 +392,7 @@ def get_action_amount_and_verb(recipient: tuple[str, str]) -> (Action, int, str)
 # ---
 
 app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
+
 
 # Listen for "++" or "--" in any message in any channel the bot subscribes to.
 @app.message(r'(\+\+)|(--)')
@@ -447,19 +474,19 @@ def handle_instakarma_command(ack, command, say) -> None:
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": ("*How to use instakarma*\n"
+                        "text": ("*instakarma usage*\n"
                                  "• `@robin++` - Give 1 karma to Slack user `@robin`\n"
-                                 "• `python++` - Give 1 karma to entity `python`\n"
-                                 "• `python--` - Remove 1 karma from non-user `python`\n"
-                                 "• `/instakarma leaderboard` - Who's got the most karma?\n"
-                                 "• `/instakarma loserboard` - What entities have the least karma?\n"
+                                 "• `python++` - Give 1 karma to non-person `python`\n"
+                                 "• `python--` - Remove 1 karma from non-person `python`\n"
+                                 "• `/instakarma stats` - See your karma and top granters and receivers\n"
                                  "• `/instakarma disable-me` - Decline to participate in instakarma\n"
-                                 "• `/instakarma enable-me` - Participate in instakarma\n")
+                                 "• `/instakarma enable-me` - Participate in instakarma\n"
+                                 "\n"
+                                 "Optionally add a space between `recipient` and `++` or `--`")
                     }
                 }
             ],
-            # Make response only visible to the user who typed the command
-            ephemeral=True
+            ephemeral=True  # response visible only to the user who typed the command
         )
 
     if text == 'disable-me':
@@ -474,7 +501,7 @@ def handle_instakarma_command(ack, command, say) -> None:
             change_user_status(conn, name, Status.ENABLED)
         say(f"{name} is enabled in instakarma.")
 
-    if text == 'stats':
+    if text == 'my-stats':
         name: str = '@' + command['user_name']
         with get_db_connection() as conn:
             status: Status = get_status(conn, name)
@@ -482,16 +509,41 @@ def handle_instakarma_command(ack, command, say) -> None:
                 say("You're disabled in Instakarma -- re-enable with `/instakarma enable-me`")
                 return
             total_karma: int = get_karma(conn, name)
-        say(f"You have {str(total_karma)} karma.")
 
-        biggest_granters: list[tuple[str, int]] = get_biggest_granters(conn, name)
-        if biggest_granters:
-            say(f"Your top karma granters:")
-        for biggest_granter in biggest_granters:
-            say(f"• {biggest_granter[0]} has given you {str(biggest_granter[1])} karma")
-            say(f"• {biggest_granter[0]} has given you {str(biggest_granter[1])} karma")
-        # TODO: convert this to use blocks so I can specify Markdown and bullet list these items
-        # TODO: add stat: Who you have given the most karma to
+        your_karma_text: str = f">You have *{get_karma(conn, name)}* karma\n"
+
+        top_recipients_text: str = ''
+        top_recipients: list[tuple[str, int]] = get_top_recipients(conn, name)
+        if top_recipients:
+            top_recipients_text = ">*Your top karma recipients*\n"
+            for recipient in top_recipients:
+                top_recipients_text += f">• {str(recipient[1])} to {recipient[0]}\n"
+
+        top_granters_text: str = ''
+        top_granters: list[tuple[str, int]] = get_top_granters(conn, name)
+        if top_granters:
+            top_granters_text = ">*Your top karma granters*\n"
+            for granter in top_granters:
+                top_granters_text += f">• {str(granter[1])} from {granter[0]}\n"
+
+        say(
+            text=f"instakarma stats for {name}",
+            blocks=[
+                {"type": "section",
+                 "text": {"type": "mrkdwn",
+                          "text": (f"*instakarma stats for {name}*\n"
+                                   "\n"
+                                   f"{your_karma_text}"
+                                   ">\n"
+                                   f"{top_recipients_text}"
+                                   ">\n"
+                                   f"{top_granters_text}")
+                          }
+                 }
+            ],
+            ephemeral=True  # response visible only to the user who typed the command
+        )
+
 
 if __name__ == "__main__":
     logger: Logger = init_logger()  # global var, instead of passing it all around
