@@ -462,67 +462,58 @@ def handle_karma_grants(message: dict, say) -> None:
 
 
 @app.command('/instakarma')
-def handle_instakarma_command(ack, command, say) -> None:
+def handle_instakarma_command(ack, respond, command) -> None:
     ack()
-    text = command['text'].lower()
+    parameter = command['text'].lower()
 
-    if text == 'help':
-        say(
-            text="How to use Instakarma",
-            blocks=[
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": ("*instakarma usage*\n"
-                                 "• `@robin++` - Give 1 karma to Slack user `@robin`\n"
-                                 "• `python++` - Give 1 karma to non-person `python`\n"
-                                 "• `python--` - Remove 1 karma from non-person `python`\n"
-                                 "• `/instakarma stats` - See your karma and top granters and receivers\n"
-                                 "• `/instakarma disable-me` - Decline to participate in instakarma\n"
-                                 "• `/instakarma enable-me` - Participate in instakarma\n"
-                                 "\n"
-                                 "Optionally add a space between `recipient` and `++` or `--`")
+    if parameter in ['help', '']:
+        respond(text="instakarma usage",
+                blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "instakarma usage",
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": ("*@robin++*   give 1 karma to Slack user *@robin*\n"
+                                     "*python++*   give 1 karma to non-person *python*\n"
+                                     "*python--*   remove 1 karma from non-person *python*\n"
+                                     "_optionally add a space between *recipient* and *++* or *--*_\n"
+                                     "\n"
+                                     "*/instakarma my-stats*   see your karma and top granters and receivers\n"
+                                     "*/instakarma disable-me*   decline to participate in instakarma\n"
+                                     "*/instakarma enable-me*   participate in instakarma\n"
+                                     "*/instakarma help*   display this usage guide\n")
+                        }
                     }
-                }
-            ],
-            ephemeral=True  # response visible only to the user who typed the command
-        )
+                ],
+                response_type='ephemeral')
 
-    if text == 'my-stats':
+    if parameter == 'my-stats':
         name: str = '@' + command['user_name']
         with get_db_connection() as conn:
             status: Status = get_status(conn, name)
-            if status == status.DISABLED:
-                say(
-                    text=f"instakarma stats for {name}",
+        if status == status.DISABLED:
+            respond(text=f"{name} is disable, so can't see their stats",
                     blocks=[
                         {
-                            "type": "context",
-                            "elements": [
-                                {
-                                    "type": "image",
-                                    "image_url": "https://pbs.twimg.com/profile_images/625633822235693056/lNGUneLX_400x400.jpg",
-                                    "alt_text": "cute cat"
-                                },
-                                {
-                                    "type": "mrkdwn",
-                                    "text": "_Only you will see this message_"
-                                }
-                            ]
-                        },
-                        {"type": "section",
-                         "text": {"type": "mrkdwn",
-                                  "text": (f"*instakarma stats for {name}*\n"
-                                           "\n"
-                                           f">You're disabled in instakarma\n"
-                                           ">Re-enable with `/instakarma enable-me`")
-                                  }
-                         }
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": (f"*instakarma stats for {name}*\n"
+                                         "\n"
+                                         f">You're disabled in instakarma\n"
+                                         ">Re-enable with */instakarma enable-me*")
+                            }
+                        }
                     ],
-                    ephemeral=True  # response visible only to the user who typed the command
-                )
-                return
+                    response_type='ephemeral')
+            return
 
         your_karma_text: str = f">You have *{get_karma(conn, name)}* karma\n"
 
@@ -540,102 +531,64 @@ def handle_instakarma_command(ack, command, say) -> None:
             for granter in top_granters:
                 top_granters_text += f">• {str(granter[1])} from {granter[0]}\n"
 
-        say(
-            text=f"instakarma stats for {name}",
-            blocks=[
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "image",
-                            "image_url": "https://pbs.twimg.com/profile_images/625633822235693056/lNGUneLX_400x400.jpg",
-                            "alt_text": "cute cat"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "_Only you will see this message_"
-                        }
-                    ]
-                },
-                {"type": "section",
-                 "text": {"type": "mrkdwn",
-                          "text": (f"*instakarma stats for {name}*\n"
-                                   "\n"
-                                   f"{your_karma_text}"
-                                   ">\n"
-                                   f"{top_recipients_text}"
-                                   ">\n"
-                                   f"{top_granters_text}")
-                          }
-                 }
-            ],
-            ephemeral=True  # response visible only to the user who typed the command
-        )
+        respond(text=f"instakarma stats for {name}",
+                blocks=[
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn",
+                                 "text": (f"*instakarma stats for {name}*\n"
+                                          "\n"
+                                          f"{your_karma_text}"
+                                          ">\n"
+                                          f"{top_recipients_text}"
+                                          ">\n"
+                                          f"{top_granters_text}")
+                                 }
+                    }
+                ],
+                response_type='ephemeral')
 
-    if text == 'disable-me':
+    if parameter == 'disable-me':
         name: str = '@' + command['user_name']
         with get_db_connection() as conn:
             change_user_status(conn, name, Status.DISABLED)
-        say(
+        respond(
             text=f"{name} is disabled in instakarma",
             blocks=[
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "image",
-                            "image_url": "https://pbs.twimg.com/profile_images/625633822235693056/lNGUneLX_400x400.jpg",
-                            "alt_text": "cute cat"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "_Only you will see this message_"
-                        }
-                    ]
-                },
                 {"type": "section",
                  "text": {"type": "mrkdwn",
                           "text": (f">You're now disabled in instakarma\n"
-                                   ">Re-enable with `/instakarma enable-me`")
+                                   ">Re-enable with */instakarma enable-me*")
                           }
                  }
             ],
-            ephemeral=True
-        )
+            response_type='ephemeral')
 
-    if text == 'enable-me':
+    if parameter == 'enable-me':
         name: str = '@' + command['user_name']
         with get_db_connection() as conn:
             change_user_status(conn, name, Status.ENABLED)
-        say(
-            text=f"{name} is enabled in instakarma",
-            blocks=[
-                {
-                    "type": "context",
-                    "elements": [
-                        {
-                            "type": "image",
-                            "image_url": "https://pbs.twimg.com/profile_images/625633822235693056/lNGUneLX_400x400.jpg",
-                            "alt_text": "cute cat"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "_Only you will see this message_"
-                        }
-                    ]
-                },
-                {"type": "section",
-                 "text": {"type": "mrkdwn",
-                          "text": (f">You're now enabled in instakarma\n"
-                                   ">Disable with `/instakarma disable-me`")
-                          }
-                 }
-            ],
-            ephemeral=True
-        )
+        respond(text=f"{name} is enabled in instakarma",
+                blocks=[
+                    {"type": "section",
+                     "text": {"type": "mrkdwn",
+                              "text": (f">You're now enabled in instakarma\n"
+                                       ">Disable with */instakarma disable-me*")
+                              }
+                     }
+                ],
+                response_type='ephemeral')
 
-        if text == 'leaderboard':
-            say("TODO: add leaderboard for non-users only")
+    if parameter == 'leaderboard':
+        respond(text="TODO",
+                blocks=[
+                    {"type": "section",
+                     "text": {"type": "mrkdwn",
+                              "text": "TODO: add leaderboard for non-users only"
+                              }
+                     }
+                ],
+                response_type="ephemeral")
 
 
 if __name__ == "__main__":
