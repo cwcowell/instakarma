@@ -634,6 +634,9 @@ def handle_instakarma_command(ack, command, say) -> None:
             ephemeral=True
         )
 
+        if text == 'leaderboard':
+            say("TODO: add leaderboard for non-users only")
+
 
 if __name__ == "__main__":
     logger: Logger = init_logger()  # global var, instead of passing it all around
