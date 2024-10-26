@@ -2,11 +2,11 @@
 
 from constants import *
 from db_manager import DbManager
+from enums import *
 from exceptions import *
 from log_manager import LogManager
 import response_blocks
 
-from enum import Enum
 from logging import Logger
 import os
 import re
@@ -18,31 +18,8 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 
 # ---
-# Enums
-# ---
-
-class Action(Enum):
-    """Every attempt to grant karma must have an Action associated with it, so we know
-    if the grant increases or decreases the recipient's karma."""
-    INCREMENT = '++'
-    DECREMENT = '--'
-
-
-class Status(Enum):
-    """Slack users can disable themselves if they don't want to participate in instakarma."""
-    ENABLED: str = 'enabled'
-    DISABLED: str = 'disabled'
-
-
-# ---
 # Helpers
 # ---
-
-def log_critical_error_and_quit(msg: str) -> None:
-    logger.critical(msg)
-    print(f"FATAL ERROR. {msg}")
-    os._exit(1)  # sys.exit() is handled by the Slack app, so we have to pull out the big guns
-
 
 def is_entity_disabled(conn: Connection, name: str) -> bool:
     is_disabled: bool = False
@@ -363,8 +340,8 @@ def get_amount_and_verb(recipient: tuple[str, Action]) -> (int, str):
     if action == Action.DECREMENT:
         logger.debug("setting amount to -1, verb to 'took a hit'")
         return -1, 'took a hit'
-    log_critical_error_and_quit(
-        f"Unrecognized action is neither Action.INCREMENT nor Action.DECREMENT: '{recipient[1]}'")
+    logger.critical(f"Unrecognized action is neither Action.INCREMENT nor Action.DECREMENT: '{recipient[1]}'")
+    os._exit(1)
 
 
 # ---

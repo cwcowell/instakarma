@@ -19,7 +19,7 @@ class DbManager:
                 return conn
         except sqlite3.Error as e:
             logging.critical(f"Couldn't connect to database file '{DB_FILE}': {e}")
-            os._exit(1)
+            os._exit(1)  # sys.exit() is handled by the Slack app, so we have to pull out the big guns
 
     def init_db(self) -> None:
         if os.path.exists(DB_FILE):
@@ -34,7 +34,7 @@ class DbManager:
                 conn.commit()
             except sqlite3.Error as e:
                 self.logger.critical(f"Couldn't create DB: {e}")
-                os._exit(1)
+                os._exit(1)  # sys.exit() is handled by the Slack app, so we have to pull out the big guns
 
     def execute_query(self, conn: Connection, query: str, parms: tuple) -> Cursor:
         try:
