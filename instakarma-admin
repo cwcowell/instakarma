@@ -200,27 +200,6 @@ ORDER BY gr.timestamp;""",
     LOG.info(msg)
 
 
-def init_db() -> None:
-    import os
-    if os.path.exists(DB_FILE):
-        LOG.info(f"Database file '{DB_FILE}' already exists. No changes made.")
-        return
-
-    with get_db_connection() as conn:
-        with open(DB_DDL_FILE) as ddl_file:
-            ddl: str = ddl_file.read()
-        try:
-            conn.executescript(ddl)
-            conn.commit()
-            msg: str = f"Database at {DB_FILE} initialized"
-            print(msg)
-            LOG.info(msg)
-        except sqlite3.Error as e:
-            msg: str = f"Error when creating DB: {e}"
-            LOG.error(msg)
-            sys.exit(msg)
-
-
 def list_entities(order: Literal['karma', 'entity_name']) -> None:
     if order not in ['karma', 'entity_name']:
         LOG.error(f"Unknown order passed to list(): '{order}'. Must be 'karma' or 'name'")

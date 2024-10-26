@@ -1,6 +1,15 @@
-# Plan for parsing and managing recipients
+## TODO
 
-## Recognized user
+- Review logger.debug and logger.info to make sure I'm using the right levels for different messages
+[x] Break out the respond text into a separate file
+- Consider merging log.py back into instakarma-bot
+- Extract common code
+- Handle exceptions that I throw
+- Find and fix all IntelliJ warnings
+
+## Plan for parsing and managing recipients
+
+### Recognized user
 
 Message contains granter's `user_id` and recipient's `user_id`.
 We need granter's `name` and recipient's `name` for logging.
@@ -13,7 +22,7 @@ We need granter's `name` and recipient's `name` for logging.
 * Say, using recipient's `name`.
 
 
-## Invalid user
+### Invalid user
 
 Message contains granter's `user_id` and invalid recipient's `name`. 
 We need granter's `name` for logging.
@@ -25,7 +34,7 @@ We need granter's `name` for logging.
 * Say, using invalid recipient's `name`.
 
 
-## Object
+### Object
 
 Message contains granter's `user_id` and recipient's `name`.
 We need granter's `name` for logging.

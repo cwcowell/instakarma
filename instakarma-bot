@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+from db import *
 from exceptions import *
 from log import *
+import response_blocks
 
-from enum import Enum, auto
+from enum import Enum
 import os
 import re
 import sqlite3
@@ -20,8 +22,8 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 class Action(Enum):
     """Every attempt to grant karma must have an Action associated with it, so we know
     if the grant increases or decreases the recipient's karma."""
-    INCREMENT = auto()
-    DECREMENT = auto()
+    INCREMENT = '++'
+    DECREMENT = '--'
 
 
 class Status(Enum):
@@ -31,49 +33,10 @@ class Status(Enum):
 
 
 # ---
-# DB utilities
-# ---
-
-def get_db_connection() -> Connection:
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            return conn
-    except sqlite3.Error as e:
-        log_error_and_quit(f"Couldn't connect to database file '{DB_FILE}': {e}")
-
-
-def init_db() -> None:
-    if os.path.exists(DB_FILE):
-        logger.info(f"Database file '{DB_FILE}' already exists. No changes made.")
-        return
-
-    with get_db_connection() as conn:
-        with open(DB_DDL_FILE) as ddl_file:
-            ddl: str = ddl_file.read()
-        try:
-            conn.executescript(ddl)
-            conn.commit()
-            logger.info(f"Creating new DB at '{DB_FILE}' using DDL '{DB_DDL_FILE}'")
-        except sqlite3.Error as e:
-            log_error_and_quit(f"Couldn't create DB: {e}")
-
-
-def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
-    try:
-        cursor: Cursor = conn.execute(query, parms)
-        conn.commit()
-        return cursor
-    except sqlite3.Error as e:
-        logger.error(f"Rolling back. puery: {query} | parms: '{parms}' | error: {e}")
-        conn.rollback()
-        raise e
-
-
-# ---
 # Helpers
 # ---
 
-def log_error_and_quit(msg: str) -> None:
+def log_critical_error_and_quit(msg: str) -> None:
     logger.critical(msg)
     print(f"FATAL ERROR. {msg}")
     os._exit(1)  # sys.exit() is handled by the Slack app, so we have to pull out the big guns
@@ -81,7 +44,7 @@ def log_error_and_quit(msg: str) -> None:
 
 def is_entity_disabled(conn: Connection, name: str) -> bool:
     is_disabled: bool = False
-    logger.debug(f"Asking DB if row with 'entity.name' of '{name}' is disabled")
+    logger.debug(f"Asking DB if name '{name}' is disabled")
     try:
         cursor: Cursor = execute_query(conn,
                                        """
@@ -93,22 +56,21 @@ def is_entity_disabled(conn: Connection, name: str) -> bool:
         result = cursor.fetchone()
         if result and result[0]:
             is_disabled = True
-
         if is_disabled:
-            logger.debug(f"DB says row with 'entity.name' of '{name}' is disabled")
+            logger.debug(f"DB says name '{name}' is disabled")
             return True
         else:
-            logger.debug(f"DB says row with 'entity.name' of '{name}' is not disabled")
+            logger.debug(f"DB says name '{name}' is not disabled")
             return False
-
     except sqlite3.Error as e:
-        logger.error(f"Couldn't check if '{name}' is disabled: {e}")
+        logger.error(f"Couldn't ask DB if name '{name}' is disabled: {e}")
         raise e
 
 
 def get_name_from_user_id(conn: Connection, user_id: str) -> str:
     # If row exists in DB with that `user_id` and `name`, RETURN `name`.
     try:
+        logger.debug(f"Asking DB for name of user_id: '{user_id}'")
         cursor: Cursor = execute_query(conn,
                                        """
                                        SELECT name
@@ -122,7 +84,9 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
 
     first_row_of_results = cursor.fetchone()
     if first_row_of_results:
-        return first_row_of_results[0]
+        name: str = first_row_of_results[0]
+        logger.debug(f"DB says user_id '{user_id}' has name '{name}'")
+        return name
 
     # Else if row exists for that `user_id`, look up `name` in the API and update the row with `name`. RETURN `name`.
     try:
@@ -134,20 +98,21 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
                                        """,
                                        (user_id,))
     except sqlite3.Error as e:
-        logger.error(f"Couldn't look up whether there's a row in 'entities' with 'entity.user_id' == {user_id}': {e}")
+        logger.error(f"Couldn't look up whether there's a row in 'entities' with 'entity.user_id' == '{user_id}': {e}")
         raise e
 
     first_row_of_results = cursor.fetchone()
     if first_row_of_results:
+        logger.debug(f"DB has a row for user_id '{user_id}' but the row has no name.")
         name: str = get_name_from_slack(user_id)
         try:
-            cursor: Cursor = execute_query(conn,
-                                           """
-                                           UPDATE entities
-                                            SET name = ?
-                                            WHERE user_id = ?;
-                                           """,
-                                           (name, user_id))
+            execute_query(conn,
+                          """
+                          UPDATE entities
+                          SET name = ?
+                          WHERE user_id = ?;
+                          """,
+                          (name, user_id))
         except sqlite3.Error as e:
             logger.error(f"Couldn't update 'entities' table to set 'name' for 'user_id' of '{user_id}': {e}")
             raise e
@@ -155,13 +120,15 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
 
     # Else look up the `name` in the API and insert a row with `name` and `user_id`. RETURN `name`.
     name: str = get_name_from_slack(user_id)
+    logger.debug(f"DB has no row for user_id '{user_id}, so adding a new row "
+                 f"with that user_id and a name pulled from Slack API")
     try:
-        cursor: Cursor = execute_query(conn,
-                                       """
-                                       INSERT INTO entities (name, user_id) 
-                                       VALUES (?, ?);
-                                       """,
-                                       (name, user_id))
+        execute_query(conn,
+                      """
+                      INSERT INTO entities (name, user_id) 
+                      VALUES (?, ?);
+                      """,
+                      (name, user_id))
     except sqlite3.Error as e:
         logger.error(f"Couldn't insert row into 'entities' table with name '{name}' and user_id '{user_id}': {e}")
         raise e
@@ -170,56 +137,59 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
 
 def get_name_from_slack(user_id: str) -> str:
     """Use Slack API to convert a user ID (e.g., 'U07R69E3YKB') into a user name (e.g., '@elvis')."""
-    logger.debug(f"Asking Slack API for user info for user with user_id '{user_id}'")
+    logger.debug(f"Asking Slack API for name of user with user_id '{user_id}'")
     user_info = app.client.users_info(user=user_id)
     name = user_info['user']['name']
-    logger.debug(f"Slack API returned name '{name}' for user with user_id '{user_id}'")
+    logger.debug(f"Slack API returned name '{name}' for user_id '{user_id}'")
     name = '@' + name
     return name
 
 
-def detect_valid_user_recipients(conn: Connection, msg_text: str) -> list[tuple[str, str]]:
+def detect_valid_user_recipients(text: str) -> list[tuple[str, Action]]:
     """Capture "foo" and "++" from "<@foo>++" and "<@foo> ++".
 
     This covers cases where the recipient is a user registered in Slack
     """
     recipient_is_valid_user_regex: str = r'<@(.*?)>\s?((\+\+)|(--))'
-    regex_matches = re.findall(recipient_is_valid_user_regex, msg_text)
-    recognized_user_recipients: list[tuple[str, str]] = []
+    regex_matches = re.findall(recipient_is_valid_user_regex, text)
+    valid_user_recipients: list[tuple[str, Action]] = []
     for match in regex_matches:
         recipient_user_id: str = match[0]
-        action: str = match[1]
-        recognized_user_recipients.append((recipient_user_id, action))
-    return recognized_user_recipients
+        action: Action = Action.INCREMENT if match[1] == Action.INCREMENT.value else Action.DECREMENT
+        valid_user_recipients.append((recipient_user_id, action))
+    logger.debug(f"Detected valid user recipients: {valid_user_recipients}")
+    return valid_user_recipients
 
 
-def detect_invalid_user_recipients(msg_text: str) -> list[tuple[str, str]]:
+def detect_invalid_user_recipients(text: str) -> list[tuple[str, Action]]:
     """Capture "foo" from "@foo++" and "@foo ++" where there's no "<" before the "@".
 
     This covers cases of trying to grant karma to a user not registered in Slack.
     """
     recipient_is_invalid_user_regex: str = r'(?<!<)(@\w+)\s?(\+\+|--)'
-    regex_matches = re.findall(recipient_is_invalid_user_regex, msg_text)
-    invalid_user_recipients: list[tuple[str, str]] = []
+    regex_matches = re.findall(recipient_is_invalid_user_regex, text)
+    invalid_user_recipients: list[tuple[str, Action]] = []
     for match in regex_matches:
         recipient_name: str = match[0]
-        action: str = match[1]
+        action: Action = Action.INCREMENT if match[1] == Action.INCREMENT.value else Action.DECREMENT
         invalid_user_recipients.append((recipient_name, action))
+    logger.debug(f"Detected invalid user recipients: {invalid_user_recipients}")
     return invalid_user_recipients
 
 
-def detect_object_recipients(msg_text: str) -> list[tuple[str, str]]:
+def detect_object_recipients(text: str) -> list[tuple[str, Action]]:
     """Capture "foo" and "++" from "foo++" and "foo ++ only when there's no @ before "foo".
 
     This covers cases where the recipient is a non-person, like "banyan" or "the-internet"
     """
     recipient_is_object_regex: str = r'\b(?<!@)([\w-]+)\s?((\+\+)|(--))'
-    regex_matches = re.findall(recipient_is_object_regex, msg_text)
-    object_recipients: list[tuple[str, str]] = []
+    regex_matches = re.findall(recipient_is_object_regex, text)
+    object_recipients: list[tuple[str, Action]] = []
     for match in regex_matches:
         recipient_name: str = match[0].lower()
-        action: str = match[1]
+        action: Action = Action.INCREMENT if match[1] == Action.INCREMENT.value else Action.DECREMENT
         object_recipients.append((recipient_name, action))
+    logger.debug(f"Detected object recipients: {object_recipients}")
     return object_recipients
 
 
@@ -229,6 +199,7 @@ def detect_object_recipients(msg_text: str) -> list[tuple[str, str]]:
 
 def get_karma(conn: Connection, name: str) -> int:
     try:
+        logger.debug(f"Asking DB for karma of name '{name}'")
         cursor: Cursor = execute_query(conn,
                                        """
                                        SELECT karma
@@ -240,15 +211,16 @@ def get_karma(conn: Connection, name: str) -> int:
         if result:
             return result[0]
         else:
-            logger.info(f"entity with name '{name}' is disabled or doesn't exist in 'entities' table")
+            logger.info(f"Name '{name}' is disabled or doesn't exist in 'entities' table")
             raise ValueError
     except sqlite3.Error as e:
-        logger.error(f"Couldn't get karma for entity with name '{name}'")
+        logger.error(f"Couldn't get karma for name '{name}'")
         raise e
 
 
 def get_status(conn: Connection, name: str) -> Status:
     try:
+        logger.debug(f"Asking DB for status of name '{name}'")
         cursor: Cursor = execute_query(conn,
                                        """
                                        SELECT disabled
@@ -259,15 +231,16 @@ def get_status(conn: Connection, name: str) -> Status:
         result = cursor.fetchone()
         if result:
             return Status.DISABLED if result[0] else Status.ENABLED
-        logger.info(f"Entity with name '{name}' doesn't exist in 'entities' table")
+        logger.info(f"Name '{name}' doesn't exist in 'entities' table")
         raise ValueError
     except sqlite3.Error as e:
-        logger.error(f"Couldn't get karma for '{name}'")
+        logger.error(f"Couldn't get status for name '{name}'")
         raise e
 
 
 def get_top_granters(conn: Connection, recipient_name: str) -> list[tuple[str, int]]:
     try:
+        logger.debug(f"Asking DB for top granters to name '{recipient_name}'")
         cursor: Cursor = execute_query(conn,
                                        f"""
                                        SELECT e_granter.name as top_granter_name,
@@ -288,12 +261,13 @@ def get_top_granters(conn: Connection, recipient_name: str) -> list[tuple[str, i
             biggest_granters.append((granter_name, int(times_granted)))
         return biggest_granters
     except sqlite3.Error as e:
-        logger.error(f"Couldn't get biggest granters to user with name '{recipient_name}': {e}")
+        logger.error(f"Couldn't get biggest granters to name '{recipient_name}': {e}")
         raise e
 
 
 def get_top_recipients(conn: Connection, granter_name: str) -> list[tuple[str, int]]:
     try:
+        logger.debug(f"Asking DB for top recipients from name '{granter_name}'")
         cursor: Cursor = execute_query(conn,
                                        f"""
                                        SELECT e_recipient.name as top_recpient_name,
@@ -307,21 +281,23 @@ def get_top_recipients(conn: Connection, granter_name: str) -> list[tuple[str, i
                                        LIMIT {NUM_TOP_RECIPIENTS};
                                        """,
                                        (granter_name,))
-        biggest_recipients: list[tuple[str, int]] = []
+        top_recipients: list[tuple[str, int]] = []
         for row in cursor.fetchall():
             recipient_name: str = row[0]
             times_granted: int = int(row[1])
-            biggest_recipients.append((recipient_name, int(times_granted)))
-        return biggest_recipients
+            top_recipients.append((recipient_name, int(times_granted)))
+        return top_recipients
     except sqlite3.Error as e:
-        logger.error(f"Couldn't get biggest recipients from user with name '{granter_name}': {e}")
+        logger.error(f"Couldn't get top recipients from name '{granter_name}': {e}")
         raise e
 
 
 def grant_karma(conn: Connection, granter_name: str, recipient_name: str, amount: int) -> None:
     if is_entity_disabled(conn, recipient_name):
+        logger.info(f"Can't grant '{amount}' karma from name '{granter_name}' to disabled name '{recipient_name}'")
         raise DisabledEntityError
 
+    logger.debug(f"Adding grant of '{amount}' karma to DB from name '{granter_name}' to name '{recipient_name}'")
     try:
         # make an entry in the 'grants' table using subqueries to look up 'entity_id' for granter and recipient
         execute_query(conn,
@@ -342,10 +318,10 @@ def grant_karma(conn: Connection, granter_name: str, recipient_name: str, amount
                       """,
                       (amount, recipient_name))
         conn.commit()
-        logger.info(f"'{granter_name}' granted '{amount}' karma to '{recipient_name}'")
+        logger.info(f"Name '{granter_name}' granted '{amount}' karma to name '{recipient_name}'")
 
     except sqlite3.Error as e:
-        logger.error(f"Couldn't grant '{amount}' karma from '{granter_name}' to '{recipient_name}': {e}")
+        logger.error(f"Couldn't grant '{amount}' karma from name '{granter_name}' to name '{recipient_name}': {e}")
         raise e
 
 
@@ -377,14 +353,16 @@ def change_user_status(conn: Connection, name: str, status: Status) -> None:
         logger.error(f"Couldn't set user '{name}' status to '{status.value}': {e}")
 
 
-def get_action_amount_and_verb(recipient: tuple[str, str]) -> (Action, int, str):
-    if recipient[1] == '++':
-        logger.debug("setting action to INCREMENT, amount to 1, verb to 'leveled up'")
-        return Action.INCREMENT, 1, 'leveled up'
-    if recipient[1] == '--':
-        logger.debug("setting action to DECREMENT, amount to -1, verb to 'took a hit'")
-        return Action.DECREMENT, -1, 'took a hit'
-    log_error_and_quit(f"Unrecognized action is neither '++' nor '--': '{recipient[1]}'")
+def get_amount_and_verb(recipient: tuple[str, Action]) -> (int, str):
+    action: Action = recipient[1]
+    if action == Action.INCREMENT:
+        logger.debug("setting amount to 1, verb to 'leveled up'")
+        return 1, 'leveled up'
+    if action == Action.DECREMENT:
+        logger.debug("setting amount to -1, verb to 'took a hit'")
+        return -1, 'took a hit'
+    log_critical_error_and_quit(
+        f"Unrecognized action is neither Action.INCREMENT nor Action.DECREMENT: '{recipient[1]}'")
 
 
 # ---
@@ -399,30 +377,30 @@ app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 def handle_karma_grants(message: dict, say) -> None:
     with get_db_connection() as conn:
         granter_user_id: str = message['user']
-        message_text: str = message['text']
+        msg_text: str = message['text']
 
-        valid_user_recipients: list[tuple[str, str]] = detect_valid_user_recipients(conn, message_text)
+        valid_user_recipients: list[tuple[str, Action]] = detect_valid_user_recipients(msg_text)
         logger.debug("recognized user recipients: " + str(valid_user_recipients))
 
-        invalid_user_recipients: list[tuple[str, str]] = detect_invalid_user_recipients(message_text)
+        invalid_user_recipients: list[tuple[str, Action]] = detect_invalid_user_recipients(msg_text)
         logger.debug("unrecognized user recipients: " + str(invalid_user_recipients))
 
-        object_recipients: list[tuple[str, str]] = detect_object_recipients(message_text)
+        object_recipients: list[tuple[str, Action]] = detect_object_recipients(msg_text)
         logger.debug("object recipients: " + str(object_recipients))
 
-        action: Action
         amount: int
         verb: str
 
         for recipient in valid_user_recipients:
             recipient_user_id: str = recipient[0]
-            action, amount, verb = get_action_amount_and_verb(recipient)
+            action: Action = recipient[1]
+            amount, verb = get_amount_and_verb(recipient)
 
             granter_name: str = get_name_from_user_id(conn, granter_user_id)
             recipient_name: str = get_name_from_user_id(conn, recipient_user_id)
 
             if action == Action.DECREMENT:
-                logger.info(f"'{granter_name}' tried to grant {amount} karma to a user")
+                logger.info(f"'{granter_name}' tried to reduce karma of a person with name '{recipient_name}'")
                 say('Sorry, you can only remove karma from things (like "python"), not people (like @elvis).')
                 continue
 
@@ -435,28 +413,28 @@ def handle_karma_grants(message: dict, say) -> None:
                 grant_karma(conn, granter_name, recipient_name, amount)
                 recipient_total_karma: int = get_karma(conn, recipient_name)
                 say(f"<{recipient_name}> {verb}, now has {recipient_total_karma} karma")
-            except DisabledEntityError as dee:
-                logger.info(f"'{granter_name}' can't grant karma to disabled entity '{recipient_name}'")
+            except DisabledEntityError:
+                logger.info(f"'{granter_name}' tried to grant karma to disabled entity '{recipient_name}'")
                 say(f"Sorry, {recipient_name} isn't participating in Instakarma.")
 
         for recipient in invalid_user_recipients:
             granter_name: str = get_name_from_user_id(conn, granter_user_id)
             recipient_name: str = recipient[0]
-            action, amount, verb = get_action_amount_and_verb(recipient)
+            amount, verb = get_amount_and_verb(recipient)
             logger.info(f"'{granter_name}' tried to grant '{amount}' karma "
-                        f"to unrecognized user '{recipient_name}'")
+                        f"to unrecognized name '{recipient_name}'")
             say(f"Sorry, I don't recognize the user {recipient_name}.")
 
         for recipient in object_recipients:
             granter_name: str = get_name_from_user_id(conn, granter_user_id)
             recipient_name: str = recipient[0]
-            action, amount, verb = get_action_amount_and_verb(recipient)
+            amount, verb = get_amount_and_verb(recipient)
             add_object_entity(conn, recipient_name)
             try:
                 grant_karma(conn, granter_name, recipient_name, amount)
                 recipient_total_karma: int = get_karma(conn, recipient_name)
                 say(f"{recipient_name} {verb}, now has {recipient_total_karma} karma.")
-            except DisabledEntityError as dee:
+            except DisabledEntityError:
                 logger.info(f"'{granter_name}' can't grant karma to disabled entity '{recipient_name}'")
                 say(f"Sorry, {recipient_name} is not participating in Instakarma.")
 
@@ -468,30 +446,7 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
     if parameter in ['help', '']:
         respond(text="instakarma usage",
-                blocks=[
-                    {
-                        "type": "header",
-                        "text": {
-                            "type": "plain_text",
-                            "text": "instakarma usage",
-                        }
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": ("*@robin++*   give 1 karma to Slack user *@robin*\n"
-                                     "*python++*   give 1 karma to non-person *python*\n"
-                                     "*python--*   remove 1 karma from non-person *python*\n"
-                                     "_optionally add a space between *recipient* and *++* or *--*_\n"
-                                     "\n"
-                                     "*/instakarma my-stats*   see your karma and top granters and receivers\n"
-                                     "*/instakarma disable-me*   decline to participate in instakarma\n"
-                                     "*/instakarma enable-me*   participate in instakarma\n"
-                                     "*/instakarma help*   display this usage guide\n")
-                        }
-                    }
-                ],
+                blocks=response_blocks.help,
                 response_type='ephemeral')
 
     if parameter == 'my-stats':
@@ -499,19 +454,8 @@ def handle_instakarma_command(ack, respond, command) -> None:
         with get_db_connection() as conn:
             status: Status = get_status(conn, name)
         if status == status.DISABLED:
-            respond(text=f"{name} is disable, so can't see their stats",
-                    blocks=[
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": (f"*instakarma stats for {name}*\n"
-                                         "\n"
-                                         f">You're disabled in instakarma\n"
-                                         ">Re-enable with */instakarma enable-me*")
-                            }
-                        }
-                    ],
+            respond(text=f"{name} is disabled, so can't see your stats",
+                    blocks=response_blocks.my_stats_disabled(name),
                     response_type='ephemeral')
             return
 
@@ -532,68 +476,32 @@ def handle_instakarma_command(ack, respond, command) -> None:
                 top_granters_text += f">• {str(granter[1])} from {granter[0]}\n"
 
         respond(text=f"instakarma stats for {name}",
-                blocks=[
-                    {
-                        "type": "section",
-                        "text": {"type": "mrkdwn",
-                                 "text": (f"*instakarma stats for {name}*\n"
-                                          "\n"
-                                          f"{your_karma_text}"
-                                          ">\n"
-                                          f"{top_recipients_text}"
-                                          ">\n"
-                                          f"{top_granters_text}")
-                                 }
-                    }
-                ],
+                blocks=response_blocks.my_stats(name, your_karma_text, top_recipients_text, top_granters_text),
                 response_type='ephemeral')
 
     if parameter == 'disable-me':
         name: str = '@' + command['user_name']
         with get_db_connection() as conn:
             change_user_status(conn, name, Status.DISABLED)
-        respond(
-            text=f"{name} is disabled in instakarma",
-            blocks=[
-                {"type": "section",
-                 "text": {"type": "mrkdwn",
-                          "text": (f">You're now disabled in instakarma\n"
-                                   ">Re-enable with */instakarma enable-me*")
-                          }
-                 }
-            ],
-            response_type='ephemeral')
+        respond(text=f"{name} is disabled in instakarma",
+                blocks=response_blocks.disable_me,
+                response_type='ephemeral')
 
     if parameter == 'enable-me':
         name: str = '@' + command['user_name']
         with get_db_connection() as conn:
             change_user_status(conn, name, Status.ENABLED)
         respond(text=f"{name} is enabled in instakarma",
-                blocks=[
-                    {"type": "section",
-                     "text": {"type": "mrkdwn",
-                              "text": (f">You're now enabled in instakarma\n"
-                                       ">Disable with */instakarma disable-me*")
-                              }
-                     }
-                ],
+                blocks=response_blocks.enable_me,
                 response_type='ephemeral')
 
     if parameter == 'leaderboard':
         respond(text="TODO",
-                blocks=[
-                    {"type": "section",
-                     "text": {"type": "mrkdwn",
-                              "text": "TODO: add leaderboard for non-users only"
-                              }
-                     }
-                ],
+                blocks=response_blocks.leaderboard,
                 response_type="ephemeral")
 
 
 if __name__ == "__main__":
-    logger: Logger = init_logger()  # global var, instead of passing it all around
+    logger: Logger = init_logger()  # use global var instead of passing a local var all around
     init_db()  # non-destructively create a DB
-    SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"]).start()
-
-# TODO: add logger.info before all SQL queries. Maybe in execute.query(), but maybe elsewhere too.
+    SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"]).start()  # launch the listener
