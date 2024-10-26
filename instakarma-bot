@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
-from db import *
+from constants import *
+from db_manager import DbManager
 from exceptions import *
-from log import *
+from log_manager import LogManager
 import response_blocks
 
 from enum import Enum
+from logging import Logger
 import os
 import re
 import sqlite3
@@ -46,7 +48,7 @@ def is_entity_disabled(conn: Connection, name: str) -> bool:
     is_disabled: bool = False
     logger.debug(f"Asking DB if name '{name}' is disabled")
     try:
-        cursor: Cursor = execute_query(conn,
+        cursor: Cursor = db_manager.execute_query(conn,
                                        """
                                        SELECT disabled
                                        FROM entities
@@ -71,7 +73,7 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
     # If row exists in DB with that `user_id` and `name`, RETURN `name`.
     try:
         logger.debug(f"Asking DB for name of user_id: '{user_id}'")
-        cursor: Cursor = execute_query(conn,
+        cursor: Cursor = db_manager.execute_query(conn,
                                        """
                                        SELECT name
                                        FROM entities
@@ -90,7 +92,7 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
 
     # Else if row exists for that `user_id`, look up `name` in the API and update the row with `name`. RETURN `name`.
     try:
-        cursor: Cursor = execute_query(conn,
+        cursor: Cursor = db_manager.execute_query(conn,
                                        """
                                        SELECT * 
                                        FROM entities
@@ -106,7 +108,7 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
         logger.debug(f"DB has a row for user_id '{user_id}' but the row has no name.")
         name: str = get_name_from_slack(user_id)
         try:
-            execute_query(conn,
+            db_manager.execute_query(conn,
                           """
                           UPDATE entities
                           SET name = ?
@@ -123,7 +125,7 @@ def get_name_from_user_id(conn: Connection, user_id: str) -> str:
     logger.debug(f"DB has no row for user_id '{user_id}, so adding a new row "
                  f"with that user_id and a name pulled from Slack API")
     try:
-        execute_query(conn,
+        db_manager.execute_query(conn,
                       """
                       INSERT INTO entities (name, user_id) 
                       VALUES (?, ?);
@@ -200,7 +202,7 @@ def detect_object_recipients(text: str) -> list[tuple[str, Action]]:
 def get_karma(conn: Connection, name: str) -> int:
     try:
         logger.debug(f"Asking DB for karma of name '{name}'")
-        cursor: Cursor = execute_query(conn,
+        cursor: Cursor = db_manager.execute_query(conn,
                                        """
                                        SELECT karma
                                        FROM entities
@@ -221,7 +223,7 @@ def get_karma(conn: Connection, name: str) -> int:
 def get_status(conn: Connection, name: str) -> Status:
     try:
         logger.debug(f"Asking DB for status of name '{name}'")
-        cursor: Cursor = execute_query(conn,
+        cursor: Cursor = db_manager.execute_query(conn,
                                        """
                                        SELECT disabled
                                        FROM entities
@@ -241,7 +243,7 @@ def get_status(conn: Connection, name: str) -> Status:
 def get_top_granters(conn: Connection, recipient_name: str) -> list[tuple[str, int]]:
     try:
         logger.debug(f"Asking DB for top granters to name '{recipient_name}'")
-        cursor: Cursor = execute_query(conn,
+        cursor: Cursor = db_manager.execute_query(conn,
                                        f"""
                                        SELECT e_granter.name as top_granter_name,
                                               COUNT(*) as times_granted
@@ -268,7 +270,7 @@ def get_top_granters(conn: Connection, recipient_name: str) -> list[tuple[str, i
 def get_top_recipients(conn: Connection, granter_name: str) -> list[tuple[str, int]]:
     try:
         logger.debug(f"Asking DB for top recipients from name '{granter_name}'")
-        cursor: Cursor = execute_query(conn,
+        cursor: Cursor = db_manager.execute_query(conn,
                                        f"""
                                        SELECT e_recipient.name as top_recpient_name,
                                               COUNT(*) as times_received
@@ -300,7 +302,7 @@ def grant_karma(conn: Connection, granter_name: str, recipient_name: str, amount
     logger.debug(f"Adding grant of '{amount}' karma to DB from name '{granter_name}' to name '{recipient_name}'")
     try:
         # make an entry in the 'grants' table using subqueries to look up 'entity_id' for granter and recipient
-        execute_query(conn,
+        db_manager.execute_query(conn,
                       """
                       INSERT INTO grants (granter_id, recipient_id, amount)
                       SELECT
@@ -310,7 +312,7 @@ def grant_karma(conn: Connection, granter_name: str, recipient_name: str, amount
                       """,
                       (granter_name, recipient_name, amount))
         # make an entry in the 'entities' table, which tracks total karma for each user
-        execute_query(conn,
+        db_manager.execute_query(conn,
                       """
                       UPDATE entities
                       SET karma = karma + ?
@@ -328,7 +330,7 @@ def grant_karma(conn: Connection, granter_name: str, recipient_name: str, amount
 def add_object_entity(conn: Connection, name: str) -> None:
     """Add an object entity to the table if it doesn't already exist."""
     try:
-        execute_query(conn,
+        db_manager.execute_query(conn,
                       """
                       INSERT OR IGNORE INTO entities (name)
                       VALUES (?)
@@ -341,7 +343,7 @@ def add_object_entity(conn: Connection, name: str) -> None:
 
 def change_user_status(conn: Connection, name: str, status: Status) -> None:
     try:
-        execute_query(conn,
+        db_manager.execute_query(conn,
                       f"""
                             UPDATE entities
                             SET disabled = {'TRUE' if status == Status.DISABLED else 'FALSE'}
@@ -375,7 +377,7 @@ app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 # Listen for "++" or "--" in any message in any channel the bot subscribes to.
 @app.message(r'(\+\+)|(--)')
 def handle_karma_grants(message: dict, say) -> None:
-    with get_db_connection() as conn:
+    with db_manager.get_db_connection() as conn:
         granter_user_id: str = message['user']
         msg_text: str = message['text']
 
@@ -451,7 +453,7 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
     if parameter == 'my-stats':
         name: str = '@' + command['user_name']
-        with get_db_connection() as conn:
+        with db_manager.get_db_connection() as conn:
             status: Status = get_status(conn, name)
         if status == status.DISABLED:
             respond(text=f"{name} is disabled, so can't see your stats",
@@ -481,7 +483,7 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
     if parameter == 'disable-me':
         name: str = '@' + command['user_name']
-        with get_db_connection() as conn:
+        with db_manager.get_db_connection() as conn:
             change_user_status(conn, name, Status.DISABLED)
         respond(text=f"{name} is disabled in instakarma",
                 blocks=response_blocks.disable_me,
@@ -489,7 +491,7 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
     if parameter == 'enable-me':
         name: str = '@' + command['user_name']
-        with get_db_connection() as conn:
+        with db_manager.get_db_connection() as conn:
             change_user_status(conn, name, Status.ENABLED)
         respond(text=f"{name} is enabled in instakarma",
                 blocks=response_blocks.enable_me,
@@ -502,6 +504,7 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
 
 if __name__ == "__main__":
-    logger: Logger = init_logger()  # use global var instead of passing a local var all around
-    init_db()  # non-destructively create a DB
+    logger: Logger = LogManager.get_logger()  # use global var instead of passing a local var all around
+    db_manager: DbManager = DbManager(logger)
+    db_manager.init_db()
     SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"]).start()  # launch the listener
