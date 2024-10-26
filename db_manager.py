@@ -1,16 +1,19 @@
 from constants import DB_FILE, DB_DDL_FILE
-from log_manager import Logger
+from logging import Logger
 
 import logging
 import os
 from sqlite3 import Connection, Cursor
 import sqlite3
+import sys
+
+from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 
 class DbManager:
-
-    def __init__(self, logger: Logger):
-        self.logger = logger
+    def __init__(self, logger: Logger, handler: SocketModeHandler):
+        self.logger: Logger = logger
+        self.handler: SocketModeHandler = handler
 
     def get_db_connection(self) -> Connection:
         try:
@@ -18,8 +21,7 @@ class DbManager:
             with sqlite3.connect(DB_FILE) as conn:
                 return conn
         except sqlite3.Error as e:
-            logging.critical(f"Couldn't connect to database file '{DB_FILE}': {e}")
-            os._exit(1)  # sys.exit() is handled by the Slack app, so we have to pull out the big guns
+            self.logger.critical(f"Couldn't connect to database file '{DB_FILE}': {e}")
 
     def init_db(self) -> None:
         if os.path.exists(DB_FILE):
@@ -34,7 +36,6 @@ class DbManager:
                 conn.commit()
             except sqlite3.Error as e:
                 self.logger.critical(f"Couldn't create DB: {e}")
-                os._exit(1)  # sys.exit() is handled by the Slack app, so we have to pull out the big guns
 
     def execute_query(self, conn: Connection, query: str, parms: tuple) -> Cursor:
         try:
