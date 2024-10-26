@@ -1,11 +1,9 @@
 from constants import DB_FILE, DB_DDL_FILE
 from logging import Logger
 
-import logging
 import os
 from sqlite3 import Connection, Cursor
 import sqlite3
-import sys
 
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
