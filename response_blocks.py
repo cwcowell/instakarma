@@ -23,17 +23,6 @@ enable_me: list[dict] = [
     }
 ]
 
-leaderboard: list[dict] = [
-    {
-        "type": "section",
-        "text":
-            {
-                "type": "mrkdwn",
-                "text": "TODO: add leaderboard for non-users only"
-            }
-    }
-]
-
 help: list[dict] = [
     {
         "type": "header",
@@ -61,22 +50,45 @@ help: list[dict] = [
     }
 ]
 
+
+def leaderboard(leader_text: str) -> list[dict]:
+    return [
+        {
+            "type": "header",
+            "text":
+                {
+                    "type": "plain_text",
+                    "text": "Karma of entities (not people)",
+                }
+        },
+        {
+            "type": "section",
+            "text":
+                {
+                    "type": "mrkdwn",
+                    "text": leader_text
+                }
+        }
+    ]
+
+
 def my_stats(name: str, your_karma_text: str, top_recipients_text: str, top_granters_text: str) -> list[dict]:
     return [
-    {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": (f"*instakarma stats for {name}*\n"
-                     "\n"
-                     f"{your_karma_text}"
-                     ">\n"
-                     f"{top_recipients_text}"
-                     ">\n"
-                     f"{top_granters_text}")
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*instakarma stats for {name}*\n" +
+                         "\n" +
+                         your_karma_text +
+                         ">\n" +
+                         top_recipients_text +
+                         ">\n" +
+                         top_granters_text
+            }
         }
-    }
-]
+    ]
+
 
 def my_stats_disabled(name: str) -> list[dict]:
     return [

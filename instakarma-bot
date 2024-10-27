@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from action_manager import ActionManager
 from db_manager import DbManager
 from entity_manager import EntityManager
 from enums import *
@@ -96,6 +97,11 @@ def handle_instakarma_command(ack, respond, command) -> None:
                 blocks=response_blocks.help,
                 response_type='ephemeral')
 
+    if parameter == 'leaderboard':
+        with db_manager.get_db_connection() as conn:
+            action_manager.show_leaderboard(respond, conn)
+
+
     if parameter == 'my-stats':
         name: str = '@' + command['user_name']
         with db_manager.get_db_connection() as conn:
@@ -142,17 +148,12 @@ def handle_instakarma_command(ack, respond, command) -> None:
                 blocks=response_blocks.enable_me,
                 response_type='ephemeral')
 
-    if parameter == 'leaderboard':
-        respond(text="TODO",
-                blocks=response_blocks.leaderboard,
-                response_type="ephemeral")
-
-
 if __name__ == "__main__":
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"])
 
     logger: Logger = LogManager.get_logger()
     db_manager: DbManager = DbManager(logger, slack_message_handler)
+    action_manager: ActionManager = ActionManager(db_manager, logger)
     entity_manager: EntityManager = EntityManager(db_manager, logger, app)
     karma_manager: KarmaManager = KarmaManager(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
