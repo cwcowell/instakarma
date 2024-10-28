@@ -12,7 +12,7 @@ CREATE TABLE entities
     name       TEXT     NOT NULL UNIQUE,                   -- Slack username like '@bob', or name of non-user entity like 'banyan'
     user_id    TEXT UNIQUE,                                -- Slack user ID; not used for non-user entities like 'banyan'
     karma      INTEGER  NOT NULL DEFAULT 0,                -- could be calculated from grants table, but is here for efficiency
-    disabled   BOOLEAN  NOT NULL DEFAULT FALSE,            -- 'true' means entity doesn't want to participate in instakarma
+    opt_in     BOOLEAN  NOT NULL DEFAULT TRUE,            -- `TRUE` means entity is participating in instakarma
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP -- no plans for use, but might be useful in future?
 );
 

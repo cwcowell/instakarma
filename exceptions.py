@@ -6,8 +6,8 @@ class SelfGrantError(Exception):
     pass
 
 
-class DisabledEntityError(Exception):
-    """A user has tried to grant karma to a disabled entity.
+class OptedOutEntityError(Exception):
+    """A user has tried to grant karma to an opted-out entity.
 
     This should be handled.
     """

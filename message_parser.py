@@ -44,7 +44,7 @@ class MessageParser:
     def detect_object_recipients(self, text: str) -> list[tuple[str, Action]]:
         """Capture "foo" and "++" from "foo++" and "foo ++ only when there's no @ before "foo".
 
-        This covers cases where the recipient is a non-person, like "banyan" or "the-internet".
+        This covers cases where the recipient is an object, like "banyan" or "the-internet".
         """
         recipient_is_object_regex: str = r'\b(?<!@)([\w-]+)\s?((\+\+)|(--))'
         regex_matches = re.findall(recipient_is_object_regex, text)
@@ -56,13 +56,13 @@ class MessageParser:
         self.logger.debug(f"Detected object recipients: {object_recipients}")
         return object_recipients
 
-    def get_amount_and_verb(self, recipient: tuple[str, Action]) -> (int, str):
+    def get_amount_verb_emoji(self, recipient: tuple[str, Action]) -> (int, str):
         action: Action = recipient[1]
         if action == Action.INCREMENT:
             self.logger.debug("setting amount to 1, verb to 'leveled up'")
-            return 1, 'leveled up'
+            return 1, 'leveled up', ':arrow_up:'
         if action == Action.DECREMENT:
             self.logger.debug("setting amount to -1, verb to 'took a hit'")
-            return -1, 'took a hit'
+            return -1, 'took a hit', ':arrow_down:'
         self.logger.critical(f"Unrecognized action is neither Action.INCREMENT nor Action.DECREMENT: '{recipient[1]}'")
         os._exit(1)

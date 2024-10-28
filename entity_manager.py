@@ -18,13 +18,13 @@ class EntityManager:
         try:
             self.logger.debug(f"Asking DB for status of name '{name}'")
             cursor: Cursor = self.db_manager.execute_statement("""
-                                                               SELECT disabled
+                                                               SELECT opt_in
                                                                FROM entities
                                                                WHERE name = ?;""",
                                                                (name,))
             result = cursor.fetchone()
             if result:
-                status: Status = Status.DISABLED if result[0] else Status.ENABLED
+                status: Status = Status.OPT_IN if result[0] else Status.OPT_OUT
                 self.logger.debug(f"DB says status of name '{name}' is '{status}'")
                 return status
             else:
@@ -38,7 +38,7 @@ class EntityManager:
         try:
             self.db_manager.execute_statement(f"""
                                               UPDATE entities
-                                              SET disabled = {'TRUE' if status == Status.DISABLED else 'FALSE'}
+                                              SET opt_in = {'TRUE' if status == Status.OPT_IN else 'FALSE'}
                                               WHERE name = ?;""",
                                               (name,))
             self.logger.info(f"Entity '{name}' now has status '{status.value}'")

@@ -1,24 +1,25 @@
 from enums import Status
 
+""" Slack text blocks used to respond to slash commands and operations """
 
-"""Slack text blocks used to respond to various instakarma slash commands and operations."""
 
 def change_status(new_status: Status) -> list[dict]:
     text: str = f"You're now {new_status.value} in instakarma\n"
-    if new_status == Status.DISABLED:
-        text += "Re-enable with */instakarma enable-me*"
+    if new_status == Status.OPT_OUT:
+        text += "Opt in with */instakarma opt-in*"
     else:
-        text += "Disable with */instakarma disable-me*"
+        text += "Opt out with */instakarma opt-out*"
 
     return [
-    {
-        "type": "section",
-        "text": {
-            "type": "mrkdwn",
-            "text": text
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": text
+            }
         }
-    }
-]
+    ]
+
 
 help: list[dict] = [
     {
@@ -26,7 +27,7 @@ help: list[dict] = [
         "text":
             {
                 "type": "plain_text",
-                "text": "Instakarma usage",
+                "text": "How do I use instakarma?",
             }
     },
     {
@@ -35,14 +36,14 @@ help: list[dict] = [
             {
                 "type": "mrkdwn",
                 "text": ("*@robin++*   give 1 karma to Slack user *@robin*\n"
-                         "*python++*   give 1 karma to non-person *python*\n"
-                         "*python--*   remove 1 karma from non-person *python*\n"
+                         "*python++*   give 1 karma to object *python*\n"
+                         "*python--*   remove 1 karma from object *python*\n"
                          "_optionally add a space between *recipient* and *++* or *--*_\n"
                          "\n"
-                         "*/instakarma disable-me*   decline to participate in instakarma\n"
-                         "*/instakarma enable-me*   participate in instakarma\n"
+                         "*/instakarma opt-me-out*   decline to participate in instakarma\n"
+                         "*/instakarma opt-me-in*   participate in instakarma\n"
                          "*/instakarma help*   display this usage guide\n"
-                         "*/instakarma leaderboard*   see the karma for all non-person entities\n"
+                         "*/instakarma leaderboard*   see the karma for all objects\n"
                          "*/instakarma my-stats*   see your karma and top granters and receivers\n")
             }
     }
@@ -56,7 +57,7 @@ def leaderboard(leader_text: str) -> list[dict]:
             "text":
                 {
                     "type": "plain_text",
-                    "text": "Karma of non-person entities",
+                    "text": "How much karma do objects have?",
                 }
         },
         {
@@ -87,11 +88,11 @@ def my_stats(name: str,
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text":  your_karma_text +
-                         "\n" +
-                         top_recipients_text +
-                         "\n" +
-                         top_granters_text
+                "text": your_karma_text +
+                        "\n" +
+                        top_recipients_text +
+                        "\n" +
+                        top_granters_text
             }
         }
     ]

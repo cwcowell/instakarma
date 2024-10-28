@@ -40,14 +40,14 @@ class ActionManager:
                                                        ORDER BY karma DESC;""",
                                                        ())
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get karma of all non-person entities: {e}")
+            self.logger.error(f"Couldn't get karma of all objects: {e}")
             raise e
         results = cursor.fetchall()
         for result in results:
             name: str = result[0]
             karma: int = result[1]
             leader_text += f"• {karma} {name}\n"
-        respond(text="show karma of non-person entities",
+        respond(text="show karma of objects",
                 blocks=response_blocks.leaderboard(leader_text),
                 response_type="ephemeral")
 
@@ -59,27 +59,28 @@ class ActionManager:
         name: str = '@' + command['user_name']
 
         status: Status = entity_manager.get_status(name)
-        if status == Status.DISABLED:
-            your_karma_text: str = f"You're disabled in instakarma, so no stats are available.\n" \
-                                   "Re-enable with */instakarma enable-me*"
+        if status == Status.OPT_OUT:
+            your_karma_text: str = f"You've opted out of instakarma, so no stats are available.\n" \
+                                   "Opt in with */instakarma opt-in"
             respond(text=f"instakarma stats for {name}",
                         blocks=response_blocks.my_stats(name, your_karma_text, '', ''),
                         response_type='ephemeral')
             return
 
-        your_karma_text: str = f"You have *{karma_manager.get_karma(name)}* karma\n"
+        your_karma_text: str = (f"*How much karma do I have?*\n"
+                                f"You have *{karma_manager.get_karma(name)}* karma\n")
 
         top_recipients_text: str = ''
         top_recipients: list[tuple[str, int]] = karma_manager.get_top_recipients(name)
         if top_recipients:
-            top_recipients_text = "*Your top karma recipients*\n"
+            top_recipients_text = "*Who have I given the most karma to?*\n"
         for recipient in top_recipients:
             top_recipients_text += f"• {str(recipient[1])} to {recipient[0]}\n"
 
         top_granters_text: str = ''
         top_granters: list[tuple[str, int]] = karma_manager.get_top_granters(name)
         if top_granters:
-            top_granters_text = "*Your top karma granters*\n"
+            top_granters_text = "*Who has given me the most karma?*\n"
         for granter in top_granters:
             top_granters_text += f"• {str(granter[1])} from {granter[0]}\n"
 

@@ -1,7 +1,7 @@
 from constants import NUM_TOP_GRANTERS, NUM_TOP_RECIPIENTS
 from db_manager import DbManager
 from entity_manager import EntityManager
-from exceptions import DisabledEntityError
+from exceptions import OptedOutEntityError
 from enums import Status
 
 from logging import Logger
@@ -24,13 +24,13 @@ class KarmaManager:
             cursor: Cursor = self.db_manager.execute_statement("""
                                                                SELECT karma
                                                                FROM entities
-                                                               WHERE name = ? AND disabled = FALSE;""",
+                                                               WHERE name = ? AND opt_in = TRUE;""",
                                                                (name,))
             result = cursor.fetchone()
             if result:
                 return result[0]
             else:
-                self.logger.info(f"Name '{name}' is disabled or doesn't exist in 'entities' table")
+                self.logger.info(f"Name '{name}' is opted-out or doesn't exist in 'entities' table")
                 raise ValueError
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get karma for name '{name}'")
@@ -89,10 +89,10 @@ class KarmaManager:
                     granter_name: str,
                     recipient_name: str,
                     amount: int) -> None:
-        if self.entity_manager.get_status(recipient_name) == Status.DISABLED:
+        if self.entity_manager.get_status(recipient_name) == Status.OPT_OUT:
             self.logger.info(
-                f"Can't grant '{amount}' karma from name '{granter_name}' to disabled name '{recipient_name}'")
-            raise DisabledEntityError
+                f"Can't grant '{amount}' karma from name '{granter_name}' to opted-out name '{recipient_name}'")
+            raise OptedOutEntityError
 
         try:
             # make an entry in the 'grants' table using subqueries to look up 'entity_id' for granter and recipient

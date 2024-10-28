@@ -2,13 +2,13 @@
 
 from action_manager import ActionManager
 from db_manager import DbManager
-from entity_manager import EntityManager
 from enums import *
-from exceptions import *
+from exceptions import OptedOutEntityError
+from entity_manager import EntityManager
+from grant_handler import GrantHandler
 from karma_manager import KarmaManager
 from log_manager import LogManager
 from message_parser import MessageParser
-import response_blocks
 
 from logging import Logger
 import os
@@ -16,8 +16,8 @@ import os
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
+app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 # Listen for "++" or "--" in any message in any channel the bot subscribes to.
 @app.message(r'(\+\+)|(--)')
@@ -39,63 +39,19 @@ def handle_karma_grants(message: dict, say) -> None:
         verb: str
 
         for recipient in valid_user_recipients:
-            recipient_user_id: str = recipient[0]
-            action: Action = recipient[1]
-            amount, verb = message_parser.get_amount_and_verb(recipient)
-
-            granter_name: str = entity_manager.get_name_from_user_id(granter_user_id)
-            recipient_name: str = entity_manager.get_name_from_user_id(recipient_user_id)
-
-            if action == Action.DECREMENT:
-                logger.info(f"'{granter_name}' tried to reduce karma of a person with name '{recipient_name}'")
-                say('Sorry, you can only remove karma from things (python--), not people (@elvis--)')
-                continue
-
-            if recipient_name == granter_name:
-                logger.info(f"'{granter_name}' tried to self-grant {amount} karma")
-                say(f"Sorry, you can't self-grant karma")
-                continue
-
-            try:
-                karma_manager.grant_karma(granter_name, recipient_name, amount)
-                recipient_total_karma: int = karma_manager.get_karma(recipient_name)
-                say(f"<{recipient_name}> {verb}, now has {recipient_total_karma} karma")
-            except DisabledEntityError:
-                logger.info(f"'{granter_name}' tried to grant karma to disabled entity '{recipient_name}'")
-                say(f"Sorry, {recipient_name} isn't participating in Instakarma")
+            grant_handler.grant_to_valid_user(say, granter_user_id, recipient)
 
         for recipient in invalid_user_recipients:
-            granter_name: str = entity_manager.get_name_from_user_id(granter_user_id)
-            recipient_name: str = recipient[0]
-            amount, verb = message_parser.get_amount_and_verb(recipient)
-            logger.info(f"'{granter_name}' tried to grant '{amount}' karma "
-                        f"to unrecognized name '{recipient_name}'")
-            say(f"Sorry, I don't recognize the user {recipient_name}")
+            grant_handler.grant_to_invalid_user(say, granter_user_id, recipient)
 
         for recipient in object_recipients:
-            granter_name: str = entity_manager.get_name_from_user_id(granter_user_id)
-            recipient_name: str = recipient[0]
-            amount, verb = message_parser.get_amount_and_verb(recipient)
-            entity_manager.add_object_entity(recipient_name)
-            try:
-                karma_manager.grant_karma(granter_name, recipient_name, amount)
-                recipient_total_karma: int = karma_manager.get_karma(recipient_name)
-                say(f"{recipient_name} {verb}, now has {recipient_total_karma} karma.")
-            except DisabledEntityError:
-                logger.info(f"'{granter_name}' can't grant karma to disabled entity '{recipient_name}'")
-                say(f"Sorry, {recipient_name} is not participating in Instakarma")
+            grant_handler.grant_to_object(say, granter_user_id, recipient)
 
 
 @app.command('/instakarma')
 def handle_instakarma_command(ack, respond, command) -> None:
     ack()
     parameter = command['text'].lower()
-
-    if parameter == 'disable-me':
-        action_manager.change_status(command, respond, Status.DISABLED, entity_manager)
-
-    if parameter == 'enable-me':
-        action_manager.change_status(command, respond, Status.ENABLED, entity_manager)
 
     if parameter in ['help', '']:
         action_manager.help(respond)
@@ -105,6 +61,12 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
     if parameter == 'my-stats':
         action_manager.my_stats(command, respond, entity_manager, karma_manager)
+
+    if parameter == 'opt-in':
+        action_manager.change_status(command, respond, Status.OPT_IN, entity_manager)
+
+    if parameter == 'opt-out':
+        action_manager.change_status(command, respond, Status.OPT_OUT, entity_manager)
 
 
 if __name__ == "__main__":
@@ -116,6 +78,7 @@ if __name__ == "__main__":
     entity_manager: EntityManager = EntityManager(db_manager, logger, app)
     karma_manager: KarmaManager = KarmaManager(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
+    grant_handler: GrantHandler = GrantHandler(entity_manager, karma_manager, logger, message_parser)
 
     db_manager.init_db()
 
