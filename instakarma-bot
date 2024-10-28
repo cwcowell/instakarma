@@ -55,18 +55,26 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
     if parameter in ['help', '']:
         action_manager.help(respond)
+        return
 
     if parameter == 'leaderboard':
         action_manager.leaderboard(respond, db_manager)
+        return
 
     if parameter == 'my-stats':
         action_manager.my_stats(command, respond, entity_manager, karma_manager)
+        return
 
     if parameter == 'opt-in':
         action_manager.change_status(command, respond, Status.OPT_IN, entity_manager)
+        return
 
     if parameter == 'opt-out':
         action_manager.change_status(command, respond, Status.OPT_OUT, entity_manager)
+        return
+
+    respond(f":x: Sorry, */instakarma {parameter}* isn't a valid command")
+    action_manager.help(respond)
 
 
 if __name__ == "__main__":
