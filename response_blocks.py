@@ -1,25 +1,22 @@
+from enums import Status
+
+
 """Slack text blocks used to respond to various instakarma slash commands and operations."""
 
-disable_me: list[dict] = [
+def change_status(new_status: Status) -> list[dict]:
+    text: str = f"You're now {new_status.value} in instakarma\n"
+    if new_status == Status.DISABLED:
+        text += "Re-enable with */instakarma enable-me*"
+    else:
+        text += "Disable with */instakarma disable-me*"
+
+    return [
     {
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": ">You're now disabled in instakarma\n" +
-                    ">Re-enable with */instakarma enable-me*"
+            "text": text
         }
-    }
-]
-
-enable_me: list[dict] = [
-    {
-        "type": "section",
-        "text":
-            {
-                "type": "mrkdwn",
-                "text": ">You're now enabled in instakarma\n" +
-                        ">Disable with */instakarma disable-me*"
-            }
     }
 ]
 
@@ -29,7 +26,7 @@ help: list[dict] = [
         "text":
             {
                 "type": "plain_text",
-                "text": "instakarma usage",
+                "text": "Instakarma usage",
             }
     },
     {
@@ -42,10 +39,11 @@ help: list[dict] = [
                          "*python--*   remove 1 karma from non-person *python*\n"
                          "_optionally add a space between *recipient* and *++* or *--*_\n"
                          "\n"
-                         "*/instakarma my-stats*   see your karma and top granters and receivers\n"
                          "*/instakarma disable-me*   decline to participate in instakarma\n"
                          "*/instakarma enable-me*   participate in instakarma\n"
-                         "*/instakarma help*   display this usage guide\n")
+                         "*/instakarma help*   display this usage guide\n"
+                         "*/instakarma leaderboard*   see the karma for all non-person entities\n"
+                         "*/instakarma my-stats*   see your karma and top granters and receivers\n")
             }
     }
 ]
@@ -58,7 +56,7 @@ def leaderboard(leader_text: str) -> list[dict]:
             "text":
                 {
                     "type": "plain_text",
-                    "text": "Karma of entities (not people)",
+                    "text": "Karma of non-person entities",
                 }
         },
         {
@@ -72,35 +70,28 @@ def leaderboard(leader_text: str) -> list[dict]:
     ]
 
 
-def my_stats(name: str, your_karma_text: str, top_recipients_text: str, top_granters_text: str) -> list[dict]:
+def my_stats(name: str,
+             your_karma_text: str,
+             top_recipients_text: str,
+             top_granters_text: str) -> list[dict]:
     return [
+        {
+            "type": "header",
+            "text":
+                {
+                    "type": "plain_text",
+                    "text": f"Instakarma stats for {name}",
+                }
+        },
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*instakarma stats for {name}*\n" +
+                "text":  your_karma_text +
                          "\n" +
-                         your_karma_text +
-                         ">\n" +
                          top_recipients_text +
-                         ">\n" +
+                         "\n" +
                          top_granters_text
             }
-        }
-    ]
-
-
-def my_stats_disabled(name: str) -> list[dict]:
-    return [
-        {
-            "type": "section",
-            "text":
-                {
-                    "type": "mrkdwn",
-                    "text": f"*instakarma stats for {name}*\n" +
-                            "\n" +
-                            f">You're disabled in instakarma\n" +
-                            ">Re-enable with */instakarma enable-me*"
-                }
         }
     ]

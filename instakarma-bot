@@ -16,7 +16,6 @@ import os
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-
 app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 
@@ -44,8 +43,8 @@ def handle_karma_grants(message: dict, say) -> None:
             action: Action = recipient[1]
             amount, verb = message_parser.get_amount_and_verb(recipient)
 
-            granter_name: str = entity_manager.get_name_from_user_id(conn, granter_user_id)
-            recipient_name: str = entity_manager.get_name_from_user_id(conn, recipient_user_id)
+            granter_name: str = entity_manager.get_name_from_user_id(granter_user_id)
+            recipient_name: str = entity_manager.get_name_from_user_id(recipient_user_id)
 
             if action == Action.DECREMENT:
                 logger.info(f"'{granter_name}' tried to reduce karma of a person with name '{recipient_name}'")
@@ -58,15 +57,15 @@ def handle_karma_grants(message: dict, say) -> None:
                 continue
 
             try:
-                karma_manager.grant_karma(conn, granter_name, recipient_name, amount)
-                recipient_total_karma: int = karma_manager.get_karma(conn, recipient_name)
+                karma_manager.grant_karma(granter_name, recipient_name, amount)
+                recipient_total_karma: int = karma_manager.get_karma(recipient_name)
                 say(f"<{recipient_name}> {verb}, now has {recipient_total_karma} karma")
             except DisabledEntityError:
                 logger.info(f"'{granter_name}' tried to grant karma to disabled entity '{recipient_name}'")
                 say(f"Sorry, {recipient_name} isn't participating in Instakarma")
 
         for recipient in invalid_user_recipients:
-            granter_name: str = entity_manager.get_name_from_user_id(conn, granter_user_id)
+            granter_name: str = entity_manager.get_name_from_user_id(granter_user_id)
             recipient_name: str = recipient[0]
             amount, verb = message_parser.get_amount_and_verb(recipient)
             logger.info(f"'{granter_name}' tried to grant '{amount}' karma "
@@ -74,13 +73,13 @@ def handle_karma_grants(message: dict, say) -> None:
             say(f"Sorry, I don't recognize the user {recipient_name}")
 
         for recipient in object_recipients:
-            granter_name: str = entity_manager.get_name_from_user_id(conn, granter_user_id)
+            granter_name: str = entity_manager.get_name_from_user_id(granter_user_id)
             recipient_name: str = recipient[0]
             amount, verb = message_parser.get_amount_and_verb(recipient)
-            entity_manager.add_object_entity(conn, recipient_name)
+            entity_manager.add_object_entity(recipient_name)
             try:
-                karma_manager.grant_karma(conn, granter_name, recipient_name, amount)
-                recipient_total_karma: int = karma_manager.get_karma(conn, recipient_name)
+                karma_manager.grant_karma(granter_name, recipient_name, amount)
+                recipient_total_karma: int = karma_manager.get_karma(recipient_name)
                 say(f"{recipient_name} {verb}, now has {recipient_total_karma} karma.")
             except DisabledEntityError:
                 logger.info(f"'{granter_name}' can't grant karma to disabled entity '{recipient_name}'")
@@ -92,61 +91,21 @@ def handle_instakarma_command(ack, respond, command) -> None:
     ack()
     parameter = command['text'].lower()
 
-    if parameter in ['help', '']:
-        respond(text="instakarma usage",
-                blocks=response_blocks.help,
-                response_type='ephemeral')
-
-    if parameter == 'leaderboard':
-        with db_manager.get_db_connection() as conn:
-            action_manager.show_leaderboard(respond, conn)
-
-
-    if parameter == 'my-stats':
-        name: str = '@' + command['user_name']
-        with db_manager.get_db_connection() as conn:
-            status: Status = entity_manager.get_status_from_db(conn, name)
-        if status == status.DISABLED:
-            respond(text=f"{name} is disabled, so can't see your stats",
-                    blocks=response_blocks.my_stats_disabled(name),
-                    response_type='ephemeral')
-            return
-
-        your_karma_text: str = f">You have *{karma_manager.get_karma(conn, name)}* karma\n"
-
-        top_recipients_text: str = ''
-        top_recipients: list[tuple[str, int]] = karma_manager.get_top_recipients(conn, name)
-        if top_recipients:
-            top_recipients_text = ">*Your top karma recipients*\n"
-            for recipient in top_recipients:
-                top_recipients_text += f">• {str(recipient[1])} to {recipient[0]}\n"
-
-        top_granters_text: str = ''
-        top_granters: list[tuple[str, int]] = karma_manager.get_top_granters(conn, name)
-        if top_granters:
-            top_granters_text = ">*Your top karma granters*\n"
-            for granter in top_granters:
-                top_granters_text += f">• {str(granter[1])} from {granter[0]}\n"
-
-        respond(text=f"instakarma stats for {name}",
-                blocks=response_blocks.my_stats(name, your_karma_text, top_recipients_text, top_granters_text),
-                response_type='ephemeral')
-
     if parameter == 'disable-me':
-        name: str = '@' + command['user_name']
-        with db_manager.get_db_connection() as conn:
-            entity_manager.change_user_status(conn, name, Status.DISABLED)
-        respond(text=f"{name} is disabled in instakarma",
-                blocks=response_blocks.disable_me,
-                response_type='ephemeral')
+        action_manager.change_status(command, respond, Status.DISABLED, entity_manager)
 
     if parameter == 'enable-me':
-        name: str = '@' + command['user_name']
-        with db_manager.get_db_connection() as conn:
-            entity_manager.change_user_status(conn, name, Status.ENABLED)
-        respond(text=f"{name} is enabled in instakarma",
-                blocks=response_blocks.enable_me,
-                response_type='ephemeral')
+        action_manager.change_status(command, respond, Status.ENABLED, entity_manager)
+
+    if parameter in ['help', '']:
+        action_manager.help(respond)
+
+    if parameter == 'leaderboard':
+        action_manager.leaderboard(respond, db_manager)
+
+    if parameter == 'my-stats':
+        action_manager.my_stats(command, respond, entity_manager, karma_manager)
+
 
 if __name__ == "__main__":
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"])
@@ -160,5 +119,4 @@ if __name__ == "__main__":
 
     db_manager.init_db()
 
-    # launch the Slack listener
-    slack_message_handler.start()
+    slack_message_handler.start()  # launch the Slack listener
