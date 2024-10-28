@@ -1,60 +1,17 @@
 #!/usr/bin/env python3
 
+from constants import *
+
 import argparse
-import logging
 import sqlite3
-import sys
-
-from argparse import ArgumentParser
-from logging import Logger
-from sqlite3 import Connection, Cursor
-from typing import Final, Literal
-
-# --- CONSTANTS ---
-
-DB_FILE: Final[str] = 'instakarma.db'
-DB_DDL_FILE: Final[str] = 'db/instakarma_ddl.sql'
-GRANTS_CSV_FILE: Final[str] = 'all_grants.csv'
-LOG_FILE: Final[str] = 'instakarma.log'
-
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p',
-                    filename=LOG_FILE)
-LOG: Final[Logger] = logging.getLogger(__name__)
-
 
 # --- DB METHODS ---
 
 def backup_db(destination_file: str) -> None:
     with sqlite3.connect(DB_FILE) as source, sqlite3.connect(destination_file) as destination:
         source.backup(destination)
-    msg: str = f"'{DB_FILE}' backed up to '{destination_file}'"
-    LOG.info(msg)
-    print(msg)
+    print(f"'{DB_FILE}' backed up to '{destination_file}'")
 
-
-def execute_query(conn: Connection, query: str, parms: tuple) -> Cursor:
-    try:
-        cursor: Cursor = conn.execute(query, parms)
-        return cursor
-    except sqlite3.Error as e:
-        LOG.error(f"Rolling back because of error: {e}\nQuery: {query}\nParms: {parms}")
-        conn.rollback()
-        raise e
-
-
-def get_db_connection() -> Connection:
-    try:
-        with sqlite3.connect(DB_FILE) as conn:
-            return conn
-    except sqlite3.Error as e:
-        msg: str = f"Error connecting to database file '{DB_FILE}': {e}"
-        LOG.error(msg)
-        sys.exit(msg)
-
-
-# --- HELPER METHODS --
 
 def add_entity(conn: Connection, entity_name: str) -> None:
     try:
