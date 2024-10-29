@@ -12,22 +12,30 @@ class LogManager:
     _logger: Logger | None = None
 
     @staticmethod
-    def get_logger() -> Logger:
+    def get_logger(name: str,
+                   log_file: str,
+                   log_level: str,
+                   log_file_size: int,
+                   log_file_count: int) -> Logger:
         if LogManager._logger is None:
-            LogManager._logger = LogManager._init_logger()
+            LogManager._logger = LogManager._init_logger(name, log_file, log_level, log_file_size, log_file_count)
         return LogManager._logger
 
     @staticmethod
-    def _init_logger():
-        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)  # make logs dirs, if needed
-        logger: Logger = logging.getLogger('instakarma')
-        logger.setLevel(LOG_LEVEL)
+    def _init_logger(name: str,
+                     log_file: str,
+                     log_level: str,
+                     log_file_size: int,
+                     log_file_count: int):
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)  # make logs dirs, if needed
+        logger: Logger = logging.getLogger(name)
+        logger.setLevel(log_level)
         formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s',
                                       datefmt='%m/%d/%Y %I:%M:%S %p')
-        handler = RotatingFileHandler(filename=LOG_FILE,
+        handler = RotatingFileHandler(filename=log_file,
                                       mode='a',
-                                      maxBytes=LOG_FILE_SIZE,
-                                      backupCount=LOG_FILE_COUNT)
+                                      maxBytes=log_file_size,
+                                      backupCount=log_file_count)
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         return logger

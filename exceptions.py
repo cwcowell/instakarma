@@ -27,3 +27,10 @@ class NameNotFoundInSlackError:
     This should be handled.
     """
     pass
+
+class NoSlackApiManagerDefinedError:
+    """Tried to make a Slack API call, but no manager is defined.
+
+    This should be handled.
+    """
+    pass

@@ -1,30 +1,27 @@
 #!/usr/bin/env python3
 
 from constants import *
+from db_manager import DbManager
+from entity_manager import EntityManager
+from log_manager import LogManager
 
+from argparse import ArgumentParser
 import argparse
+from logging import Logger
 import sqlite3
 
-# --- DB METHODS ---
-
-def backup_db(destination_file: str) -> None:
-    with sqlite3.connect(DB_FILE) as source, sqlite3.connect(destination_file) as destination:
-        source.backup(destination)
-    print(f"'{DB_FILE}' backed up to '{destination_file}'")
-
-
-def add_entity(conn: Connection, entity_name: str) -> None:
-    try:
-        # Add an entity to the table if it doesn't already exist, and do nothing if it does already exist
-        execute_query(conn,
-                      """
-INSERT OR IGNORE INTO entities (name)
-VALUES (?)""",
-                      (name,))
-        conn.commit()
-    except sqlite3.Error as e:
-        LOG.error(f"Error when adding entity '{entity_name}': {e}")
-        raise e
+# def add_entity(conn: Connection, entity_name: str) -> None:
+#     try:
+#         # Add an entity to the table if it doesn't already exist, and do nothing if it does already exist
+#         execute_query(conn,
+#                       """
+# INSERT OR IGNORE INTO entities (name)
+# VALUES (?)""",
+#                       (name,))
+#         conn.commit()
+#     except sqlite3.Error as e:
+#         LOG.error(f"Error when adding entity '{entity_name}': {e}")
+#         raise e
 
 
 def get_karma(conn: Connection, entity_name: str) -> int:
@@ -219,7 +216,10 @@ def main() -> None:
 
     group = parser.add_mutually_exclusive_group()
 
-    group.add_argument('--backup-db',
+    group.add_argument('add-entity',
+                       metavar='<ENTITY-NAME>',
+                       help='Add a person or object to the DB with 0 karma')
+    group.add_argument('backup-db',
                        metavar='<BACKUP-FILE-NAME>',
                        help='Copy contents of DB to <BACKUP-FILE-NAME>')
     group.add_argument('--disable',
@@ -246,8 +246,10 @@ def main() -> None:
 
     args: argparse.Namespace = parser.parse_args()
 
+    if args.add_entity:
+        entity_manager.add_entity(name=args.add_entity, user_id=None)
     if args.backup_db:
-        backup_db(destination_file=args.backup_db)
+        db_manager.backup_db()
     elif args.disable:
         change_entity_status(entity_name=args.disable, status='disabled')
     elif args.enable:
@@ -267,4 +269,12 @@ def main() -> None:
 
 
 if __name__ == '__main__':
+    logger: Logger = LogManager.get_logger(ADMIN_LOGGER_NAME,
+                                           ADMIN_LOG_FILE,
+                                           ADMIN_LOG_LEVEL,
+                                           ADMIN_LOG_FILE_SIZE,
+                                           ADMIN_LOG_FILE_COUNT)
+    db_manager: DbManager = DbManager(logger)
+    entity_manager: EntityManager = EntityManager(db_manager, logger)
+
     main()

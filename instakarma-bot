@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 from action_manager import ActionManager
+from constants import *
 from db_manager import DbManager
 from enums import *
-from exceptions import OptedOutEntityError
 from entity_manager import EntityManager
 from grant_handler import GrantHandler
 from karma_manager import KarmaManager
 from log_manager import LogManager
 from message_parser import MessageParser
+from slack_api_manager import SlackApiManager
 
 from logging import Logger
 import os
@@ -80,10 +81,15 @@ def handle_instakarma_command(ack, respond, command) -> None:
 if __name__ == "__main__":
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"])
 
-    logger: Logger = LogManager.get_logger()
-    db_manager: DbManager = DbManager(logger, slack_message_handler)
+    logger: Logger = LogManager.get_logger(BOT_LOGGER_NAME,
+                                           BOT_LOG_FILE,
+                                           BOT_LOG_LEVEL,
+                                           BOT_LOG_FILE_SIZE,
+                                           BOT_LOG_FILE_COUNT)
+    db_manager: DbManager = DbManager(logger)
+    slack_api_manager: SlackApiManager = SlackApiManager(app, logger)
     action_manager: ActionManager = ActionManager(db_manager, logger)
-    entity_manager: EntityManager = EntityManager(db_manager, logger, app)
+    entity_manager: EntityManager = EntityManager(db_manager, logger, slack_api_manager)
     karma_manager: KarmaManager = KarmaManager(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
     grant_handler: GrantHandler = GrantHandler(entity_manager, karma_manager, logger, message_parser)

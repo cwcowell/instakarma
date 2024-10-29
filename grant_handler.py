@@ -29,7 +29,7 @@ class GrantHandler():
 
         if action == Action.DECREMENT:
             self.logger.info(f"'{granter_name}' tried to reduce karma of a person with name '{recipient_name}'")
-            say(':x: Sorry, you can only remove karma from things, not people (*foo--* is OK, *@foo--* is not)')
+            say(':x: Sorry, you can only remove karma from things, not people\n*foo--* is OK\n*@foo--* is not')
             return
 
         if recipient_name == granter_name:
@@ -58,7 +58,7 @@ class GrantHandler():
         granter_name: str = self.entity_manager.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
         amount, verb, emoji = self.message_parser.get_amount_verb_emoji(recipient)
-        self.entity_manager.add_object_entity(recipient_name)
+        self.entity_manager.add_entity(recipient_name, None)
         try:
             self.karma_manager.grant_karma(granter_name, recipient_name, amount)
             recipient_total_karma: int = self.karma_manager.get_karma(recipient_name)

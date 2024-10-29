@@ -1,18 +1,20 @@
 from db_manager import DbManager
 from enums import Status
+from exceptions import NoSlackApiManagerDefinedError
+from slack_api_manager import SlackApiManager
 
 from logging import Logger
 from sqlite3 import Cursor
 import sqlite3
 
-from slack_bolt import App
-
-
 class EntityManager:
-    def __init__(self, db_manager: DbManager, logger: Logger, app: App):
-        self.db_manager = db_manager
-        self.logger = logger
-        self.app = app
+    def __init__(self,
+                 db_manager: DbManager,
+                 logger: Logger,
+                 slack_api_manager: SlackApiManager = None):
+        self.db_manager: DbManager = db_manager
+        self.logger: Logger = logger
+        self.slack_api_manager: SlackApiManager = slack_api_manager
 
     def get_status(self, name: str) -> Status:
         try:
@@ -80,7 +82,10 @@ class EntityManager:
         first_row_of_results = cursor.fetchone()
         if first_row_of_results:
             self.logger.debug(f"DB has a row for user_id '{user_id}' but the row has no name.")
-            name: str = self.get_name_from_slack(user_id)
+            if self.slack_api_manager is None:
+                raise NoSlackApiManagerDefinedError
+
+            name: str = self.slack_api_manager.get_name_from_slack_api(user_id)
             try:
                 self.db_manager.execute_statement("""
                                                   UPDATE entities
@@ -93,7 +98,7 @@ class EntityManager:
             return name
 
         # else look up the `name` in the API and insert a row with `name` and `user_id`. RETURN `name`
-        name: str = self.get_name_from_slack(user_id)
+        name: str = self.slack_api_manager.get_name_from_slack_api(user_id)
         self.logger.debug(f"DB has no row for user_id '{user_id}, so adding a new row "
                           f"with that user_id and a name pulled from Slack API")
         try:
@@ -107,22 +112,22 @@ class EntityManager:
             raise e
         return name
 
-    def get_name_from_slack(self, user_id: str) -> str:
-        """ Use Slack API to convert a user ID ('U07R69E3YKB') into a user name ('@elvis'). """
-        self.logger.debug(f"Asking Slack API for name of user with user_id '{user_id}'")
-        user_info = self.app.client.users_info(user=user_id)
-        name = user_info['user']['name']
-        self.logger.debug(f"Slack API returned name '{name}' for user_id '{user_id}'")
-        name = '@' + name
-        return name
+    # def get_name_from_slack(self, user_id: str) -> str:
+    #     """ Use Slack API to convert a user ID ('U07R69E3YKB') into a user name ('@elvis'). """
+    #     self.logger.debug(f"Asking Slack API for name of user with user_id '{user_id}'")
+    #     user_info = self.app.client.users_info(user=user_id)
+    #     name = user_info['user']['name']
+    #     self.logger.debug(f"Slack API returned name '{name}' for user_id '{user_id}'")
+    #     name = '@' + name
+    #     return name
 
-    def add_object_entity(self, name: str) -> None:
-        """ Add an object entity to the table if it doesn't already exist. """
+    def add_entity(self, name: str, user_id: str | None) -> None:
+        """ Add an entity to the table if it doesn't already exist. """
         try:
             self.db_manager.execute_statement("""
-                                              INSERT OR IGNORE INTO entities (name)
-                                              VALUES (?);""",
-                                              (name,))
+                                              INSERT OR IGNORE INTO entities (name, user_id)
+                                              VALUES (?, ?);""",
+                                              (name, user_id))
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't add object entity '{name}': {e}")
             raise e
