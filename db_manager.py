@@ -38,19 +38,24 @@ class DbManager:
         statement = statement.replace('\n', ' ')  # replace newlines returns with spaces
         return ' '.join(statement.split())  # replace multiple spaces with a single space
 
-    def init_db(self) -> None:
+    def init_db(self) -> str:
         if os.path.exists(DB_FILE):
-            self.logger.info(f"Database already exists at '{DB_FILE}'. No changes made.")
-            return
+            msg: str = f"Database already exists at '{DB_FILE}'. No changes made."
+            self.logger.info(msg)
+            return msg
         with self.get_db_connection() as conn:
             with open(DB_DDL_FILE) as ddl_file:
                 ddl: str = ddl_file.read()
             try:
-                self.logger.info(f"Creating new DB at '{DB_FILE}' using DDL '{DB_DDL_FILE}'")
                 conn.executescript(ddl)
                 conn.commit()
+                msg: str = f"Created new DB at '{DB_FILE}' using DDL '{DB_DDL_FILE}'"
+                self.logger.info(msg)
+                return msg
             except sqlite3.Error as e:
-                self.logger.critical(f"Couldn't create DB: {e}")
+                msg: str = f"Couldn't create DB: {e}"
+                self.logger.critical(msg)
+                return msg
 
     def backup_db(self) -> None:
         with sqlite3.connect(DB_FILE) as source, sqlite3.connect(DB_FILE_BACKUP) as destination:

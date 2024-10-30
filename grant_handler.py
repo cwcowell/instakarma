@@ -66,3 +66,4 @@ class GrantHandler():
         except OptedOutEntityError:
             self.logger.info(f"'{granter_name}' can't grant karma to opted-out entity '{recipient_name}'")
             say(f":x: Sorry, {recipient_name} is not participating in Instakarma")
+

@@ -20,7 +20,7 @@ class ActionManager:
                       new_status: Status,
                       entity_manager: EntityManager):
         name: str = '@' + command['user_name']
-        entity_manager.change_user_status(name, new_status)
+        entity_manager.change_entity_status(name, new_status)
         respond(text=f"{name} is now {new_status.value} in instakarma",
                 blocks=response_blocks.change_status(new_status),
                 response_type='ephemeral')

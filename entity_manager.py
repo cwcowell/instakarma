@@ -36,7 +36,7 @@ class EntityManager:
             self.logger.error(f"Couldn't get status for name '{name}'")
             raise e
 
-    def change_user_status(self, name: str, status: Status) -> None:
+    def change_entity_status(self, name: str, status: Status) -> None:
         try:
             self.db_manager.execute_statement(f"""
                                               UPDATE entities
