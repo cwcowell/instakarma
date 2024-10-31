@@ -1,3 +1,4 @@
+
 from db_manager import DbManager
 from enums import Status
 from exceptions import NoSlackApiManagerDefinedError
@@ -6,6 +7,7 @@ from slack_api_manager import SlackApiManager
 from logging import Logger
 from sqlite3 import Cursor
 import sqlite3
+from typing import Literal
 
 class EntityManager:
     def __init__(self,
@@ -131,3 +133,20 @@ class EntityManager:
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't add object entity '{name}': {e}")
             raise e
+
+    def list_entities(self, attribute: Literal['karma', 'name']) -> list[tuple[str, int]]:
+        try:
+            cursor: Cursor = self.db_manager.execute_statement(f"""
+                                         SELECT name, karma
+                                         FROM entities
+                                         WHERE opt_in = TRUE
+                                         ORDER BY {attribute} {'DESC' if attribute == 'karma' else 'ASC'};""",
+                                                               ())
+        except sqlite3.Error as e:
+            self.logger.error(f"Error when retrieving list of entities: {e}")
+            raise e
+        results = cursor.fetchall()
+        entities: list[tuple[str, int]] = []
+        for name, karma in results:
+            entities.append((name, karma))
+        return entities
