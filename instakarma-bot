@@ -5,7 +5,7 @@ from constants import *
 from db_manager import DbManager
 from enums import *
 from entity_manager import EntityManager
-from grant_handler import GrantHandler
+from grant_manager import GrantManager
 from karma_manager import KarmaManager
 from log_manager import LogManager
 from message_parser import MessageParser
@@ -92,7 +92,7 @@ if __name__ == "__main__":
     entity_manager: EntityManager = EntityManager(db_manager, logger, slack_api_manager)
     karma_manager: KarmaManager = KarmaManager(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
-    grant_handler: GrantHandler = GrantHandler(entity_manager, karma_manager, logger, message_parser)
+    grant_handler: GrantManager = GrantManager(entity_manager, karma_manager, logger, message_parser)
 
     db_manager.init_db()
 

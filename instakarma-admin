@@ -3,86 +3,22 @@
 from constants import *
 from db_manager import DbManager
 from entity_manager import EntityManager
-from log_manager import LogManager
 from enums import Status
+from grant_manager import GrantManager
+from karma_manager import KarmaManager
+from log_manager import LogManager
 
 from argparse import ArgumentParser
 import argparse
 from logging import Logger
-import sqlite3
-import sys
 from typing import Literal
 
-
-# def get_karma(conn: Connection, entity_name: str) -> int:
-#     try:
-#         cursor: Cursor = execute_query(conn,
-#                                        """
-# SELECT karma
-# FROM entities
-# WHERE entity = ? AND disabled = FALSE""",
-#                                        (entity_name,))
-#         result = cursor.fetchone()
-#         if result:
-#             return result[0]
-#         else:
-#             LOG.info(f"Error: entity '{entity_name}' is either disabled or doesn't exist in 'entities' table")
-#             raise ValueError
-#
-#     except sqlite3.Error as e:
-#         LOG.error(f"Error when getting karma for '{entity_name}'")
-#         raise e
-
-
-
-# def is_entity_disabled(conn: Connection, entity_name: str) -> bool:
-#     try:
-#         cursor: Cursor = execute_query(conn,
-#                                        """
-# SELECT disabled
-# FROM entities
-# WHERE entity_name = ?""",
-#                                        (entity_name,))
-#         return cursor.fetchone()[0]
-#     except sqlite3.Error as e:
-#         LOG.error(f"Error when checking if '{entity_name}' is disabled: {e}")
-#         raise e
+from message_parser import MessageParser
 
 
 def change_status(name: str, status: Literal['opt-out', 'opt-in']) -> None:
     new_status: Status = Status.OPT_IN if status == 'opt-in' else Status.OPT_OUT
     entity_manager.change_entity_status(name, new_status)
-
-
-# def export_grant_history() -> None:
-#     try:
-#         with sqlite3.connect(DB_FILE) as conn:
-#             cursor: Cursor = execute_query(conn,
-#                                            """
-# SELECT r.entity_name AS recipient_name,
-# g.entity_name AS granter_name,
-# gr.amount,
-# gr.timestamp
-# FROM grants gr
-# JOIN entities r on gr.recipient_id = r.entity_id
-# JOIN entities g on gr.granter_id = g.entity_id
-# ORDER BY gr.timestamp;""",
-#                                            ())
-#             results = cursor.fetchall()
-#
-#     except sqlite3.Error as e:
-#         msg: str = f"Error when retrieving all grants: {e}"
-#         LOG.error(msg)
-#         sys.exit(msg)
-#
-#     with open(GRANTS_CSV_FILE, 'w') as file:
-#         file.write('TIMESTAMP,KARMA GRANTER,KARMA AMOUNT,KARMA RECIPIENT\n')
-#         for recipient_name, granter_name, delta, timestamp in results:
-#             file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
-#
-#     msg: str = f"All grants exported as CSV to {GRANTS_CSV_FILE}"
-#     print(msg)
-#     LOG.info(msg)
 
 
 def print_status(name: str) -> None:
@@ -96,36 +32,31 @@ def main() -> None:
         epilog='author: Chris Cowell (christopher.cowell@instabase.com')
 
     subparsers = parser.add_subparsers(dest='command', required=True)
-
-    # add-entity subcommand
     add_entity_parser = subparsers.add_parser('add-entity',
-                                              help="Add a user or an object to the DB with 'opt-in' status and 0 karma. Normally this happens automatically as 'instakarma-bot' runs and users interact with it.")
+                                              help="Add user or object to DB with 'opt-in' status and 0 karma. "
+                                                   "Normally this happens automatically as 'instakarma-bot' runs and "
+                                                   "users interact with it.")
     add_entity_parser.add_argument('name',
                                    help="Name of the user (like '@bob') or entity (like 'python') to add",
                                    metavar='NAME')
 
-    # backup-db subcommand
     subparsers.add_parser('backup-db', help=f"Make a local backup of the DB")
-
-    # export-grants subcommand
     subparsers.add_parser('export-grants', help=f"Export history of all grants")
-
-    # init-db subcommand
     subparsers.add_parser('init-db', help=f"Initialize the DB if it doesn't exist, no-op if it does")
-
-    # list-by-karma subcommand
     subparsers.add_parser('list-by-karma', help="List all entities in descending karma order")
-
-    # list-by-karma subcommand
     subparsers.add_parser('list-by-name', help="List all entities in alphabetical order")
 
-    # opt-in subcommand
-    opt_in_parser = subparsers.add_parser('opt-in', help="Allow a user like '@bob' to give and receive karma, or an object like 'python' to receive karma")
-    opt_in_parser.add_argument('name', help="Name of the user (like '@bob') or entity (like 'python') to opt in", metavar='NAME')
+    opt_in_parser = subparsers.add_parser('opt-in',
+                                          help="Allow a user like @bob to give and receive karma, "
+                                               "or an object like python to receive karma")
+    opt_in_parser.add_argument('name', help="Name of the user (like '@bob') or entity (like 'python') to opt in",
+                               metavar='NAME')
 
-    # opt-out subcommand
-    opt_out_parser = subparsers.add_parser('opt-out', help="Prevent a user like '@bob' from giving or receiving karma, or an object like 'python' from receiving karma")
-    opt_out_parser.add_argument('name', help="Name of the user (like '@bob') or entity (like 'python') to opt out", metavar='NAME')
+    opt_out_parser = subparsers.add_parser('opt-out',
+                                           help="Prevent a user like @bob from giving or receiving karma, "
+                                                "or an object like python from receiving karma")
+    opt_out_parser.add_argument('name', help="Name of the user (like '@bob') or entity (like 'python') to opt out",
+                                metavar='NAME')
 
     args: argparse.Namespace = parser.parse_args()
 
@@ -137,8 +68,8 @@ def main() -> None:
     elif args.command == 'backup-db':
         # TODO: what happens if no DB file is there?
         db_manager.backup_db()
-    elif args.command == 'export-grant-history':
-        pass
+    elif args.command == 'export-grants':
+        grant_manager.export_grant_history()
     elif args.command == 'init-db':
         # TODO: what happens if error?
         result: str = db_manager.init_db()
@@ -163,6 +94,8 @@ def main() -> None:
         # TODO what happens if name doesn't exist in DB?
         entity_manager.change_entity_status(args.name, Status.OPT_OUT)
         print_status(args.name)
+    else:
+        print("Subcommand not recognized")
 
 
 if __name__ == '__main__':
@@ -173,5 +106,7 @@ if __name__ == '__main__':
                                            ADMIN_LOG_FILE_COUNT)
     db_manager: DbManager = DbManager(logger)
     entity_manager: EntityManager = EntityManager(db_manager, logger)
-
+    karma_manager: KarmaManager = KarmaManager(db_manager, entity_manager, logger)
+    message_parser: MessageParser = MessageParser(logger)
+    grant_manager: GrantManager = GrantManager(entity_manager, karma_manager, logger, message_parser, db_manager)
     main()

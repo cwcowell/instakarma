@@ -1,3 +1,5 @@
+from constants import GRANTS_EXPORT_FILE
+from db_manager import DbManager
 from enums import Action
 from entity_manager import EntityManager
 from exceptions import OptedOutEntityError
@@ -5,21 +7,26 @@ from karma_manager import KarmaManager
 from message_parser import MessageParser
 
 from logging import Logger
+import sqlite3
+from sqlite3 import Cursor
+import sys
 
 
-class GrantHandler():
+class GrantManager():
 
     def __init__(self,
                  entity_manager: EntityManager,
                  karma_manager: KarmaManager,
                  logger: Logger,
-                 message_parser: MessageParser):
+                 message_parser: MessageParser,
+                 db_manager: DbManager):
+        self.db_manager = db_manager
         self.entity_manager = entity_manager
         self.karma_manager = karma_manager
         self.logger = logger
         self.message_parser = message_parser
 
-    def grant_to_valid_user(self, say, granter_user_id: str, recipient: tuple[str, Action]):
+    def grant_to_valid_user(self, say, granter_user_id: str, recipient: tuple[str, Action]) -> None:
         recipient_user_id: str = recipient[0]
         action: Action = recipient[1]
         amount, verb, emoji = self.message_parser.get_amount_verb_emoji(recipient)
@@ -46,7 +53,7 @@ class GrantHandler():
         recipient_total_karma: int = self.karma_manager.get_karma(recipient_name)
         say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
 
-    def grant_to_invalid_user(self, say, granter_user_id, recipient):
+    def grant_to_invalid_user(self, say, granter_user_id, recipient) -> None:
         granter_name: str = self.entity_manager.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
         amount, _, _ = self.message_parser.get_amount_verb_emoji(recipient)
@@ -54,7 +61,7 @@ class GrantHandler():
                          f"to unrecognized name '{recipient_name}'")
         say(f":x: Sorry, I don't recognize the user {recipient_name}")
 
-    def grant_to_object(self, say, granter_user_id, recipient):
+    def grant_to_object(self, say, granter_user_id, recipient) -> None:
         granter_name: str = self.entity_manager.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
         amount, verb, emoji = self.message_parser.get_amount_verb_emoji(recipient)
@@ -67,3 +74,26 @@ class GrantHandler():
             self.logger.info(f"'{granter_name}' can't grant karma to opted-out entity '{recipient_name}'")
             say(f":x: Sorry, {recipient_name} is not participating in Instakarma")
 
+    def export_grant_history(self) -> None:
+        try:
+            cursor: Cursor = self.db_manager.execute_statement(
+                """
+                SELECT r.name AS recipient_name,
+                       g.name AS granter_name,
+                       gr.amount,
+                       gr.timestamp
+                FROM grants gr
+                JOIN entities r on gr.recipient_id = r.entity_id
+                JOIN entities g on gr.granter_id = g.entity_id
+                ORDER BY gr.timestamp;""",
+                ())
+            results = cursor.fetchall()
+
+        except sqlite3.Error as e:
+            sys.exit(f"Error when retrieving all grants: {e}")
+
+        with open(GRANTS_EXPORT_FILE, 'w') as file:
+            file.write('TIMESTAMP,GRANTER,AMOUNT,RECIPIENT\n')
+            for recipient_name, granter_name, delta, timestamp in results:
+                file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
+        print(f"All grants exported as CSV to {GRANTS_EXPORT_FILE}")
