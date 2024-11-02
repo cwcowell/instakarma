@@ -21,12 +21,14 @@ class UserIdNotInDbError:
     """
     pass
 
+
 class NameNotFoundInSlackError:
     """Tried to look up a user by `name` in Slack, but wasn't found.
 
     This should be handled.
     """
     pass
+
 
 class NoSlackApiManagerDefinedError:
     """Tried to make a Slack API call, but no manager is defined.

@@ -11,6 +11,7 @@
 - Make manual test script/plan and store it in this repo
 - Add Rosie, Melissa, Jean as test users to sandbox
 - Run everything through Claude for suggestions
+- Delete unused Exceptions
 
 
 ## Plan for parsing and managing recipients
