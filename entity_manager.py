@@ -124,7 +124,10 @@ class EntityManager:
     #     return name
 
     def add_entity(self, name: str, user_id: str | None) -> None:
-        """ Add an entity to the table if it doesn't already exist. """
+        """Add an entity to the table. No-op if it already exists.
+
+        :raises sqlite3.Error: If something goes wrong with the DB
+        """
         try:
             self.db_manager.execute_statement("""
                                               INSERT OR IGNORE INTO entities (name, user_id)
@@ -135,6 +138,12 @@ class EntityManager:
             raise e
 
     def list_entities(self, attribute: Literal['karma', 'name']) -> list[tuple[str, int]]:
+        """List all entities in the DB.
+
+        :returns: List of tuples, where each tuple contains an entity name and user_id
+
+        :raises sqlite3.Error: If something goes wrong with the DB
+        """
         try:
             cursor: Cursor = self.db_manager.execute_statement(f"""
                                          SELECT name, karma

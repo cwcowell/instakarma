@@ -1,11 +1,17 @@
 ## TODO
 
-- Review logger.debug and logger.info to make sure I'm using the right levels for different messages
-[x] Break out the respond text into a separate file
-- Consider merging log.py back into instakarma-bot
+- Existing TODO comments
+- Am I logging correctly in instakarma-admin?
 - Extract common code
 - Handle exceptions that I throw
 - Find and fix all IntelliJ warnings
+- Add comments to all classes and methods
+- Write README
+  - Include env vars needed
+- Make manual test script/plan and store it in this repo
+- Add Rosie, Melissa, Jean as test users to sandbox
+- Run everything through Claude for suggestions
+
 
 ## Plan for parsing and managing recipients
 
