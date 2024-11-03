@@ -2,8 +2,6 @@ from logging import Logger
 
 from slack_bolt import App
 
-# TODO: rename all "manager" objects to "mgr"
-
 class SlackApiManager():
 
     def __init__(self, app: App, logger: Logger):

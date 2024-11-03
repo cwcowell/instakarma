@@ -12,7 +12,7 @@ from sqlite3 import Cursor
 import sys
 
 
-class GrantManager():
+class GrantManager:
 
     def __init__(self,
                  entity_manager: EntityManager,
