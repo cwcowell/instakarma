@@ -13,6 +13,31 @@
 - Run everything through Claude for suggestions
 - Delete unused Exceptions
 
+## Object-oriented rewrite
+
+Entity: class
+  name: str
+  user_id: str
+  opt_in: bool
+  karma: int
+  add()
+  ~get_status()~
+  change_status()
+  get_top_granters()
+  get_top_recipients()
+  list_entities(mode) [static?]
+
+Karma: class
+  granter: name
+  recipient: name
+  amount: int
+  grant()
+
+Utilities: module
+  list_entities()
+  get_entities() (by karma or alpha)
+
+
 
 ## Plan for parsing and managing recipients
 
@@ -21,7 +46,7 @@
 Message contains granter's `user_id` and recipient's `user_id`.
 We need granter's `name` and recipient's `name` for logging.
 
-* For user_id in [granter_user_id, recipient_user_id] 
+* For user_id in [granter_user_id, recipient_user_id]
    * If row exists in DB with that `user_id` and `name`, RETURN `name`.
    * Else if row exists for that `user_id`, look up `name` in the API and update the row with `name`. RETURN `name`.
    * Else look up the `name` in the API and insert a row with `name` and `user_id`. RETURN `name`.
@@ -31,7 +56,7 @@ We need granter's `name` and recipient's `name` for logging.
 
 ### Invalid user
 
-Message contains granter's `user_id` and invalid recipient's `name`. 
+Message contains granter's `user_id` and invalid recipient's `name`.
 We need granter's `name` for logging.
 
 * If row exists in DB with granter's `user_id` and `name`, RETURN `name`.

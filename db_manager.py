@@ -11,6 +11,11 @@ class DbManager:
         self.logger: Logger = logger
 
     def execute_statement(self, statement: str, parms: tuple) -> Cursor:
+        """ Open a DB connection, execute a SQL statement, close the connection.
+
+        :returns: Cursor with any results
+        :raises sqlite3.Error: If something goes wrong with the DB
+        """
         log_friendly_statement: str = self.format_statement_for_log(statement)
         self.logger.debug(f"Executing SQL statement: '{log_friendly_statement}' with parms: '{parms}'")
         conn: Connection = self.get_db_connection()
@@ -23,13 +28,21 @@ class DbManager:
             raise e
         return cursor
 
+    # TODO: does the connection object close? Claude thinks it doesn't. Ask how I can refactor.
+    #    - CLAUDE RECOMMENDS I extract results before leaving the "with" contextmanager, and return results instad of cursor.
     # TODO: should I see if I can make more methods static? Is there any advantage to that?
     def get_db_connection(self) -> Connection:
+        """ Open and return a DB connection.
+
+        :returns: Connection object to DB
+        :raises sqlite3.Error: If it can't connect to the DB
+        """
         try:
             self.logger.debug(f"Connecting to DB at '{DB_FILE}'")
             return sqlite3.connect(DB_FILE)
         except sqlite3.Error as e:
             self.logger.critical(f"Couldn't connect to database file '{DB_FILE}': {e}")
+            raise e
 
     def format_statement_for_log(self, statement: str) -> str:
         """ SQL statements in this code are indented and have newlines.
