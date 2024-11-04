@@ -1,6 +1,6 @@
 ## TODO
 
-- Existing TODO comments
+- Docstrings
 - Am I logging correctly in instakarma-admin?
 - Extract common code
 - Handle exceptions that I throw
@@ -12,8 +12,11 @@
 - Add Rosie, Melissa, Jean as test users to sandbox
 - Run everything through Claude for suggestions
 - Delete unused Exceptions
+- Delete unused imports
 - Should any methods be static? Is there any advantage to that?
+- I think there are places where i pass in a conn and a db manager, but only need the latter
 - Run IntelliJ's code checker and fix any problems
+- When adding an entity with instakarma-admin add-entity @foo, make sure you also add @foo's user_id. Otherwise @foo shows up in the leaderboard, which think it's a non-person entity.
 
 
 ## Object-oriented rewrite

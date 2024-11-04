@@ -59,7 +59,7 @@ def handle_instakarma_command(ack, respond, command) -> None:
         return
 
     if parameter == 'leaderboard':
-        action_manager.leaderboard(respond, db_manager)
+        action_manager.leaderboard(respond)
         return
 
     if parameter == 'my-stats':

@@ -2,8 +2,7 @@
 
 PRAGMA foreign_keys = ON; -- weirdly required by SQLite
 
-
-PRAGMA synchronous = FULL; -- for testing only: slower but flushes with every commit()
+PRAGMA synchronous = NORMAL; -- for testing only: slower but flushes with every commit()
 
 -- store current (not historical) karma for all entities
 CREATE TABLE entities

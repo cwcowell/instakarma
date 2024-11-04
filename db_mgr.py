@@ -69,8 +69,7 @@ class DbMgr:
                 self.logger.critical(msg)
                 return msg
 
-    @staticmethod
-    def format_statement_for_log(statement: str) -> str:
+    def format_statement_for_log(self, statement: str) -> str:
         """ Format a statement as a single line for logging.
 
         :returns: Statement formatted as a single line
@@ -78,8 +77,7 @@ class DbMgr:
         statement = statement.replace('\n', ' ')  # replace newlines with spaces
         return ' '.join(statement.split())  # replace multiple spaces with a single space
 
-    @staticmethod
-    def backup_db() -> None:
+    def backup_db(self) -> None:
         """ Copy the DB file to another local file.
 
         Since this should only be called from instakarma-admin, it exits on failure.

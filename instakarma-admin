@@ -7,24 +7,13 @@ from enums import Status
 from grant_mgr import GrantMgr
 from karma_mgr import KarmaMgr
 from log_mgr import LogMgr
+from message_parser import MessageParser
 
 from argparse import ArgumentParser
 import argparse
 from logging import Logger
 import sqlite3
 import sys
-from typing import Literal
-
-from message_parser import MessageParser
-
-
-def change_status(name: str, status: Literal['opt-out', 'opt-in']) -> None:
-    new_status: Status = Status.OPT_IN if status == 'opt-in' else Status.OPT_OUT
-    entity_manager.change_entity_status(name, new_status)
-
-
-def print_status(name: str) -> None:
-    print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
 
 
 def main() -> None:
@@ -34,6 +23,7 @@ def main() -> None:
         epilog='author: Chris Cowell (christopher.cowell@instabase.com')
 
     subparsers = parser.add_subparsers(dest='command', required=True)
+
     add_entity_parser = subparsers.add_parser('add-entity',
                                               help="Add user or object to DB with 'opt-in' status and 0 karma. "
                                                    "Normally this happens automatically as 'instakarma-bot' runs and "
@@ -43,9 +33,13 @@ def main() -> None:
                                    metavar='NAME')
 
     subparsers.add_parser('backup-db', help=f"Make a local backup of the DB")
+
     subparsers.add_parser('export-grants', help=f"Export history of all grants")
+
     subparsers.add_parser('init-db', help=f"Initialize the DB if it doesn't exist, no-op if it does")
+
     subparsers.add_parser('list-by-karma', help="List all entities in descending karma order")
+
     subparsers.add_parser('list-by-name', help="List all entities in alphabetical order")
 
     opt_in_parser = subparsers.add_parser('opt-in',
@@ -63,13 +57,13 @@ def main() -> None:
     args: argparse.Namespace = parser.parse_args()
 
     if args.command == 'add-entity':
-        # TODO: report if user already exists in DB
         name: str = args.name
+        if entity_manager.name_exists(name):
+            sys.exit(f"Entity with name '{name}' already exists. No changes made.")
         entity_manager.add_entity(name, None)
         print(f"Added entity {name}")
 
     elif args.command == 'backup-db':
-        # TODO: what happens if no DB file is there?
         db_manager.backup_db()
 
     elif args.command == 'export-grants':
@@ -84,30 +78,28 @@ def main() -> None:
 
     elif args.command == 'list-by-karma':
         entities = entity_manager.list_entities('karma')
-        for entity in entities:
-            name: str = entity[0]
-            karma: int = entity[1]
+        for name, karma in entities:
             print(f"{karma},{name}")
 
     elif args.command == 'list-by-name':
         entities = entity_manager.list_entities('name')
-        for entity in entities:
-            name: str = entity[0]
-            karma: int = entity[1]
+        for name, karma in entities:
             print(f"{name},{karma}")
 
     elif args.command == 'opt-in':
-        # TODO what happens if name doesn't exist in DB?
-        entity_manager.change_entity_status(args.name, Status.OPT_IN)
-        print_status(args.name)
+        name: str = args.name
+        if not entity_manager.name_exists(name):
+            sys.exit(f"No user with name '{name}' in the DB. No changes made.")
+        entity_manager.change_entity_status(name, Status.OPT_IN)
+        print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
 
     elif args.command == 'opt-out':
-        # TODO what happens if name doesn't exist in DB?
         name: str = args.name
         if not entity_manager.name_exists(name):
             sys.exit(f"No user with name '{name}' in the DB. No changes made.")
         entity_manager.change_entity_status(name, Status.OPT_OUT)
-        print_status(name)
+        print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
+
 
 if __name__ == '__main__':
     logger: Logger = LogMgr.get_logger(LOGGER_NAME,

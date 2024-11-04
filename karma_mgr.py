@@ -10,8 +10,6 @@ import sqlite3
 
 class KarmaMgr:
 
-    # TODO: I THINK THERE ARE PLACES WHERE I PASS IN A CONN AND A DB MANAGER, BUT ONLY NEED THE LATTER
-
     def __init__(self,
                  db_mgr: DbMgr,
                  entity_mgr: EntityMgr,

@@ -45,7 +45,9 @@ class EntityMgr:
                                           FROM entities
                                           WHERE name = ?;""",
                                           (name, ))
-            return len(results) > 0
+            exists: bool = len(results) > 0
+            self.logger.debug(f"User with name '{name}' exists in 'entities' table? {str(exists)}")
+            return exists
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't check if user with name '{name}' exists in entities table.")
 

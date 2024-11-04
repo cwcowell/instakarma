@@ -18,7 +18,8 @@ class ActionMgr:
                       command: dict,
                       respond,
                       new_status: Status,
-                      entity_mgr: EntityMgr):
+                      entity_mgr: EntityMgr) -> None:
+        """ Change an entity's status to either `opted-in` or `opted-out`. """
         name: str = '@' + command['user_name']
         entity_mgr.change_entity_status(name, new_status)
         respond(text=f"{name} is now {new_status.value} in instakarma",
@@ -30,7 +31,8 @@ class ActionMgr:
                 blocks=response_blocks.help,
                 response_type='ephemeral')
 
-    def leaderboard(self, respond, db_mgr: DbMgr):
+    def leaderboard(self, respond) -> None:
+        """ Respond to Slack with a list of all non-user entities and their karma, in descending karma order. """
         leader_text: str = ''
         try:
             results: list = self.db_mgr.execute_statement("""
@@ -42,9 +44,7 @@ class ActionMgr:
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get karma of all objects: {e}")
             raise e
-        for result in results:
-            name: str = result[0]
-            karma: int = result[1]
+        for name, karma in results:
             leader_text += f"• {karma} {name}\n"
         respond(text="show karma of objects",
                 blocks=response_blocks.leaderboard(leader_text),
@@ -54,8 +54,20 @@ class ActionMgr:
                  command: dict,
                  respond,
                  entity_mgr: EntityMgr,
-                 karma_mgr: KarmaMgr):
+                 karma_mgr: KarmaMgr) -> None:
+        """ Respond to Slack with how much karma the user has, who they've given the most karma to,
+        and who has given them the most karma.
+
+        If the user has opted out, don't display any stats.
+        """
         name: str = '@' + command['user_name']
+
+        if not entity_mgr.name_exists(name):
+            your_karma_text: str = "You haven't granted or received any karma yet."
+            respond(text=f"instakarma stats for {name}",
+                    blocks=response_blocks.my_stats(name, your_karma_text, '', ''),
+                    response_type='ephemeral')
+            return
 
         status: Status = entity_mgr.get_status(name)
         if status == Status.OPT_OUT:
@@ -73,15 +85,15 @@ class ActionMgr:
         top_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name)
         if top_recipients:
             top_recipients_text = "*Who have I given the most karma to?*\n"
-        for recipient in top_recipients:
-            top_recipients_text += f"• {str(recipient[1])} to {recipient[0]}\n"
+        for recipient_name, amount in top_recipients:
+            top_recipients_text += f"• {str(amount)} to {recipient_name}\n"
 
         top_granters_text: str = ''
         top_granters: list[tuple[str, int]] = karma_mgr.get_top_granters(name)
         if top_granters:
             top_granters_text = "*Who has given me the most karma?*\n"
-        for granter in top_granters:
-            top_granters_text += f"• {str(granter[1])} from {granter[0]}\n"
+        for granter_name, amount in top_granters:
+            top_granters_text += f"• {str(amount)} from {granter_name}\n"
 
         respond(text=f"instakarma stats for {name}",
                 blocks=response_blocks.my_stats(name, your_karma_text, top_recipients_text, top_granters_text),
