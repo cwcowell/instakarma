@@ -12,6 +12,9 @@
 - Add Rosie, Melissa, Jean as test users to sandbox
 - Run everything through Claude for suggestions
 - Delete unused Exceptions
+- Should any methods be static? Is there any advantage to that?
+- Run IntelliJ's code checker and fix any problems
+
 
 ## Object-oriented rewrite
 

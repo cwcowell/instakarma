@@ -81,11 +81,11 @@ def handle_instakarma_command(ack, respond, command) -> None:
 if __name__ == "__main__":
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"])
 
-    logger: Logger = LogMgr.get_logger(BOT_LOGGER_NAME,
-                                       BOT_LOG_FILE,
-                                       BOT_LOG_LEVEL,
-                                       BOT_LOG_FILE_SIZE,
-                                       BOT_LOG_FILE_COUNT)
+    logger: Logger = LogMgr.get_logger(LOGGER_NAME,
+                                       LOG_FILE,
+                                       LOG_LEVEL,
+                                       LOG_FILE_SIZE,
+                                       LOG_FILE_COUNT)
     db_manager: DbMgr = DbMgr(logger)
     slack_api_manager: SlackApiMgr = SlackApiMgr(app, logger)
     action_manager: ActionMgr = ActionMgr(db_manager, logger)

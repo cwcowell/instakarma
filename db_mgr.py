@@ -4,16 +4,30 @@ from logging import Logger
 import os
 from sqlite3 import Connection, Cursor
 import sqlite3
+import sys
 
 
 class DbMgr:
     def __init__(self, logger: Logger):
         self.logger: Logger = logger
 
-    def execute_statement(self, statement: str, parms: tuple) -> list:
+    def get_db_connection(self) -> Connection:
+        """ Open and return a DB connection.
+
+        :returns: Connection object to DB
+        :raises sqlite3.Error: If it can't connect to the DB
+        """
+        try:
+            self.logger.debug(f"Connecting to DB at '{DB_FILE}'")
+            return sqlite3.connect(DB_FILE)
+        except sqlite3.Error as e:
+            self.logger.critical(f"Couldn't connect to database file '{DB_FILE}': {e}")
+            raise e
+
+    def execute_statement(self, statement: str, parms: tuple) -> list[tuple]:
         """ Open a DB connection, execute an SQL statement, close the connection.
 
-        :returns: list of results
+        :returns: List of results as tuples
         :raises sqlite3.Error: If something goes wrong with the DB
         """
         log_friendly_statement: str = self.format_statement_for_log(statement)
@@ -28,30 +42,15 @@ class DbMgr:
             conn.rollback()
             raise e
         finally:
+            self.logger.debug(f"Closing DB connection")
             conn.close()
 
-    # TODO: should I see if I can make more methods static? Is there any advantage to that?
-    def get_db_connection(self) -> Connection:
-        """ Open and return a DB connection.
-
-        :returns: Connection object to DB
-        :raises sqlite3.Error: If it can't connect to the DB
-        """
-        try:
-            self.logger.debug(f"Connecting to DB at '{DB_FILE}'")
-            return sqlite3.connect(DB_FILE)
-        except sqlite3.Error as e:
-            self.logger.critical(f"Couldn't connect to database file '{DB_FILE}': {e}")
-            raise e
-
-    def format_statement_for_log(self, statement: str) -> str:
-        """ SQL statements in this code are indented and have newlines.
-        Format them as a single line just for logging.
-        """
-        statement = statement.replace('\n', ' ')  # replace newlines with spaces
-        return ' '.join(statement.split())  # replace multiple spaces with a single space
-
     def init_db(self) -> str:
+        """ Create an empty DB if it doesn't already exist. If it does, no-op.
+
+        :returns: Message explaining what happened, so instakarma-admin can print it to the console
+        :raises sqlite3.Error: If anything goes wrong with the DB
+        """
         if os.path.exists(DB_FILE):
             msg: str = f"Database already exists at '{DB_FILE}'. No changes made."
             self.logger.info(msg)
@@ -70,9 +69,30 @@ class DbMgr:
                 self.logger.critical(msg)
                 return msg
 
-    def backup_db(self) -> None:
-        with sqlite3.connect(DB_FILE) as source, sqlite3.connect(DB_FILE_BACKUP) as destination:
-            source.backup(destination)
-        msg: str = f"'{DB_FILE}' backed up to '{DB_FILE_BACKUP}'"
-        print(msg)
-        self.logger.info(msg)
+    @staticmethod
+    def format_statement_for_log(statement: str) -> str:
+        """ Format a statement as a single line for logging.
+
+        :returns: Statement formatted as a single line
+        """
+        statement = statement.replace('\n', ' ')  # replace newlines with spaces
+        return ' '.join(statement.split())  # replace multiple spaces with a single space
+
+    @staticmethod
+    def backup_db() -> None:
+        """ Copy the DB file to another local file.
+
+        Since this should only be called from instakarma-admin, it exits on failure.
+        """
+        if not os.path.exists(DB_FILE):
+            sys.exit(f"Error: no DB file at '{DB_FILE}' to back up. No changes made.")
+
+        if os.path.exists(DB_FILE_BACKUP):
+            sys.exit(f"Error: DB backup file already exists at '{DB_FILE_BACKUP}'. No changes made.")
+
+        try:
+            with sqlite3.connect(DB_FILE) as source, sqlite3.connect(DB_FILE_BACKUP) as destination:
+                source.backup(destination)
+        except sqlite3.Error as e:
+            sys.exit(f"DB not backed up. Error while connecting to DB: {e}")
+        print(f"'{DB_FILE}' backed up to '{DB_FILE_BACKUP}'")

@@ -11,6 +11,8 @@ from log_mgr import LogMgr
 from argparse import ArgumentParser
 import argparse
 from logging import Logger
+import sqlite3
+import sys
 from typing import Literal
 
 from message_parser import MessageParser
@@ -65,45 +67,54 @@ def main() -> None:
         name: str = args.name
         entity_manager.add_entity(name, None)
         print(f"Added entity {name}")
+
     elif args.command == 'backup-db':
         # TODO: what happens if no DB file is there?
         db_manager.backup_db()
+
     elif args.command == 'export-grants':
         grant_manager.export_grant_history()
+
     elif args.command == 'init-db':
-        # TODO: what happens if error?
-        result: str = db_manager.init_db()
-        print(result)
+        try:
+            result: str = db_manager.init_db()
+            print(result)
+        except sqlite3.Error as e:
+            sys.exit(f"Error when initializing DB: {e}")
+
     elif args.command == 'list-by-karma':
         entities = entity_manager.list_entities('karma')
         for entity in entities:
             name: str = entity[0]
             karma: int = entity[1]
             print(f"{karma},{name}")
+
     elif args.command == 'list-by-name':
         entities = entity_manager.list_entities('name')
         for entity in entities:
             name: str = entity[0]
             karma: int = entity[1]
             print(f"{name},{karma}")
+
     elif args.command == 'opt-in':
         # TODO what happens if name doesn't exist in DB?
         entity_manager.change_entity_status(args.name, Status.OPT_IN)
         print_status(args.name)
+
     elif args.command == 'opt-out':
         # TODO what happens if name doesn't exist in DB?
-        entity_manager.change_entity_status(args.name, Status.OPT_OUT)
-        print_status(args.name)
-    else:
-        print("Subcommand not recognized")
-
+        name: str = args.name
+        if not entity_manager.name_exists(name):
+            sys.exit(f"No user with name '{name}' in the DB. No changes made.")
+        entity_manager.change_entity_status(name, Status.OPT_OUT)
+        print_status(name)
 
 if __name__ == '__main__':
-    logger: Logger = LogMgr.get_logger(ADMIN_LOGGER_NAME,
-                                       ADMIN_LOG_FILE,
-                                       ADMIN_LOG_LEVEL,
-                                       ADMIN_LOG_FILE_SIZE,
-                                       ADMIN_LOG_FILE_COUNT)
+    logger: Logger = LogMgr.get_logger(LOGGER_NAME,
+                                       LOG_FILE,
+                                       LOG_LEVEL,
+                                       LOG_FILE_SIZE,
+                                       LOG_FILE_COUNT)
     db_manager: DbMgr = DbMgr(logger)
     entity_manager: EntityMgr = EntityMgr(db_manager, logger)
     karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)

@@ -37,6 +37,18 @@ class EntityMgr:
             self.logger.error(f"Couldn't get status for name '{name}'")
             raise e
 
+    def name_exists(self, name: str) -> bool:
+        """ See if an entity with a particular name exists in the entities table. """
+        try:
+            results: list = self.db_mgr.execute_statement("""
+                                          SELECT *
+                                          FROM entities
+                                          WHERE name = ?;""",
+                                          (name, ))
+            return len(results) > 0
+        except sqlite3.Error as e:
+            self.logger.error(f"Couldn't check if user with name '{name}' exists in entities table.")
+
     def change_entity_status(self, name: str, status: Status) -> None:
         try:
             self.db_mgr.execute_statement(f"""
