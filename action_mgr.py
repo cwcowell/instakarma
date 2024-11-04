@@ -14,12 +14,12 @@ class ActionMgr:
         self.db_mgr = db_mgr
         self.logger = logger
 
-    def change_status(self,
-                      command: dict,
-                      respond,
-                      new_status: Status,
-                      entity_mgr: EntityMgr) -> None:
-        """ Change an entity's status to either `opted-in` or `opted-out`. """
+    def set_status(self,
+                   command: dict,
+                   respond,
+                   new_status: Status,
+                   entity_mgr: EntityMgr) -> None:
+        """ Set an entity's status to either `opted-in` or `opted-out`. """
         name: str = '@' + command['user_name']
         entity_mgr.change_entity_status(name, new_status)
         respond(text=f"{name} is now {new_status.value} in instakarma",
@@ -44,8 +44,7 @@ class ActionMgr:
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get karma of all objects: {e}")
             raise e
-        for name, karma in results:
-            leader_text += f"• {karma} {name}\n"
+        leader_text = '\n'.join(f"• {karma} {name}" for name, karma in results)
         respond(text="show karma of objects",
                 blocks=response_blocks.leaderboard(leader_text),
                 response_type="ephemeral")
@@ -70,9 +69,9 @@ class ActionMgr:
             return
 
         status: Status = entity_mgr.get_status(name)
-        if status == Status.OPT_OUT:
+        if status == Status.OPTED_OUT:
             your_karma_text: str = f"You've opted out of instakarma, so no stats are available.\n" \
-                                   "Opt in with */instakarma opt-in"
+                                   "Opt in with */instakarma opt-in*"
             respond(text=f"instakarma stats for {name}",
                     blocks=response_blocks.my_stats(name, your_karma_text, '', ''),
                     response_type='ephemeral')

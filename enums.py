@@ -10,5 +10,5 @@ class Action(Enum):
 
 class Status(Enum):
     """ Slack users can opt out if they don't want to participate in instakarma. """
-    OPT_IN: str = 'opted-in'
-    OPT_OUT: str = 'opted-out'
+    OPTED_IN: str = 'opted-in'
+    OPTED_OUT: str = 'opted-out'

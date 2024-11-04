@@ -59,7 +59,7 @@ def main() -> None:
     if args.command == 'add-entity':
         name: str = args.name
         if entity_manager.name_exists(name):
-            sys.exit(f"Entity with name '{name}' already exists. No changes made.")
+            sys.exit(f"Entity with name {name!r} already exists. No changes made.")
         entity_manager.add_entity(name, None)
         print(f"Added entity {name}")
 
@@ -89,16 +89,16 @@ def main() -> None:
     elif args.command == 'opt-in':
         name: str = args.name
         if not entity_manager.name_exists(name):
-            sys.exit(f"No user with name '{name}' in the DB. No changes made.")
-        entity_manager.change_entity_status(name, Status.OPT_IN)
-        print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
+            sys.exit(f"No user with name {name!r} in the DB. No changes made.")
+        entity_manager.change_entity_status(name, Status.OPTED_IN)
+        print(f"{name!r} now has {entity_manager.get_status(name).value!r} status")
 
     elif args.command == 'opt-out':
         name: str = args.name
         if not entity_manager.name_exists(name):
-            sys.exit(f"No user with name '{name}' in the DB. No changes made.")
-        entity_manager.change_entity_status(name, Status.OPT_OUT)
-        print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
+            sys.exit(f"No user with name {name!r} in the DB. No changes made.")
+        entity_manager.change_entity_status(name, Status.OPTED_OUT)
+        print(f"{name!r} now has {entity_manager.get_status(name).value!r} status")
 
 
 if __name__ == '__main__':

@@ -1,11 +1,11 @@
+""" Slack text blocks used to respond to instakarma slash commands and instakarma operations """
+
 from enums import Status
 
-""" Slack text blocks used to respond to slash commands and operations """
-
-
 def change_status(new_status: Status) -> list[dict]:
+    """ Generate Slack text blocks with info about a user's opted-in/opted-out status. """
     text: str = f"You're now {new_status.value} in instakarma\n"
-    if new_status == Status.OPT_OUT:
+    if new_status == Status.OPTED_OUT:
         text += "Opt in with */instakarma opt-in*"
     else:
         text += "Opt out with */instakarma opt-out*"
@@ -21,6 +21,7 @@ def change_status(new_status: Status) -> list[dict]:
     ]
 
 
+# Slack text blocks with usage info for instakarma slash commands and operations.
 help: list[dict] = [
     {
         "type": "header",
@@ -51,6 +52,7 @@ help: list[dict] = [
 
 
 def leaderboard(leader_text: str) -> list[dict]:
+    """ Generate Slack text blocks that contain all object names and karma. """
     return [
         {
             "type": "header",
@@ -75,6 +77,7 @@ def my_stats(name: str,
              your_karma_text: str,
              top_recipients_text: str,
              top_granters_text: str) -> list[dict]:
+    """ Generate Slack text blocks that contain a user's karma stats. """
     return [
         {
             "type": "header",

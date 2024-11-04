@@ -1,9 +1,9 @@
-class SelfGrantError(Exception):
-    """A greedy user has tried to grant themselves karma.
-
-    This should be handled.
-    """
-    pass
+# class SelfGrantError(Exception):
+#     """A greedy user has tried to grant themselves karma.
+#
+#     This should be handled.
+#     """
+#     pass
 
 
 class OptedOutEntityError(Exception):
@@ -14,20 +14,20 @@ class OptedOutEntityError(Exception):
     pass
 
 
-class UserIdNotInDbError:
-    """Tried to look up a user by 'user_id' in 'entities' table, but wasn't found.
-    
-    This should be handled.
-    """
-    pass
+# class UserIdNotInDbError:
+#     """Tried to look up a user by 'user_id' in the 'entities' table, but wasn't found.
+#
+#     This should be handled.
+#     """
+#     pass
 
 
-class NameNotFoundInSlackError:
-    """Tried to look up a user by `name` in Slack, but wasn't found.
-
-    This should be handled.
-    """
-    pass
+# class NameNotFoundInSlackError:
+#     """Tried to look up a user by `name` in Slack, but wasn't found.
+#
+#     This should be handled.
+#     """
+#     pass
 
 
 class NoSlackApiMgrDefinedError:

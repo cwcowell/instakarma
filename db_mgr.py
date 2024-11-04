@@ -18,10 +18,10 @@ class DbMgr:
         :raises sqlite3.Error: If it can't connect to the DB
         """
         try:
-            self.logger.debug(f"Connecting to DB at '{DB_FILE}'")
+            self.logger.debug(f"Connecting to DB at {DB_FILE!r}")
             return sqlite3.connect(DB_FILE)
         except sqlite3.Error as e:
-            self.logger.critical(f"Couldn't connect to database file '{DB_FILE}': {e}")
+            self.logger.critical(f"Couldn't connect to database file {DB_FILE!r}: {e}")
             raise e
 
     def execute_statement(self, statement: str, parms: tuple) -> list[tuple]:
@@ -31,14 +31,14 @@ class DbMgr:
         :raises sqlite3.Error: If something goes wrong with the DB
         """
         log_friendly_statement: str = self.format_statement_for_log(statement)
-        self.logger.debug(f"Executing SQL statement: '{log_friendly_statement}' with parms: '{parms}'")
+        self.logger.debug(f"Executing SQL statement: {log_friendly_statement!r} with parms: {parms}")
         conn: Connection = self.get_db_connection()
         try:
             cursor: Cursor = conn.execute(statement, parms)
             conn.commit()
             return cursor.fetchall()
         except sqlite3.Error as e:
-            self.logger.error(f"Rolling back. query: {statement} | parms: '{parms}' | error: {e}")
+            self.logger.error(f"Rolling back. query: {statement!r} | parms: {parms!r} | error: {e}")
             conn.rollback()
             raise e
         finally:
@@ -52,7 +52,7 @@ class DbMgr:
         :raises sqlite3.Error: If anything goes wrong with the DB
         """
         if os.path.exists(DB_FILE):
-            msg: str = f"Database already exists at '{DB_FILE}'. No changes made."
+            msg: str = f"Database already exists at {DB_FILE!r}. No changes made."
             self.logger.info(msg)
             return msg
         with self.get_db_connection() as conn:
@@ -61,7 +61,7 @@ class DbMgr:
             try:
                 conn.executescript(ddl)
                 conn.commit()
-                msg: str = f"Created new DB at '{DB_FILE}' using DDL '{DB_DDL_FILE}'"
+                msg: str = f"Created new DB at {DB_FILE!r} using DDL {DB_DDL_FILE!r}"
                 self.logger.info(msg)
                 return msg
             except sqlite3.Error as e:
@@ -83,14 +83,14 @@ class DbMgr:
         Since this should only be called from instakarma-admin, it exits on failure.
         """
         if not os.path.exists(DB_FILE):
-            sys.exit(f"Error: no DB file at '{DB_FILE}' to back up. No changes made.")
+            sys.exit(f"Error: no DB file at {DB_FILE!r} to back up. No changes made.")
 
         if os.path.exists(DB_FILE_BACKUP):
-            sys.exit(f"Error: DB backup file already exists at '{DB_FILE_BACKUP}'. No changes made.")
+            sys.exit(f"Error: DB backup file already exists at {DB_FILE_BACKUP!r}. No changes made.")
 
         try:
             with sqlite3.connect(DB_FILE) as source, sqlite3.connect(DB_FILE_BACKUP) as destination:
                 source.backup(destination)
         except sqlite3.Error as e:
             sys.exit(f"DB not backed up. Error while connecting to DB: {e}")
-        print(f"'{DB_FILE}' backed up to '{DB_FILE_BACKUP}'")
+        print(f"{DB_FILE!r} backed up to {DB_FILE_BACKUP!r}")

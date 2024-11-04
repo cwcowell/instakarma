@@ -55,12 +55,16 @@ class MessageParser:
         self.logger.debug(f"Detected object recipients: {object_recipients}")
         return object_recipients
 
-    def get_amount_verb_emoji(self, recipient: tuple[str, Action]) -> (int, str):
-        action: Action = recipient[1]
+    def get_amount_verb_emoji(self, action) -> tuple[int, str, str]:
+        """ Convert an action into three elements of a Slack message: karma amount, verb, and emoji.
+
+        :returns: Tuple with the karma amount, verb, and emoji
+        """
         if action == Action.INCREMENT:
             self.logger.debug("setting amount to 1, verb to 'leveled up'")
             return 1, 'leveled up', ':arrow_up:'
         if action == Action.DECREMENT:
             self.logger.debug("setting amount to -1, verb to 'took a hit'")
             return -1, 'took a hit', ':arrow_down:'
-        self.logger.critical(f"Unrecognized action is neither Action.INCREMENT nor Action.DECREMENT: '{recipient[1]}'")
+        self.logger.critical(f"Unrecognized action is neither Action.INCREMENT nor Action.DECREMENT: {action!r}")
+        return 0, 'unrecognized', ':question:'

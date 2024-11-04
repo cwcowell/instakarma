@@ -28,10 +28,10 @@ def handle_karma_grants(message: dict, say) -> None:
         msg_text: str = message['text']
 
         valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
-        logger.debug("recognized user recipients: " + str(valid_user_recipients))
+        logger.debug("valid user recipients: " + str(valid_user_recipients))
 
         invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
-        logger.debug("unrecognized user recipients: " + str(invalid_user_recipients))
+        logger.debug("invalid user recipients: " + str(invalid_user_recipients))
 
         object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
         logger.debug("object recipients: " + str(object_recipients))
@@ -67,11 +67,11 @@ def handle_instakarma_command(ack, respond, command) -> None:
         return
 
     if parameter == 'opt-in':
-        action_manager.change_status(command, respond, Status.OPT_IN, entity_manager)
+        action_manager.set_status(command, respond, Status.OPTED_IN, entity_manager)
         return
 
     if parameter == 'opt-out':
-        action_manager.change_status(command, respond, Status.OPT_OUT, entity_manager)
+        action_manager.set_status(command, respond, Status.OPTED_OUT, entity_manager)
         return
 
     respond(f":x: Sorry, */instakarma {parameter}* isn't a valid command")

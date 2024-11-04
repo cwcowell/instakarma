@@ -1,21 +1,22 @@
 ## TODO
 
-- Docstrings
-- Am I logging correctly in instakarma-admin?
-- Extract common code
+x Docstrings
+x Am I logging correctly in instakarma-admin?
+x Find and fix all IntelliJ warnings
+x Add comments to all classes and methods
+x I think there are places where i pass in a conn and a db manager, but only need the latter
+. Delete unused Exceptions
+. Delete unused imports
+. Run IntelliJ's code checker and fix any problems
+- Run everything through Claude for suggestions
 - Handle exceptions that I throw
-- Find and fix all IntelliJ warnings
-- Add comments to all classes and methods
+- Look into using 'foo!r' in logging for names and user_ids and the like
+- Make manual test script/plan and store it in this repo
+- Extract common code
 - Write README
   - Include env vars needed
-- Make manual test script/plan and store it in this repo
-- Add Rosie, Melissa, Jean as test users to sandbox
-- Run everything through Claude for suggestions
-- Delete unused Exceptions
-- Delete unused imports
+- Add Rosie, Melissa, Jean, Anshu as test users to sandbox
 - Should any methods be static? Is there any advantage to that?
-- I think there are places where i pass in a conn and a db manager, but only need the latter
-- Run IntelliJ's code checker and fix any problems
 - When adding an entity with instakarma-admin add-entity @foo, make sure you also add @foo's user_id. Otherwise @foo shows up in the leaderboard, which think it's a non-person entity.
 
 

@@ -25,52 +25,63 @@ class GrantMgr:
         self.logger = logger
         self.message_parser = message_parser
 
-    def grant_to_valid_user(self, say, granter_user_id: str, recipient: tuple[str, Action]) -> None:
+    def grant_to_valid_user(self,
+                            say,
+                            granter_user_id: str,
+                            recipient: tuple[str, Action]) -> None:
         recipient_user_id: str = recipient[0]
         action: Action = recipient[1]
-        amount, verb, emoji = self.message_parser.get_amount_verb_emoji(recipient)
+        amount, verb, emoji = self.message_parser.get_amount_verb_emoji(action)
 
         granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         recipient_name: str = self.entity_mgr.get_name_from_user_id(recipient_user_id)
 
         if action == Action.DECREMENT:
-            self.logger.info(f"'{granter_name}' tried to reduce karma of a person with name '{recipient_name}'")
-            say(':x: Sorry, you can only remove karma from things, not people\n*foo--* is OK\n*@foo--* is not')
+            self.logger.info(f"{granter_name!r} tried to reduce karma of a person with name {recipient_name!r}")
+            say(':x: Sorry, you can only remove karma from things (like python), not people (like @elvis)')
             return
 
         if recipient_name == granter_name:
-            self.logger.info(f"'{granter_name}' tried to self-grant {amount} karma")
-            say(f":x: Sorry, you can't self-grant karma")
+            self.logger.info(f"{granter_name!r} tried to self-grant {amount} karma")
+            say(f":x: Sorry, you can't grant positive or negative karma to yourself")
             return
 
         try:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
         except OptedOutEntityError:
-            self.logger.info(f"'{granter_name}' tried to grant karma to opted-out entity '{recipient_name}'")
+            self.logger.info(f"{granter_name!r} tried to grant karma to opted-out entity {recipient_name!r}'")
             say(f":x: Sorry, {recipient_name} isn't participating in Instakarma")
             return
         recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
         say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
 
-    def grant_to_invalid_user(self, say, granter_user_id, recipient) -> None:
+    def grant_to_invalid_user(self,
+                              say,
+                              granter_user_id: str,
+                              recipient: tuple[str, Action]) -> None:
         granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
-        amount, _, _ = self.message_parser.get_amount_verb_emoji(recipient)
-        self.logger.info(f"'{granter_name}' tried to grant '{amount}' karma "
-                         f"to unrecognized name '{recipient_name}'")
+        action: Action = recipient[1]
+        amount, _, _ = self.message_parser.get_amount_verb_emoji(action)
+        self.logger.info(f"{granter_name!r} tried to grant {amount!r} karma "
+                         f"to unrecognized name {recipient_name!r}")
         say(f":x: Sorry, I don't recognize the user {recipient_name}")
 
-    def grant_to_object(self, say, granter_user_id, recipient) -> None:
+    def grant_to_object(self,
+                        say,
+                        granter_user_id,
+                        recipient) -> None:
         granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
-        amount, verb, emoji = self.message_parser.get_amount_verb_emoji(recipient)
+        action: Action = recipient[1]
+        amount, verb, emoji = self.message_parser.get_amount_verb_emoji(action)
         self.entity_mgr.add_entity(recipient_name, None)
         try:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
             recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
             say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma")
         except OptedOutEntityError:
-            self.logger.info(f"'{granter_name}' can't grant karma to opted-out entity '{recipient_name}'")
+            self.logger.info(f"{granter_name!r} can't grant karma to opted-out entity {recipient_name!r}")
             say(f":x: Sorry, {recipient_name} is not participating in Instakarma")
 
     def export_grant_history(self) -> None:
