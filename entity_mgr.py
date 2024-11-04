@@ -53,6 +53,7 @@ class EntityMgr:
             return exists
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't check if user with name {name!r} exists in entities table.")
+            raise e
 
     def set_entity_status(self, name: str, status: Status) -> None:
         """ Set an entity's opted-in/opted-out status. """

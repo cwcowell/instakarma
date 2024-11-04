@@ -4,7 +4,7 @@ from slack_bolt import App
 from slack_sdk.web import SlackResponse
 
 
-class SlackApiMgr():
+class SlackApiMgr:
 
     def __init__(self, app: App, logger: Logger):
         self.app = app

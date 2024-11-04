@@ -36,9 +36,7 @@ class KarmaMgr:
             if result:
                 return result[0]
             else:
-                self.logger.info(f"Name {name!r} is opted-out or doesn't exist in 'entities' table")
-                raise ValueError
-                msg: str = f"Name '{name}' is opted-out or doesn't exist in 'entities' table"
+                msg: str = f"Name '{name!r}' is opted-out or doesn't exist in 'entities' table"
                 self.logger.info(msg)
                 raise ValueError(msg)
         except sqlite3.Error as e:

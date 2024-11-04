@@ -23,30 +23,29 @@ app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 # Listen for "++" or "--" in any message in any channel the bot subscribes to.
 @app.message(r'(\+\+)|(--)')
 def handle_karma_grants(message: dict, say) -> None:
-    with db_manager.get_db_connection() as conn:
-        granter_user_id: str = message['user']
-        msg_text: str = message['text']
+    granter_user_id: str = message['user']
+    msg_text: str = message['text']
 
-        valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
-        logger.debug("valid user recipients: " + str(valid_user_recipients))
+    valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
+    logger.debug("valid user recipients: " + str(valid_user_recipients))
 
-        invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
-        logger.debug("invalid user recipients: " + str(invalid_user_recipients))
+    invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
+    logger.debug("invalid user recipients: " + str(invalid_user_recipients))
 
-        object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
-        logger.debug("object recipients: " + str(object_recipients))
+    object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
+    logger.debug("object recipients: " + str(object_recipients))
 
-        amount: int
-        verb: str
+    amount: int
+    verb: str
 
-        for recipient in valid_user_recipients:
-            grant_handler.grant_to_valid_user(say, granter_user_id, recipient)
+    for recipient in valid_user_recipients:
+        grant_handler.grant_to_valid_user(say, granter_user_id, recipient)
 
-        for recipient in invalid_user_recipients:
-            grant_handler.grant_to_invalid_user(say, granter_user_id, recipient)
+    for recipient in invalid_user_recipients:
+        grant_handler.grant_to_invalid_user(say, granter_user_id, recipient)
 
-        for recipient in object_recipients:
-            grant_handler.grant_to_object(say, granter_user_id, recipient)
+    for recipient in object_recipients:
+        grant_handler.grant_to_object(say, granter_user_id, recipient)
 
 
 @app.command('/instakarma')

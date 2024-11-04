@@ -33,7 +33,6 @@ class ActionMgr:
 
     def leaderboard(self, respond) -> None:
         """ Respond to Slack with a list of all non-user entities and their karma, in descending karma order. """
-        leader_text: str = ''
         try:
             results: list = self.db_mgr.execute_statement("""
                                                        SELECT name, karma 
@@ -44,7 +43,7 @@ class ActionMgr:
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get karma of all objects: {e}")
             raise e
-        leader_text = '\n'.join(f"• {karma} {name}" for name, karma in results)
+        leader_text: str = '\n'.join(f"• {karma} {name}" for name, karma in results)
         respond(text="show karma of objects",
                 blocks=response_blocks.leaderboard(leader_text),
                 response_type="ephemeral")

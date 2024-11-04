@@ -29,10 +29,6 @@ class GrantMgr:
                             say,
                             granter_user_id: str,
                             recipient: tuple[str, Action]) -> None:
-    def grant_to_valid_user(self,
-                            say,
-                            granter_user_id: str,
-                            recipient: tuple[str, Action]) -> None:
         """ Grant positive karma to a person already registered in Slack.
 
         Add granter and/or recipient to DB if they don't exist already.
