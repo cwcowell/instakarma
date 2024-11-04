@@ -27,6 +27,8 @@ class DbMgr:
             self.logger.error(f"Rolling back. query: {statement} | parms: '{parms}' | error: {e}")
             conn.rollback()
             raise e
+        finally:
+            conn.close()
 
     # TODO: should I see if I can make more methods static? Is there any advantage to that?
     def get_db_connection(self) -> Connection:
