@@ -1,32 +1,31 @@
-
-from db_manager import DbManager
+from db_mgr import DbMgr
 from enums import Status
-from exceptions import NoSlackApiManagerDefinedError
-from slack_api_manager import SlackApiManager
+from exceptions import NoSlackApiMgrDefinedError
+from slack_api_mgr import SlackApiMgr
 
 from logging import Logger
-from sqlite3 import Cursor
 import sqlite3
 from typing import Literal
 
-class EntityManager:
+
+class EntityMgr:
     def __init__(self,
-                 db_manager: DbManager,
+                 db_mgr: DbMgr,
                  logger: Logger,
-                 slack_api_manager: SlackApiManager = None):
-        self.db_manager: DbManager = db_manager
+                 slack_api_mgr: SlackApiMgr = None):
+        self.db_mgr: DbMgr = db_mgr
         self.logger: Logger = logger
-        self.slack_api_manager: SlackApiManager = slack_api_manager
+        self.slack_api_mgr: SlackApiMgr = slack_api_mgr
 
     def get_status(self, name: str) -> Status:
         try:
             self.logger.debug(f"Asking DB for status of name '{name}'")
-            cursor: Cursor = self.db_manager.execute_statement("""
+            results: list = self.db_mgr.execute_statement("""
                                                                SELECT opt_in
                                                                FROM entities
                                                                WHERE name = ?;""",
-                                                               (name,))
-            result = cursor.fetchone()
+                                                          (name,))
+            result: list = results[0]
             if result:
                 status: Status = Status.OPT_IN if result[0] else Status.OPT_OUT
                 self.logger.debug(f"DB says status of name '{name}' is '{status}'")
@@ -40,11 +39,11 @@ class EntityManager:
 
     def change_entity_status(self, name: str, status: Status) -> None:
         try:
-            self.db_manager.execute_statement(f"""
+            self.db_mgr.execute_statement(f"""
                                               UPDATE entities
                                               SET opt_in = {'TRUE' if status == Status.OPT_IN else 'FALSE'}
                                               WHERE name = ?;""",
-                                              (name,))
+                                          (name,))
             self.logger.info(f"Entity '{name}' now has status '{status.value}'")
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't set user '{name}' status to '{status.value}': {e}")
@@ -53,61 +52,61 @@ class EntityManager:
         # if row exists in DB with that `user_id` and `name`, RETURN `name`
         try:
             self.logger.debug(f"Asking DB for name of user_id: '{user_id}'")
-            cursor: Cursor = self.db_manager.execute_statement("""
+            results: list = self.db_mgr.execute_statement("""
                                                                SELECT name
                                                                FROM entities
                                                                WHERE user_id = ?;""",
-                                                               (user_id,))
+                                                          (user_id,))
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't look up 'entity.name' for 'entity.user_id' of '{user_id}': {e}")
             raise e
 
-        first_row_of_results = cursor.fetchone()
-        if first_row_of_results:
-            name: str = first_row_of_results[0]
+        result: list = results[0]
+        if result:
+            name: str = result[0]
             self.logger.debug(f"DB says user_id '{user_id}' has name '{name}'")
             return name
 
         # else if row exists for that `user_id`, look up `name` in the API and update the row with `name`.
         # RETURN `name`
         try:
-            cursor: Cursor = self.db_manager.execute_statement("""
+            results: list = self.db_mgr.execute_statement("""
                                                                SELECT * 
                                                                FROM entities
                                                                WHERE user_id = ?;""",
-                                                               (user_id,))
+                                                          (user_id,))
         except sqlite3.Error as e:
             self.logger.error("Couldn't look up whether there's a row in 'entities' with "
                               f"'entity.user_id' == '{user_id}': {e}")
             raise e
 
-        first_row_of_results = cursor.fetchone()
-        if first_row_of_results:
+        result: list = results[0]
+        if result:
             self.logger.debug(f"DB has a row for user_id '{user_id}' but the row has no name.")
-            if self.slack_api_manager is None:
-                raise NoSlackApiManagerDefinedError
+            if self.slack_api_mgr is None:
+                raise NoSlackApiMgrDefinedError
 
-            name: str = self.slack_api_manager.get_name_from_slack_api(user_id)
+            name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
             try:
-                self.db_manager.execute_statement("""
-                                                  UPDATE entities
-                                                  SET name = ?
-                                                  WHERE user_id = ?;""",
-                                                  (name, user_id))
+                self.db_mgr.execute_statement("""
+                                              UPDATE entities
+                                              SET name = ?
+                                              WHERE user_id = ?;""",
+                                              (name, user_id))
             except sqlite3.Error as e:
                 self.logger.error(f"Couldn't update 'entities' table to set 'name' for 'user_id' of '{user_id}': {e}")
                 raise e
             return name
 
         # else look up the `name` in the API and insert a row with `name` and `user_id`. RETURN `name`
-        name: str = self.slack_api_manager.get_name_from_slack_api(user_id)
+        name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
         self.logger.debug(f"DB has no row for user_id '{user_id}, so adding a new row "
                           f"with that user_id and a name pulled from Slack API")
         try:
-            self.db_manager.execute_statement("""
+            self.db_mgr.execute_statement("""
                                               INSERT INTO entities (name, user_id) 
                                               VALUES (?, ?);""",
-                                              (name, user_id))
+                                          (name, user_id))
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't insert row into 'entities' table with name '{name}' "
                               f"and user_id '{user_id}': {e}")
@@ -129,10 +128,10 @@ class EntityManager:
         :raises sqlite3.Error: If something goes wrong with the DB
         """
         try:
-            self.db_manager.execute_statement("""
+            self.db_mgr.execute_statement("""
                                               INSERT OR IGNORE INTO entities (name, user_id)
                                               VALUES (?, ?);""",
-                                              (name, user_id))
+                                          (name, user_id))
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't add object entity '{name}': {e}")
             raise e
@@ -145,16 +144,15 @@ class EntityManager:
         :raises sqlite3.Error: If something goes wrong with the DB
         """
         try:
-            cursor: Cursor = self.db_manager.execute_statement(f"""
+            results: list = self.db_mgr.execute_statement(f"""
                                          SELECT name, karma
                                          FROM entities
                                          WHERE opt_in = TRUE
                                          ORDER BY {attribute} {'DESC' if attribute == 'karma' else 'ASC'};""",
-                                                               ())
+                                                           ())
         except sqlite3.Error as e:
             self.logger.error(f"Error when retrieving list of entities: {e}")
             raise e
-        results = cursor.fetchall()
         entities: list[tuple[str, int]] = []
         for name, karma in results:
             entities.append((name, karma))

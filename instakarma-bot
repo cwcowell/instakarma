@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-from action_manager import ActionManager
+from action_mgr import ActionMgr
 from constants import *
-from db_manager import DbManager
+from db_mgr import DbMgr
 from enums import *
-from entity_manager import EntityManager
-from grant_manager import GrantManager
-from karma_manager import KarmaManager
-from log_manager import LogManager
+from entity_mgr import EntityMgr
+from grant_mgr import GrantMgr
+from karma_mgr import KarmaMgr
+from log_mgr import LogMgr
 from message_parser import MessageParser
-from slack_api_manager import SlackApiManager
+from slack_api_mgr import SlackApiMgr
 
 from logging import Logger
 import os
@@ -81,18 +81,18 @@ def handle_instakarma_command(ack, respond, command) -> None:
 if __name__ == "__main__":
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"])
 
-    logger: Logger = LogManager.get_logger(BOT_LOGGER_NAME,
-                                           BOT_LOG_FILE,
-                                           BOT_LOG_LEVEL,
-                                           BOT_LOG_FILE_SIZE,
-                                           BOT_LOG_FILE_COUNT)
-    db_manager: DbManager = DbManager(logger)
-    slack_api_manager: SlackApiManager = SlackApiManager(app, logger)
-    action_manager: ActionManager = ActionManager(db_manager, logger)
-    entity_manager: EntityManager = EntityManager(db_manager, logger, slack_api_manager)
-    karma_manager: KarmaManager = KarmaManager(db_manager, entity_manager, logger)
+    logger: Logger = LogMgr.get_logger(BOT_LOGGER_NAME,
+                                       BOT_LOG_FILE,
+                                       BOT_LOG_LEVEL,
+                                       BOT_LOG_FILE_SIZE,
+                                       BOT_LOG_FILE_COUNT)
+    db_manager: DbMgr = DbMgr(logger)
+    slack_api_manager: SlackApiMgr = SlackApiMgr(app, logger)
+    action_manager: ActionMgr = ActionMgr(db_manager, logger)
+    entity_manager: EntityMgr = EntityMgr(db_manager, logger, slack_api_manager)
+    karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
-    grant_handler: GrantManager = GrantManager(entity_manager, karma_manager, logger, message_parser)
+    grant_handler: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
 
     db_manager.init_db()
 

@@ -30,8 +30,8 @@ class NameNotFoundInSlackError:
     pass
 
 
-class NoSlackApiManagerDefinedError:
-    """Tried to make a Slack API call, but no manager is defined.
+class NoSlackApiMgrDefinedError:
+    """Tried to make a Slack API call, but no mgr is defined.
 
     This should be handled.
     """

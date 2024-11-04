@@ -2,7 +2,7 @@ from logging import Logger
 
 from slack_bolt import App
 
-class SlackApiManager():
+class SlackApiMgr():
 
     def __init__(self, app: App, logger: Logger):
         self.app = app

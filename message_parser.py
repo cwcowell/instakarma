@@ -1,7 +1,6 @@
 from enums import Action
 
 from logging import Logger
-import os
 import re
 
 class MessageParser:
@@ -65,4 +64,3 @@ class MessageParser:
             self.logger.debug("setting amount to -1, verb to 'took a hit'")
             return -1, 'took a hit', ':arrow_down:'
         self.logger.critical(f"Unrecognized action is neither Action.INCREMENT nor Action.DECREMENT: '{recipient[1]}'")
-        os._exit(1)

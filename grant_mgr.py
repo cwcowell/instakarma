@@ -1,28 +1,27 @@
 from constants import GRANTS_EXPORT_FILE
-from db_manager import DbManager
+from db_mgr import DbMgr
 from enums import Action
-from entity_manager import EntityManager
+from entity_mgr import EntityMgr
 from exceptions import OptedOutEntityError
-from karma_manager import KarmaManager
+from karma_mgr import KarmaMgr
 from message_parser import MessageParser
 
 from logging import Logger
 import sqlite3
-from sqlite3 import Cursor
 import sys
 
 
-class GrantManager:
+class GrantMgr:
 
     def __init__(self,
-                 entity_manager: EntityManager,
-                 karma_manager: KarmaManager,
+                 entity_mgr: EntityMgr,
+                 karma_mgr: KarmaMgr,
                  logger: Logger,
                  message_parser: MessageParser,
-                 db_manager: DbManager):
-        self.db_manager = db_manager
-        self.entity_manager = entity_manager
-        self.karma_manager = karma_manager
+                 db_mgr: DbMgr):
+        self.db_mgr = db_mgr
+        self.entity_mgr = entity_mgr
+        self.karma_mgr = karma_mgr
         self.logger = logger
         self.message_parser = message_parser
 
@@ -31,8 +30,8 @@ class GrantManager:
         action: Action = recipient[1]
         amount, verb, emoji = self.message_parser.get_amount_verb_emoji(recipient)
 
-        granter_name: str = self.entity_manager.get_name_from_user_id(granter_user_id)
-        recipient_name: str = self.entity_manager.get_name_from_user_id(recipient_user_id)
+        granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
+        recipient_name: str = self.entity_mgr.get_name_from_user_id(recipient_user_id)
 
         if action == Action.DECREMENT:
             self.logger.info(f"'{granter_name}' tried to reduce karma of a person with name '{recipient_name}'")
@@ -45,16 +44,16 @@ class GrantManager:
             return
 
         try:
-            self.karma_manager.grant_karma(granter_name, recipient_name, amount)
+            self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
         except OptedOutEntityError:
             self.logger.info(f"'{granter_name}' tried to grant karma to opted-out entity '{recipient_name}'")
             say(f":x: Sorry, {recipient_name} isn't participating in Instakarma")
             return
-        recipient_total_karma: int = self.karma_manager.get_karma(recipient_name)
+        recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
         say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
 
     def grant_to_invalid_user(self, say, granter_user_id, recipient) -> None:
-        granter_name: str = self.entity_manager.get_name_from_user_id(granter_user_id)
+        granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
         amount, _, _ = self.message_parser.get_amount_verb_emoji(recipient)
         self.logger.info(f"'{granter_name}' tried to grant '{amount}' karma "
@@ -62,13 +61,13 @@ class GrantManager:
         say(f":x: Sorry, I don't recognize the user {recipient_name}")
 
     def grant_to_object(self, say, granter_user_id, recipient) -> None:
-        granter_name: str = self.entity_manager.get_name_from_user_id(granter_user_id)
+        granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
         amount, verb, emoji = self.message_parser.get_amount_verb_emoji(recipient)
-        self.entity_manager.add_entity(recipient_name, None)
+        self.entity_mgr.add_entity(recipient_name, None)
         try:
-            self.karma_manager.grant_karma(granter_name, recipient_name, amount)
-            recipient_total_karma: int = self.karma_manager.get_karma(recipient_name)
+            self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
+            recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
             say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma")
         except OptedOutEntityError:
             self.logger.info(f"'{granter_name}' can't grant karma to opted-out entity '{recipient_name}'")
@@ -76,7 +75,7 @@ class GrantManager:
 
     def export_grant_history(self) -> None:
         try:
-            cursor: Cursor = self.db_manager.execute_statement(
+            results: list = self.db_mgr.execute_statement(
                 """
                 SELECT r.name AS recipient_name,
                        g.name AS granter_name,
@@ -87,7 +86,6 @@ class GrantManager:
                 JOIN entities g on gr.granter_id = g.entity_id
                 ORDER BY gr.timestamp;""",
                 ())
-            results = cursor.fetchall()
 
         except sqlite3.Error as e:
             sys.exit(f"Error when retrieving all grants: {e}")

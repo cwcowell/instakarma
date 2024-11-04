@@ -1,13 +1,11 @@
-from constants import *
-
 from logging import Logger
 import logging.handlers
 from logging.handlers import RotatingFileHandler
 import os
 
 
-class LogManager:
-    """ Singleton class, so `LogManager.get_logger()` always returns the same `logger` instance. """
+class LogMgr:
+    """ Singleton class, so `LogMgr.get_logger()` always returns the same `logger` instance. """
 
     _logger: Logger | None = None
 
@@ -17,9 +15,9 @@ class LogManager:
                    log_level: str,
                    log_file_size: int,
                    log_file_count: int) -> Logger:
-        if LogManager._logger is None:
-            LogManager._logger = LogManager._init_logger(name, log_file, log_level, log_file_size, log_file_count)
-        return LogManager._logger
+        if LogMgr._logger is None:
+            LogMgr._logger = LogMgr._init_logger(name, log_file, log_level, log_file_size, log_file_count)
+        return LogMgr._logger
 
     @staticmethod
     def _init_logger(name: str,

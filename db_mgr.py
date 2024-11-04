@@ -6,14 +6,14 @@ from sqlite3 import Connection, Cursor
 import sqlite3
 
 
-class DbManager:
+class DbMgr:
     def __init__(self, logger: Logger):
         self.logger: Logger = logger
 
-    def execute_statement(self, statement: str, parms: tuple) -> Cursor:
-        """ Open a DB connection, execute a SQL statement, close the connection.
+    def execute_statement(self, statement: str, parms: tuple) -> list:
+        """ Open a DB connection, execute an SQL statement, close the connection.
 
-        :returns: Cursor with any results
+        :returns: list of results
         :raises sqlite3.Error: If something goes wrong with the DB
         """
         log_friendly_statement: str = self.format_statement_for_log(statement)
@@ -22,14 +22,12 @@ class DbManager:
         try:
             cursor: Cursor = conn.execute(statement, parms)
             conn.commit()
+            return cursor.fetchall()
         except sqlite3.Error as e:
             self.logger.error(f"Rolling back. query: {statement} | parms: '{parms}' | error: {e}")
             conn.rollback()
             raise e
-        return cursor
 
-    # TODO: does the connection object close? Claude thinks it doesn't. Ask how I can refactor.
-    #    - CLAUDE RECOMMENDS I extract results before leaving the "with" contextmanager, and return results instad of cursor.
     # TODO: should I see if I can make more methods static? Is there any advantage to that?
     def get_db_connection(self) -> Connection:
         """ Open and return a DB connection.
@@ -48,7 +46,7 @@ class DbManager:
         """ SQL statements in this code are indented and have newlines.
         Format them as a single line just for logging.
         """
-        statement = statement.replace('\n', ' ')  # replace newlines returns with spaces
+        statement = statement.replace('\n', ' ')  # replace newlines with spaces
         return ' '.join(statement.split())  # replace multiple spaces with a single space
 
     def init_db(self) -> str:

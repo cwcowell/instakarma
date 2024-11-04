@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 from constants import *
-from db_manager import DbManager
-from entity_manager import EntityManager
+from db_mgr import DbMgr
+from entity_mgr import EntityMgr
 from enums import Status
-from grant_manager import GrantManager
-from karma_manager import KarmaManager
-from log_manager import LogManager
+from grant_mgr import GrantMgr
+from karma_mgr import KarmaMgr
+from log_mgr import LogMgr
 
 from argparse import ArgumentParser
 import argparse
@@ -99,14 +99,14 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    logger: Logger = LogManager.get_logger(ADMIN_LOGGER_NAME,
-                                           ADMIN_LOG_FILE,
-                                           ADMIN_LOG_LEVEL,
-                                           ADMIN_LOG_FILE_SIZE,
-                                           ADMIN_LOG_FILE_COUNT)
-    db_manager: DbManager = DbManager(logger)
-    entity_manager: EntityManager = EntityManager(db_manager, logger)
-    karma_manager: KarmaManager = KarmaManager(db_manager, entity_manager, logger)
+    logger: Logger = LogMgr.get_logger(ADMIN_LOGGER_NAME,
+                                       ADMIN_LOG_FILE,
+                                       ADMIN_LOG_LEVEL,
+                                       ADMIN_LOG_FILE_SIZE,
+                                       ADMIN_LOG_FILE_COUNT)
+    db_manager: DbMgr = DbMgr(logger)
+    entity_manager: EntityMgr = EntityMgr(db_manager, logger)
+    karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
-    grant_manager: GrantManager = GrantManager(entity_manager, karma_manager, logger, message_parser, db_manager)
+    grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
     main()
