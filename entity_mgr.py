@@ -37,8 +37,11 @@ class EntityMgr:
             self.logger.error(f"Couldn't get status for name {name!r}")
             raise e
 
-    def name_exists(self, name: str) -> bool:
-        """ See if an entity with a particular name exists in the 'entities' table. """
+    def name_exists_in_db(self, name: str) -> bool:
+        """ See if an entity with a particular name exists in the entities table.
+
+        :returns: Whether the name exists in the DB
+        """
         try:
             results: list = self.db_mgr.execute_statement("""
                                           SELECT *
@@ -51,7 +54,8 @@ class EntityMgr:
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't check if user with name {name!r} exists in entities table.")
 
-    def change_entity_status(self, name: str, status: Status) -> None:
+    def set_entity_status(self, name: str, status: Status) -> None:
+        """ Set an entity's opted-in/opted-out status. """
         try:
             self.db_mgr.execute_statement(f"""
                                               UPDATE entities
@@ -63,6 +67,12 @@ class EntityMgr:
             self.logger.error(f"Couldn't set user {name!r} status to {status.value!r}: {e}")
 
     def get_name_from_user_id(self, user_id: str) -> str:
+        """ Convert an entity's user_id to its name.
+
+        Consult the DB and/or Slack API and adds DB entries as needed.
+        :returns: The name that corresponds to the provided user_id
+        """
+
         # if row exists in DB with that `user_id` and `name`, RETURN `name`
         try:
             self.logger.debug(f"Asking DB for name of user_id: {user_id!r}")
@@ -146,7 +156,6 @@ class EntityMgr:
         """List all entities in the DB.
 
         :returns: List of tuples, where each tuple contains an entity name and user_id
-
         :raises sqlite3.Error: If something goes wrong with the DB
         """
         try:

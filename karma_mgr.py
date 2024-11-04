@@ -19,6 +19,12 @@ class KarmaMgr:
         self.logger = logger
 
     def get_karma(self, name: str) -> int:
+        """ Get the current karma for any entity, whether person or object.
+
+        :return: The entity's current karma
+        :raises sqlite3.Error: If anything goes wrong with the DB
+        :raises ValueError: If there's no entity with that name in the DB, or if they have opted-out status
+        """
         try:
             self.logger.debug(f"Asking DB for karma of name {name!r}")
             results: list = self.db_mgr.execute_statement("""
@@ -32,6 +38,9 @@ class KarmaMgr:
             else:
                 self.logger.info(f"Name {name!r} is opted-out or doesn't exist in 'entities' table")
                 raise ValueError
+                msg: str = f"Name '{name}' is opted-out or doesn't exist in 'entities' table"
+                self.logger.info(msg)
+                raise ValueError(msg)
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get karma for name {name!r}")
             raise e

@@ -21,7 +21,7 @@ class ActionMgr:
                    entity_mgr: EntityMgr) -> None:
         """ Set an entity's status to either `opted-in` or `opted-out`. """
         name: str = '@' + command['user_name']
-        entity_mgr.change_entity_status(name, new_status)
+        entity_mgr.set_entity_status(name, new_status)
         respond(text=f"{name} is now {new_status.value} in instakarma",
                 blocks=response_blocks.change_status(new_status),
                 response_type='ephemeral')
@@ -61,7 +61,7 @@ class ActionMgr:
         """
         name: str = '@' + command['user_name']
 
-        if not entity_mgr.name_exists(name):
+        if not entity_mgr.name_exists_in_db(name):
             your_karma_text: str = "You haven't granted or received any karma yet."
             respond(text=f"instakarma stats for {name}",
                     blocks=response_blocks.my_stats(name, your_karma_text, '', ''),

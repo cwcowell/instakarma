@@ -29,6 +29,16 @@ class GrantMgr:
                             say,
                             granter_user_id: str,
                             recipient: tuple[str, Action]) -> None:
+    def grant_to_valid_user(self,
+                            say,
+                            granter_user_id: str,
+                            recipient: tuple[str, Action]) -> None:
+        """ Grant positive karma to a person already registered in Slack.
+
+        Add granter and/or recipient to DB if they don't exist already.
+        Disallow grants of karma to yourself.
+        If the recipient has opted-out status, don't grant karma to them.
+        """
         recipient_user_id: str = recipient[0]
         action: Action = recipient[1]
         amount, verb, emoji = self.message_parser.get_amount_verb_emoji(action)
@@ -57,8 +67,9 @@ class GrantMgr:
 
     def grant_to_invalid_user(self,
                               say,
-                              granter_user_id: str,
-                              recipient: tuple[str, Action]) -> None:
+                              granter_user_id,
+                              recipient) -> None:
+        """ Respond to Slack channel saying it can't grant karma to a user who isn't recognized by Slack. """
         granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
         action: Action = recipient[1]
@@ -71,6 +82,11 @@ class GrantMgr:
                         say,
                         granter_user_id,
                         recipient) -> None:
+        """ Grant positive/negative karma to an object, not a person.
+
+        Add recipient to DB if they don't exist already.
+        If the recipient has opted-out status, don't grant karma to them.
+        """
         granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
         action: Action = recipient[1]
@@ -85,6 +101,11 @@ class GrantMgr:
             say(f":x: Sorry, {recipient_name} is not participating in Instakarma")
 
     def export_grant_history(self) -> None:
+        """ Dump a history of all grants that are in the DB into a local CSV file.
+
+        Exit rather than raise an error if anything goes wrong, since this is only called from instabase-admin.
+        Print rather than log messages for the same reason.
+        """
         try:
             results: list = self.db_mgr.execute_statement(
                 """
