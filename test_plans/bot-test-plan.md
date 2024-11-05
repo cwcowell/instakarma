@@ -1,5 +1,6 @@
 ## db initialization
 
+**db-init**
 Given there is no DB
 When instabase-bot starts
 Then it creates an empty DB
@@ -7,6 +8,7 @@ Then it creates an empty DB
 
 ## karma to person
 
+**grant to valid user**
 Given @alice is in DB
 And @bob is in DB
 When @alice `@bob++`

@@ -47,7 +47,7 @@ help: list[dict] = [
                          "*/instakarma opt-in*   participate in instakarma\n"
                          "*/instakarma opt-out*   decline to participate in instakarma\n"
                          "\n"
-                         "_contact christopher.cowell@instabase.com or @chris.cowell with problems_")
+                         "contact christopher.cowell@instabase.com or <@chris cowell> with problems")
             }
     }
 ]

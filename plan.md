@@ -5,12 +5,13 @@ x Am I logging correctly in instakarma-admin?
 x Find and fix all IntelliJ warnings
 x Add comments to all classes and methods
 x I think there are places where i pass in a conn and a db manager, but only need the latter
+x Look into using 'foo!r' in logging for names and user_ids and the like
+x Figure out how to deal with this recurring console message:
 . Delete unused Exceptions
 . Delete unused imports
 . Run IntelliJ's code checker and fix any problems
 - Run everything through Claude for suggestions
 - Handle exceptions that I throw
-- Look into using 'foo!r' in logging for names and user_ids and the like
 - Make manual test script/plan and store it in this repo
 - Extract common code
 - Write README
@@ -19,6 +20,29 @@ x I think there are places where i pass in a conn and a db manager, but only nee
 - Should any methods be static? Is there any advantage to that?
 - When adding an entity with instakarma-admin add-entity @foo, make sure you also add @foo's user_id. Otherwise @foo shows up in the leaderboard, which think it's a non-person entity.
 
+# Sandbox info
+
+Full name: C. W. Cowell-Shah full
+Display name: C. W. Cowell-Shah display
+username: cwcowellshah
+email: cwcowellshah@gmail.com
+
+Full name: Christopher W. Cowell full
+Display name: Christopher W. Cowell display
+username: sd07qtewuu2f_user
+email: christopher.w.cowell@gmail.com
+password: instabaseaihub
+
+Sandbox is called 'instakarma sandbox'
+Sandbox: e07qtjrg3l2-af2rhl0y.slack.com or instakarma.enterprise.slack.com
+
+@Alice - christopher.w.cowell+slack1@gmail.com - is what you get to when you sign in as christopher.w.cowell@gmail.com/instabaseaihub
+@Bob - christopher.w.cowell+slack2@gmail.com
+@Zoe Zigler - christopher.w.cowell+slack26@gmail.com
+
+christopher.w.cowell@gmail.com/instabaseaihub
+
+Sandbox: e07qtjrg3l2-af2rhl0y.slack.com
 
 ## Object-oriented rewrite
 

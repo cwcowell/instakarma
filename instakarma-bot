@@ -77,8 +77,14 @@ def handle_instakarma_command(ack, respond, command) -> None:
     action_manager.help(respond)
 
 
+@app.event("message")
+def handle_message_events(body, logger):
+    pass  # suppress console output that normally comes from every message
+
+
 if __name__ == "__main__":
-    slack_message_handler: SocketModeHandler = SocketModeHandler(app=app, app_token=os.environ["SLACK_APP_TOKEN"])
+    slack_message_handler: SocketModeHandler = SocketModeHandler(app=app,
+                                                                 app_token=os.environ["SLACK_APP_TOKEN"])
 
     logger: Logger = LogMgr.get_logger(LOGGER_NAME,
                                        LOG_FILE,
