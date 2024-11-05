@@ -10,6 +10,8 @@ from logging import Logger
 import sqlite3
 import sys
 
+from slack_sdk.errors import SlackApiError
+
 
 class GrantMgr:
 
@@ -39,8 +41,19 @@ class GrantMgr:
         action: Action = recipient[1]
         amount, verb, emoji = self.message_parser.get_amount_verb_emoji(action)
 
-        granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
-        recipient_name: str = self.entity_mgr.get_name_from_user_id(recipient_user_id)
+        try:
+            granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
+        except SlackApiError as sae:
+            self.logger.error("Couldn't grant karma because couldn't get name for "
+                              f"granter user_id {granter_user_id!r}")
+            return
+
+        try:
+            recipient_name: str = self.entity_mgr.get_name_from_user_id(recipient_user_id)
+        except SlackApiError as sae:
+            self.logger.error("Couldn't grant karma because couldn't get name for "
+                              f"recipient user_id {recipient_user_id!r}")
+            return
 
         if action == Action.DECREMENT:
             self.logger.info(f"{granter_name!r} tried to reduce karma of a person with name {recipient_name!r}")
@@ -66,7 +79,13 @@ class GrantMgr:
                               granter_user_id,
                               recipient) -> None:
         """ Respond to Slack channel saying it can't grant karma to a user who isn't recognized by Slack. """
-        granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
+        try:
+            granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
+        except SlackApiError as sae:
+            self.logger.error("Couldn't grant karma because couldn't get name for "
+                              f"granter user_id {granter_user_id!r}")
+            return
+
         recipient_name: str = recipient[0]
         action: Action = recipient[1]
         amount, _, _ = self.message_parser.get_amount_verb_emoji(action)

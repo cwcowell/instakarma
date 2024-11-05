@@ -7,6 +7,8 @@ from logging import Logger
 import sqlite3
 from typing import Literal
 
+from slack_sdk.errors import SlackApiError
+
 
 class EntityMgr:
     def __init__(self,
@@ -108,7 +110,10 @@ class EntityMgr:
             self.logger.debug(f"DB has a row for user_id {user_id!r} but the row has no name.")
             if self.slack_api_mgr is None:
                 raise NoSlackApiMgrDefinedError
-            name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
+            try:
+                name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
+            except SlackApiError as sae:
+                raise sae
             try:
                 self.db_mgr.execute_statement("""
                                               UPDATE entities
@@ -121,7 +126,10 @@ class EntityMgr:
             return name
 
         # else look up the `name` in the API and insert a row with `name` and `user_id`. RETURN `name`
-        name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
+        try:
+            name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
+        except SlackApiError as sae:
+            raise sae
         self.logger.debug(f"DB has no row for 'user_id' of {user_id!r}, so adding a new row "
                           f"with that user_id and a name pulled from Slack API")
         try:

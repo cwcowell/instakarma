@@ -1,6 +1,7 @@
 from logging import Logger
 
 from slack_bolt import App
+from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 
@@ -13,7 +14,11 @@ class SlackApiMgr:
     def get_name_from_slack_api(self, user_id: str) -> str:
         """ Use Slack API to convert a user ID like 'U07R69E3YKB' into a name like '@elvis'. """
         self.logger.debug(f"Asking Slack API for name of user with user_id {user_id!r}")
-        user_info: SlackResponse = self.app.client.users_info(user=user_id)
+        try:
+            user_info: SlackResponse = self.app.client.users_info(user=user_id)
+        except SlackApiError as sae:
+            self.logger.error(f"Slack API call raised an error: {sae.response}")
+            raise sae
         name: str = user_info['user']['name']
         self.logger.debug(f"Slack API returned name {name!r} for user_id {user_id!r}")
         return '@' + name

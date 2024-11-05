@@ -45,7 +45,9 @@ help: list[dict] = [
                          "*/instakarma leaderboard*   see the karma of all objects\n"
                          "*/instakarma my-stats*   see your karma and top granters and receivers\n"
                          "*/instakarma opt-in*   participate in instakarma\n"
-                         "*/instakarma opt-out*   decline to participate in instakarma\n")
+                         "*/instakarma opt-out*   decline to participate in instakarma\n"
+                         "\n"
+                         "_contact christopher.cowell@instabase.com or @chris.cowell with problems_")
             }
     }
 ]
