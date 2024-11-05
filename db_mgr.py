@@ -52,7 +52,7 @@ class DbMgr:
         :raises sqlite3.Error: If anything goes wrong with the DB
         """
         if os.path.exists(DB_FILE):
-            msg: str = f"Database already exists at {DB_FILE!r}. No changes made."
+            msg: str = f"DB already exists at {DB_FILE!r}. No changes made."
             self.logger.info(msg)
             return msg
         with self.get_db_connection() as conn:

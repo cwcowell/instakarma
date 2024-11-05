@@ -2,8 +2,7 @@
 
 PRAGMA foreign_keys = ON; -- weirdly required by SQLite
 
-PRAGMA synchronous = NORMAL;
--- for testing only: slower but flushes with every commit()
+PRAGMA synchronous = NORMAL; -- for testing only: slower but flushes with every commit()
 
 -- store current (not historical) karma for all entities
 CREATE TABLE entities
@@ -16,7 +15,7 @@ CREATE TABLE entities
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP -- no plans for use, but might be useful in future?
 );
 
--- log individual karma grants for auditing
+-- store individual karma grants for auditing
 CREATE TABLE grants
 (
     grant_id     INTEGER PRIMARY KEY, -- SQLite auto-increments primary keys automatically

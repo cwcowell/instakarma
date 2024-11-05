@@ -30,7 +30,7 @@ class KarmaMgr:
             results: list = self.db_mgr.execute_statement("""
                                                                SELECT karma
                                                                FROM entities
-                                                               WHERE name = ? AND opt_in = TRUE;""",
+                                                               WHERE name = ? AND opted_in = TRUE;""",
                                                           (name,))
             result = results[0]
             if result:

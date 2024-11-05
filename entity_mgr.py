@@ -21,7 +21,7 @@ class EntityMgr:
         try:
             self.logger.debug(f"Asking DB for status of name {name!r}")
             results: list = self.db_mgr.execute_statement("""
-                                                               SELECT opt_in
+                                                               SELECT opted_in
                                                                FROM entities
                                                                WHERE name = ?;""",
                                                           (name,))
@@ -60,7 +60,7 @@ class EntityMgr:
         try:
             self.db_mgr.execute_statement(f"""
                                               UPDATE entities
-                                              SET opt_in = {'TRUE' if status == Status.OPTED_IN else 'FALSE'}
+                                              SET opted_in = {'TRUE' if status == Status.OPTED_IN else 'FALSE'}
                                               WHERE name = ?;""",
                                           (name,))
             self.logger.info(f"Entity {name!r} now has status {status.value!r}")
@@ -86,9 +86,8 @@ class EntityMgr:
             self.logger.error(f"Couldn't look up 'entity.name' for 'entity.user_id' of {user_id!r}: {e}")
             raise e
 
-        result: list = results[0]
-        if result:
-            name: str = result[0]
+        if len(results):
+            name: str = results[0][0]
             self.logger.debug(f"DB says user_id {user_id!r} has name {name!r}")
             return name
 
@@ -105,12 +104,10 @@ class EntityMgr:
                               f"'entity.user_id' == {user_id!r}: {e}")
             raise e
 
-        result: list = results[0]
-        if result:
+        if len(results):
             self.logger.debug(f"DB has a row for user_id {user_id!r} but the row has no name.")
             if self.slack_api_mgr is None:
                 raise NoSlackApiMgrDefinedError
-
             name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
             try:
                 self.db_mgr.execute_statement("""
@@ -163,7 +160,7 @@ class EntityMgr:
             results: list = self.db_mgr.execute_statement(f"""
                                          SELECT name, karma
                                          FROM entities
-                                         WHERE opt_in = TRUE
+                                         WHERE opted_in = TRUE
                                          ORDER BY {attribute} {'DESC' if attribute == 'karma' else 'ASC'};""",
                                                            ())
         except sqlite3.Error as e:

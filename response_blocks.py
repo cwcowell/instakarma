@@ -41,11 +41,11 @@ help: list[dict] = [
                          "*python--*   remove 1 karma from object *python*\n"
                          "_optionally add a space between *recipient* and *++* or *--*_\n"
                          "\n"
-                         "*/instakarma opt-me-out*   decline to participate in instakarma\n"
-                         "*/instakarma opt-me-in*   participate in instakarma\n"
                          "*/instakarma help*   display this usage guide\n"
-                         "*/instakarma leaderboard*   see the karma for all objects\n"
-                         "*/instakarma my-stats*   see your karma and top granters and receivers\n")
+                         "*/instakarma leaderboard*   see the karma of all objects\n"
+                         "*/instakarma my-stats*   see your karma and top granters and receivers\n"
+                         "*/instakarma opt-in*   participate in instakarma\n"
+                         "*/instakarma opt-out*   decline to participate in instakarma\n")
             }
     }
 ]

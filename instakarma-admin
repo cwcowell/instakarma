@@ -16,6 +16,17 @@ import sqlite3
 import sys
 
 
+def init_db() -> None:
+    """ initialize the DB every time the admin tools, to simplify error handling. """
+    result: str = ''
+    try:
+        result: str = db_manager.init_db()
+    except sqlite3.Error as e:
+        sys.exit(f"Error when initializing DB: {e}")
+    if not result.startswith('DB already exists'):
+        print(result)
+
+
 def main() -> None:
     parser: ArgumentParser = argparse.ArgumentParser(
         description='instakarma-admin: a set of admin tools for the instakarma bot',
@@ -69,13 +80,6 @@ def main() -> None:
     elif args.command == 'export-grants':
         grant_manager.export_grant_history()
 
-    elif args.command == 'init-db':
-        try:
-            result: str = db_manager.init_db()
-            print(result)
-        except sqlite3.Error as e:
-            sys.exit(f"Error when initializing DB: {e}")
-
     elif args.command == 'list-by-karma':
         entities = entity_manager.list_entities('karma')
         for name, karma in entities:
@@ -112,4 +116,6 @@ if __name__ == '__main__':
     karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
     grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
+
+    init_db()
     main()
