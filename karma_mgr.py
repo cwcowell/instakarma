@@ -32,16 +32,15 @@ class KarmaMgr:
                                                           FROM entities
                                                           WHERE name = ? AND opted_in = TRUE;""",
                                                           (name,))
-            result = results[0]
-            if result:
-                return result[0]
+            if results[0]:
+                return results[0][0]
             else:
                 msg: str = f"{name!r} is opted-out or doesn't exist in 'entities' table"
                 self.logger.info(msg)
                 raise ValueError(msg)
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get karma for {name!r}")
-            raise e
+            self.logger.error(f"Couldn't get karma for {name!r}: {e}")
+            raise
 
     def get_top_granters(self, recipient_name: str) -> list[tuple[str, int]]:
         try:
@@ -57,15 +56,11 @@ class KarmaMgr:
                                                ORDER BY times_granted DESC, top_granter_name
                                                LIMIT {NUM_TOP_GRANTERS};""",
                                                           (recipient_name,))
-            top_granters: list[tuple[str, int]] = []
-            for row in results:
-                granter_name: str = row[0]
-                times_granted: int = int(row[1])
-                top_granters.append((granter_name, int(times_granted)))
-            return top_granters
+
+            return [(name, int(num_grants)) for name, num_grants in results]
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get biggest granters to {recipient_name!r}: {e}")
-            raise e
+            raise
 
     def get_top_recipients(self, granter_name: str) -> list[tuple[str, int]]:
         try:
@@ -81,15 +76,10 @@ class KarmaMgr:
                                          ORDER BY times_received DESC, top_recipient_name
                                          LIMIT {NUM_TOP_RECIPIENTS};""",
                                                            (granter_name,))
-            top_recipients: list[tuple[str, int]] = []
-            for row in results:
-                recipient_name: str = row[0]
-                times_granted: int = int(row[1])
-                top_recipients.append((recipient_name, int(times_granted)))
-            return top_recipients
+            return [(name, int(num_grants)) for name, num_grants in results]
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get top recipients from {granter_name!r}: {e}")
-            raise e
+            raise
 
     def grant_karma(self,
                     granter_name: str,
@@ -124,4 +114,4 @@ class KarmaMgr:
         except sqlite3.Error as e:
             self.logger.error(
                 f"Couldn't grant {amount!r} karma from {granter_name!r} to {recipient_name!r}: {e}")
-            raise e
+            raise

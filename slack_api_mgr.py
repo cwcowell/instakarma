@@ -1,4 +1,5 @@
 from logging import Logger
+from typing import Final
 
 from slack_bolt import App
 from slack_sdk.errors import SlackApiError
@@ -6,6 +7,8 @@ from slack_sdk.web import SlackResponse
 
 
 class SlackApiMgr:
+
+    NAME_PREFIX: Final[str] = '@'
 
     def __init__(self, app: App, logger: Logger):
         self.app = app
@@ -17,8 +20,8 @@ class SlackApiMgr:
         try:
             user_info: SlackResponse = self.app.client.users_info(user=user_id)
         except SlackApiError as sae:
-            self.logger.error(f"Slack API call raised an error: {sae.response}")
-            raise sae
+            self.logger.error(f"Slack API call failed: {sae.response}")
+            raise
         name: str = user_info['user']['name']
         self.logger.debug(f"Slack API returned name {name!r} for user_id {user_id!r}")
-        return '@' + name
+        return self.NAME_PREFIX + name
