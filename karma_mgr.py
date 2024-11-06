@@ -26,7 +26,7 @@ class KarmaMgr:
         :raises ValueError: If there's no entity with that name in the DB, or if they have opted-out status
         """
         try:
-            self.logger.debug(f"Asking DB for karma of name {name!r}")
+            self.logger.debug(f"Asking DB for karma of {name!r}")
             results: list = self.db_mgr.execute_statement("""
                                                                SELECT karma
                                                                FROM entities
@@ -36,16 +36,16 @@ class KarmaMgr:
             if result:
                 return result[0]
             else:
-                msg: str = f"Name '{name!r}' is opted-out or doesn't exist in 'entities' table"
+                msg: str = f"{name!r} is opted-out or doesn't exist in 'entities' table"
                 self.logger.info(msg)
                 raise ValueError(msg)
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get karma for name {name!r}")
+            self.logger.error(f"Couldn't get karma for {name!r}")
             raise e
 
     def get_top_granters(self, recipient_name: str) -> list[tuple[str, int]]:
         try:
-            self.logger.debug(f"Asking DB for top granters to name {recipient_name!r}")
+            self.logger.debug(f"Asking DB for top granters to {recipient_name!r}")
             results: list = self.db_mgr.execute_statement(f"""
                                                SELECT e_granter.name as top_granter_name,
                                                       COUNT(*) as times_granted
@@ -64,12 +64,12 @@ class KarmaMgr:
                 top_granters.append((granter_name, int(times_granted)))
             return top_granters
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get biggest granters to name {recipient_name!r}: {e}")
+            self.logger.error(f"Couldn't get biggest granters to {recipient_name!r}: {e}")
             raise e
 
     def get_top_recipients(self, granter_name: str) -> list[tuple[str, int]]:
         try:
-            self.logger.debug(f"Asking DB for top recipients from name {granter_name!r}")
+            self.logger.debug(f"Asking DB for top recipients from {granter_name!r}")
             results: list = self.db_mgr.execute_statement(f"""
                                          SELECT e_recipient.name as top_recpient_name,
                                                 COUNT(*) as times_received
@@ -88,7 +88,7 @@ class KarmaMgr:
                 top_recipients.append((recipient_name, int(times_granted)))
             return top_recipients
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get top recipients from name {granter_name!r}: {e}")
+            self.logger.error(f"Couldn't get top recipients from {granter_name!r}: {e}")
             raise e
 
     def grant_karma(self,
@@ -97,7 +97,7 @@ class KarmaMgr:
                     amount: int) -> None:
         if self.entity_mgr.get_status(recipient_name) == Status.OPTED_OUT:
             self.logger.info(
-                f"Can't grant {amount!r} karma from name {granter_name!r} to opted-out name {recipient_name!r}")
+                f"Can't grant {amount!r} karma from {granter_name!r} to opted-out {recipient_name!r}")
             raise OptedOutEntityError
 
         try:
@@ -115,8 +115,8 @@ class KarmaMgr:
                                               SET karma = karma + ?
                                               WHERE name = ?;""",
                                           (amount, recipient_name))
-            self.logger.info(f"Name {granter_name!r} granted {amount!r} karma to name {recipient_name!r}")
+            self.logger.info(f"{granter_name!r} granted {amount!r} karma to {recipient_name!r}")
         except sqlite3.Error as e:
             self.logger.error(
-                f"Couldn't grant {amount!r} karma from name {granter_name!r} to name {recipient_name!r}: {e}")
+                f"Couldn't grant {amount!r} karma from {granter_name!r} to {recipient_name!r}: {e}")
             raise e

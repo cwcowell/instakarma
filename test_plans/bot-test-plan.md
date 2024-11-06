@@ -4,7 +4,7 @@
 Given there is no DB
 When instabase-bot starts
 Then it creates an empty DB
-
+PASS
 
 ## karma to person
 
@@ -16,6 +16,7 @@ Then adds row to 'grants' table
 And updates @bob in 'entities' table
 And logs grant
 And messages Slack
+PASS
 
 Given @alice is not in DB
 And @bob is in DB
@@ -25,6 +26,7 @@ And adds @alice to 'entities' table
 And updates @bob in 'entities' table
 And logs grant
 And message to Slack
+PASS
 
 Given @alice is in DB
 And @bob is not in DB
@@ -33,6 +35,7 @@ Then adds row to 'grants' table
 And adds @bob to 'entities' table
 And logs grant
 And messages Slack
+PASS
 
 Given @alice is not in DB
 And @bob is not in DB
@@ -42,7 +45,7 @@ And adds @alice to 'entities' table
 And adds @bob to 'entities' table
 And logs grant
 And messages Slack
-
+PASS
 
 ## karma to object
 
@@ -53,6 +56,7 @@ Then adds row to 'grants' table
 And updates foo in 'entities' table
 And logs grant
 And messages Slack
+PASS
 
 Given @alice is not in DB
 And foo is in DB
@@ -62,6 +66,7 @@ And adds @alice to 'entities' table
 And updates foo in 'entities' table
 And logs grant
 And messages Slack
+PASS
 
 Given @alice is not in DB
 And foo is not in DB
@@ -71,17 +76,37 @@ And adds @alice to 'entities' table
 And adds foo to 'entities' table
 And logs grant
 And messages Slack
+PASS
 
+
+## karma to invalid user
+
+Given @alice is in DB
+And @bar is an invalid user
+When @alice `@bar++`
+Then logs attempt
+And messages Slack
+PASS
+
+Given @alice is not in DB
+And @bar is an invalid user
+When @alice `@bar++`
+Then logs attempt
+And messages Slack
+PASS
 
 ## negative karma
 
 When `foo--`
 Then foo loses 1 karma
+And grant is logged
+And messages Slack
+PASS
 
 When `@bob--`
 Then messages Slack saying not allowed
 And attempt is logged
-
+PASS
 
 # granter is opted out
 

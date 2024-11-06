@@ -56,7 +56,7 @@ class GrantMgr:
             return
 
         if action == Action.DECREMENT:
-            self.logger.info(f"{granter_name!r} tried to reduce karma of a person with name {recipient_name!r}")
+            self.logger.info(f"{granter_name!r} tried to reduce karma of a person {recipient_name!r}")
             say(':x: Sorry, you can only remove karma from things (like python), not people (like @elvis)')
             return
 
@@ -69,7 +69,7 @@ class GrantMgr:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
         except OptedOutEntityError:
             self.logger.info(f"{granter_name!r} tried to grant karma to opted-out entity {recipient_name!r}'")
-            say(f":x: Sorry, {recipient_name} isn't participating in Instakarma")
+            say(f":x: Sorry, {recipient_name} isn't participating in instakarma")
             return
         recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
         say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
@@ -90,8 +90,8 @@ class GrantMgr:
         action: Action = recipient[1]
         amount, _, _ = self.message_parser.get_amount_verb_emoji(action)
         self.logger.info(f"{granter_name!r} tried to grant {amount!r} karma "
-                         f"to unrecognized name {recipient_name!r}")
-        say(f":x: Sorry, I don't recognize the user {recipient_name}")
+                         f"to invalid person {recipient_name!r}")
+        say(f":x: Sorry, user {recipient_name} isn't registered in Slack")
 
     def grant_to_object(self,
                         say,

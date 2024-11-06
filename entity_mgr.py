@@ -21,7 +21,7 @@ class EntityMgr:
 
     def get_status(self, name: str) -> Status:
         try:
-            self.logger.debug(f"Asking DB for status of name {name!r}")
+            self.logger.debug(f"Asking DB for status of {name!r}")
             results: list = self.db_mgr.execute_statement("""
                                                                SELECT opted_in
                                                                FROM entities
@@ -30,13 +30,13 @@ class EntityMgr:
             result: list = results[0]
             if result:
                 status: Status = Status.OPTED_IN if result[0] else Status.OPTED_OUT
-                self.logger.debug(f"DB says status of name {name!r} is {status!r}")
+                self.logger.debug(f"DB says status of {name!r} is {status!r}")
                 return status
             else:
-                self.logger.info(f"Name {name!r} doesn't exist in 'entities' table")
+                self.logger.info(f"{name!r} doesn't exist in 'entities' table")
                 raise ValueError
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get status for name {name!r}")
+            self.logger.error(f"Couldn't get status for {name!r}")
             raise e
 
     def name_exists_in_db(self, name: str) -> bool:
@@ -51,10 +51,10 @@ class EntityMgr:
                                           WHERE name = ?;""",
                                           (name, ))
             exists: bool = len(results) > 0
-            self.logger.debug(f"User with name {name!r} exists in 'entities' table? {str(exists)}")
+            self.logger.debug(f"{name!r} exists in 'entities' table? {str(exists)}")
             return exists
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't check if user with name {name!r} exists in entities table.")
+            self.logger.error(f"Couldn't check if user {name!r} exists in 'entities' table.")
             raise e
 
     def set_entity_status(self, name: str, status: Status) -> None:
@@ -148,7 +148,7 @@ class EntityMgr:
 
         :raises sqlite3.Error: If something goes wrong with the DB
         """
-        self.logger.debug(f"Adding entity with name {name!r} to table.")
+        self.logger.debug(f"Adding entity {name!r} to table.")
         try:
             self.db_mgr.execute_statement("""
                                               INSERT OR IGNORE INTO entities (name, user_id)
