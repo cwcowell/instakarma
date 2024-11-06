@@ -78,9 +78,9 @@ class GrantMgr:
         say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
 
     def grant_to_invalid_user(self,
-                              say,
-                              granter_user_id,
-                              recipient) -> None:
+                              say: callable,
+                              granter_user_id: str,
+                              recipient: tuple[str, Action]) -> None:
         """ Respond to Slack channel saying it can't grant karma to a user who Slack doesn't recognize. """
         try:
             granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
