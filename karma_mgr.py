@@ -1,7 +1,7 @@
 from constants import NUM_TOP_GRANTERS, NUM_TOP_RECIPIENTS
 from db_mgr import DbMgr
 from entity_mgr import EntityMgr
-from exceptions import OptedOutEntityError
+from exceptions import OptedOutRecipientError, OptedOutGranterError
 from enums import Status
 
 from logging import Logger
@@ -97,8 +97,13 @@ class KarmaMgr:
                     amount: int) -> None:
         if self.entity_mgr.get_status(recipient_name) == Status.OPTED_OUT:
             self.logger.info(
-                f"Can't grant {amount!r} karma from {granter_name!r} to opted-out {recipient_name!r}")
-            raise OptedOutEntityError
+                f"{granter_name!r} can't grant {amount!r} karma to opted-out {recipient_name!r}")
+            raise OptedOutRecipientError
+
+        if self.entity_mgr.get_status(granter_name) == Status.OPTED_OUT:
+            self.logger.info(
+                f"Opted-out {granter_name!r} can't grant {amount!r} karma to {recipient_name!r}")
+            raise OptedOutGranterError
 
         try:
             # make an entry in the 'grants' table using subqueries to look up 'entity_id' for granter and recipient

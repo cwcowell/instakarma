@@ -2,7 +2,7 @@ from constants import GRANTS_EXPORT_FILE
 from db_mgr import DbMgr
 from enums import Action
 from entity_mgr import EntityMgr
-from exceptions import OptedOutEntityError
+from exceptions import OptedOutRecipientError, OptedOutGranterError
 from karma_mgr import KarmaMgr
 from message_parser import MessageParser
 
@@ -62,14 +62,17 @@ class GrantMgr:
 
         if recipient_name == granter_name:
             self.logger.info(f"{granter_name!r} tried to self-grant {amount} karma")
-            say(f":x: Sorry, you can't grant positive or negative karma to yourself")
+            say(f":x: Sorry, you can't grant karma to yourself")
             return
 
         try:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
-        except OptedOutEntityError:
-            self.logger.info(f"{granter_name!r} tried to grant karma to opted-out entity {recipient_name!r}'")
-            say(f":x: Sorry, {recipient_name} isn't participating in instakarma")
+        except OptedOutRecipientError:
+            say(f":x: Sorry, {recipient_name} has opted out of instakarma")
+            return
+        except OptedOutGranterError:
+            say(f":x: Sorry, you can't grant karma because you've opted out of instakarma\n"
+                "Opt in with */instakarma opt-in*")
             return
         recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
         say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
@@ -111,9 +114,11 @@ class GrantMgr:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
             recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
             say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma")
-        except OptedOutEntityError:
-            self.logger.info(f"{granter_name!r} can't grant karma to opted-out entity {recipient_name!r}")
-            say(f":x: Sorry, {recipient_name} is not participating in Instakarma")
+        except OptedOutRecipientError:
+            say(f":x: Sorry, {recipient_name} has opted out of instakarma")
+        except OptedOutGranterError:
+            say(f":x: Sorry, you can't grant karma because you've opted out of instakarma\n"
+                "Opt in with */instakarma opt-in*")
 
     def export_grant_history(self) -> None:
         """ Dump a history of all grants that are in the DB into a local CSV file.

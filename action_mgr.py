@@ -38,12 +38,14 @@ class ActionMgr:
                                                        SELECT name, karma 
                                                        FROM entities 
                                                        WHERE user_id IS NULL 
-                                                       ORDER BY karma DESC;""",
+                                                       ORDER BY karma DESC, name ASC;""",
                                                           ())
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get karma of all objects: {e}")
             raise e
         leader_text: str = '\n'.join(f"• {karma} {name}" for name, karma in results)
+        if not leader_text:
+            leader_text = "No objects have karma"
         respond(text="show karma of objects",
                 blocks=response_blocks.leaderboard(leader_text),
                 response_type="ephemeral")

@@ -4,7 +4,7 @@ from enums import Status
 
 def change_status(new_status: Status) -> list[dict]:
     """ Generate Slack text blocks with info about a user's opted-in/opted-out status. """
-    text: str = f"You're now {new_status.value} in instakarma\n"
+    text: str = f"You're now {new_status.value}\n"
     if new_status == Status.OPTED_OUT:
         text += "Opt in with */instakarma opt-in*"
     else:

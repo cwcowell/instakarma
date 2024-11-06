@@ -114,11 +114,13 @@ Given @alice is opted out
 When @alice `@bob++`
 Then logs attempt
 And messages Slack
+PASS
 
 Given @alice is opted out
 When @alice `foo++`
 Then logs attempt
 And messages Slack
+PASS
 
 
 # recipient is opted out
@@ -127,24 +129,26 @@ Given @bob is opted out
 When @alice `@bob++`
 Then logs attempt
 And messages Slack
+PASS
 
 Given foo is opted out
 When @alice `foo++`
 Then logs attempt
 And messages Slack
-
+PASS
 
 
 ## self-karma
 When @alice `@alice++`
 Then logs attempt
 And messages Slack
+PASS
 
 Given @alice is opted-out
 When @alice `@alice++`
 Then logs attempt
 And messages Slack
-
+PASS
 
 ## /instakarma opt-out/opt-in
 
@@ -153,23 +157,26 @@ When @bob `/instakarma opt-out`
 Then logs status change
 And updates @bob in 'entities' table
 And messages Slack
+PASS
 
 Given @bob is opted in
 When @bob `/instakarma opt-in`
 Then logs status change attempt
 And messages Slack
+PASS
 
 Given @bob is opted out
 When @bob `/instakarma opt-in`
 Then logs status change
 And updates @bob in 'entities' table
 And messages Slack
+PASS
 
 Given @bob is opted out
 When @bob `/instakarma opt-out`
 Then logs status change attempt
 And messages Slack
-
+PASS
 
 ## /instakarma leaderboard
 
@@ -179,6 +186,7 @@ When @alice `/instakarma leaderboard`
 Then logs leaderboard request
 And messages Slack with all objects and karma in descending karma order
 And message excludes any people
+PASS
 
 Given there are lots of entities with positive and negative karma
 And @alice is opted-out
@@ -186,19 +194,21 @@ When @alice `/instakarma leaderboard`
 Then logs leaderboard request
 And messages Slack with all objects and karma in descending karma order
 And message excludes people
-
-Given there are no entities in DB
-When @alice `/instakarma leaderboard`
-Then logs leaderboard request
-And messages Slack with headers but no values
-And message excludes people
+PASS
 
 Given there are entities with the same karma
 When @alice `/instakarma leaderboard`
 Then logs leaderboard request
 And messages Slack with all objects and karma in descending karma order
 And tied entries are alphabetical order
+PASS
 
+Given there are no entities in DB
+When @alice `/instakarma leaderboard`
+Then logs leaderboard request
+And messages Slack with header but no values
+And message excludes people
+PASS
 
 ## /instakarma my-stats
 
@@ -225,10 +235,12 @@ And message includes opt-in instructions
 
 When @alice `/instakarma help`
 Then Bot displays all available commands
+PASS
 
 Given @alice is opted-out
 When @alice `/instakarma help`
 Then Bot displays all available commands
+PASS
 
 
 ## Edge Cases
