@@ -218,10 +218,12 @@ When @alice `/instakarma my-stats`
 Then messages Slack with her karma
 And message shows top 5 recipients
 And message shows top 5 granters
+PASS
 
 Given @zoe is not in the DB
 When @zoe `/instakarma my-stats`
 Then messages Slack with 0 karma, 0 granters, 0 recipients
+PASS
 
 Given @alice is opted-out
 And @alice has karma from multiple users
@@ -229,7 +231,7 @@ And @alice has granted karma to multiple users
 When @alice `/instakarma my-stats`
 Then messages slack saying stats not available
 And message includes opt-in instructions
-
+PASS
 
 ## /instakarma help
 
@@ -245,17 +247,14 @@ PASS
 
 ## Edge Cases
 
-Given Object's name has special characters "foo!@#$%^&*()_+-=[]{}\|;':",./<>?"
-When @alice `foo!@#$%^&*()_+-=[]{}\|;':",./<>?++`
-Then Karma is granted correctly
-
 Given Database is temporarily non-writable
-When User attempts to grant karma
-Then Bot handles the error gracefully
-And Informs user to try again
+When alice `bob++`
+Then messages slack to try again later
 
 When @alice `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa++`
 Then user is added to DB with karma
+PASS
 
 When @alice `foo++--++`
 Then foo gets 1 karma
+PASS

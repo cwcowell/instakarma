@@ -54,7 +54,7 @@ class KarmaMgr:
                                                JOIN entities e_recipient ON g.recipient_id = e_recipient.entity_id
                                                WHERE e_recipient.name = ?
                                                GROUP BY g.granter_id
-                                               ORDER BY times_granted DESC
+                                               ORDER BY times_granted DESC, top_granter_name ASC
                                                LIMIT {NUM_TOP_GRANTERS};""",
                                                           (recipient_name,))
             top_granters: list[tuple[str, int]] = []
@@ -71,14 +71,14 @@ class KarmaMgr:
         try:
             self.logger.debug(f"Asking DB for top recipients from {granter_name!r}")
             results: list = self.db_mgr.execute_statement(f"""
-                                         SELECT e_recipient.name as top_recpient_name,
+                                         SELECT e_recipient.name as top_recipient_name,
                                                 COUNT(*) as times_received
                                          FROM grants g
                                          JOIN entities e_granter ON g.granter_id = e_granter.entity_id
                                          JOIN entities e_recipient ON g.recipient_id = e_recipient.entity_id
                                          WHERE e_granter.name = ?
                                          GROUP BY g.recipient_id
-                                         ORDER BY times_received DESC
+                                         ORDER BY times_received DESC, top_recipient_name ASC
                                          LIMIT {NUM_TOP_RECIPIENTS};""",
                                                            (granter_name,))
             top_recipients: list[tuple[str, int]] = []
