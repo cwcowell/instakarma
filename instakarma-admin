@@ -17,7 +17,7 @@ import sys
 
 
 def init_db() -> None:
-    """ initialize the DB every time the admin tools, to simplify error handling. """
+    """ Initialize the DB with every restart to simplify error handling. """
     result: str = ''
     try:
         result: str = db_manager.init_db()

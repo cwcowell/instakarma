@@ -43,14 +43,14 @@ class GrantMgr:
 
         try:
             granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
-        except SlackApiError as sae:
+        except SlackApiError:
             self.logger.error("Couldn't grant karma because couldn't get name for "
                               f"granter user_id {granter_user_id!r}")
             return
 
         try:
             recipient_name: str = self.entity_mgr.get_name_from_user_id(recipient_user_id)
-        except SlackApiError as sae:
+        except SlackApiError:
             self.logger.error("Couldn't grant karma because couldn't get name for "
                               f"recipient user_id {recipient_user_id!r}")
             return
@@ -81,10 +81,10 @@ class GrantMgr:
                               say,
                               granter_user_id,
                               recipient) -> None:
-        """ Respond to Slack channel saying it can't grant karma to a user who isn't recognized by Slack. """
+        """ Respond to Slack channel saying it can't grant karma to a user who Slack doesn't recognize. """
         try:
             granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
-        except SlackApiError as sae:
+        except SlackApiError:
             self.logger.error("Couldn't grant karma because couldn't get name for "
                               f"granter user_id {granter_user_id!r}")
             return

@@ -40,7 +40,7 @@ class EntityMgr:
             raise e
 
     def name_exists_in_db(self, name: str) -> bool:
-        """ See if an entity with a particular name exists in the entities table.
+        """ See if an entity with a particular name exists in the 'entities' table.
 
         :returns: Whether the name exists in the DB
         """
@@ -72,7 +72,7 @@ class EntityMgr:
     def get_name_from_user_id(self, user_id: str) -> str:
         """ Convert an entity's user_id to its name.
 
-        Consult the DB and/or Slack API and adds DB entries as needed.
+        Consult the DB and/or Slack API and add DB entries as needed.
         :returns: The name that corresponds to the provided user_id
         """
 

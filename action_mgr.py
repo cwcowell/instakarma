@@ -35,10 +35,10 @@ class ActionMgr:
         """ Respond to Slack with a list of all non-user entities and their karma, in descending karma order. """
         try:
             results: list = self.db_mgr.execute_statement("""
-                                                       SELECT name, karma 
-                                                       FROM entities 
-                                                       WHERE user_id IS NULL 
-                                                       ORDER BY karma DESC, name ASC;""",
+                                                          SELECT name, karma 
+                                                          FROM entities 
+                                                          WHERE user_id IS NULL 
+                                                          ORDER BY karma DESC, name;""",
                                                           ())
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get karma of all objects: {e}")
