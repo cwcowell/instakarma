@@ -57,17 +57,17 @@ class EntityMgr:
             self.logger.error(f"Couldn't check if user {name!r} exists in 'entities' table.")
             raise e
 
-    def set_entity_status(self, name: str, status: Status) -> None:
+    def set_status(self, name: str, new_status: Status) -> None:
         """ Set an entity's opted-in/opted-out status. """
         try:
             self.db_mgr.execute_statement(f"""
                                               UPDATE entities
-                                              SET opted_in = {'TRUE' if status == Status.OPTED_IN else 'FALSE'}
+                                              SET opted_in = {'TRUE' if new_status == Status.OPTED_IN else 'FALSE'}
                                               WHERE name = ?;""",
                                           (name,))
-            self.logger.info(f"Entity {name!r} now has status {status.value!r}")
+            self.logger.info(f"Entity {name!r} now has status {new_status.value!r}")
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't set user {name!r} status to {status.value!r}: {e}")
+            self.logger.error(f"Couldn't set user {name!r} status to {new_status.value!r}: {e}")
 
     def get_name_from_user_id(self, user_id: str) -> str:
         """ Convert an entity's user_id to its name.
@@ -97,7 +97,7 @@ class EntityMgr:
         # RETURN `name`
         try:
             results: list = self.db_mgr.execute_statement("""
-                                                               SELECT * 
+                                                               SELECT *
                                                                FROM entities
                                                                WHERE user_id = ?;""",
                                                           (user_id,))
@@ -134,7 +134,7 @@ class EntityMgr:
                           f"with that user_id and a name pulled from Slack API")
         try:
             self.db_mgr.execute_statement("""
-                                              INSERT INTO entities (name, user_id) 
+                                              INSERT INTO entities (name, user_id)
                                               VALUES (?, ?);""",
                                           (name, user_id))
         except sqlite3.Error as e:
@@ -159,7 +159,7 @@ class EntityMgr:
             raise e
 
     def list_entities(self, attribute: Literal['karma', 'name']) -> list[tuple[str, int]]:
-        """List all entities in the DB.
+        """List all entities in the DB either alphabetically or by descending karma.
 
         :returns: List of tuples, where each tuple contains an entity name and user_id
         :raises sqlite3.Error: If something goes wrong with the DB
@@ -173,8 +173,26 @@ class EntityMgr:
                                                            ())
         except sqlite3.Error as e:
             self.logger.error(f"Error when retrieving list of entities: {e}")
-            raise e
+            raise
         entities: list[tuple[str, int]] = []
         for name, karma in results:
             entities.append((name, karma))
+        return entities
+
+    def list_opted_out_entities(self) -> list[str]:
+        """ List all entities in the DB with 'opted-out' status.
+
+        :raises sqlite3.error: If something goes wrong with the DB
+        """
+        try:
+            results: list = self.db_mgr.execute_statement(f"""
+                                                                   SELECT name
+                                                                   FROM entities
+                                                                   WHERE opted_in = FALSE
+                                                                   ORDER BY name;""",
+                                                                   ())
+        except sqlite3.Error as e:
+            self.logger.error(f"Error when retrieving list of opted-out entities: {e}")
+            raise
+        entities: list[str] = [result[0] for result in results]
         return entities

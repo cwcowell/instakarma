@@ -43,7 +43,7 @@ class MessageParser:
         """
         matches: list[tuple[str, Action]] = self.OBJECT_RECIPIENT_REGEX.findall(text)
         object_recipients = [(user_id.lower(), Action.INCREMENT if action == Action.INCREMENT.value else Action.DECREMENT)
-                              for user_id, action in matches]
+                             for user_id, action in matches]
         self.logger.debug(f"Detected object recipients: {object_recipients}")
         return object_recipients
 

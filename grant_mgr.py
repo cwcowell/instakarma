@@ -120,11 +120,13 @@ class GrantMgr:
             say(f":x: Sorry, you can't grant karma because you've opted out of instakarma\n"
                 "Opt in with */instakarma opt-in*")
 
-    def export_grant_history(self) -> None:
+    def export_grants(self) -> None:
         """ Dump a history of all grants that are in the DB into a local CSV file.
 
-        Exit rather than raise an error if anything goes wrong, since this is only called from instabase-admin.
-        Print rather than log messages for the same reason.
+        Since this is designed to be called from `instakarma-admin` only:
+
+        * Exit rather than raise an error if anything goes wrong
+        * Print messages instead of logging them
         """
         try:
             results: list = self.db_mgr.execute_statement(
@@ -140,10 +142,13 @@ class GrantMgr:
                 ())
 
         except sqlite3.Error as e:
-            sys.exit(f"Error when retrieving all grants: {e}")
+            sys.exit(f"Error: {e}")
 
-        with open(GRANTS_EXPORT_FILE, 'w') as file:
-            file.write('TIMESTAMP,GRANTER,AMOUNT,RECIPIENT\n')
-            for recipient_name, granter_name, delta, timestamp in results:
-                file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
-        print(f"All grants exported as CSV to {GRANTS_EXPORT_FILE}")
+        try:
+            with open(GRANTS_EXPORT_FILE, 'w') as file:
+                file.write('TIMESTAMP,GRANTER,AMOUNT,RECIPIENT\n')
+                for recipient_name, granter_name, delta, timestamp in results:
+                    file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
+        except Exception as e:
+            sys.exit(f"Error writing to {GRANTS_EXPORT_FILE!r}: {e}")
+        print(f"all grants exported as CSV to {GRANTS_EXPORT_FILE}")

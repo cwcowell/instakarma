@@ -22,7 +22,7 @@ class DbMgr:
             return sqlite3.connect(DB_FILE)
         except sqlite3.Error as e:
             self.logger.critical(f"Couldn't connect to database file {DB_FILE!r}: {e}")
-            raise e
+            raise
 
     def execute_statement(self, statement: str, parms: tuple) -> list[tuple]:
         """ Open a DB connection, execute an SQL statement, close the connection.
@@ -40,7 +40,7 @@ class DbMgr:
         except sqlite3.Error as e:
             self.logger.error(f"Rolling back. query: {statement!r} | parms: {parms!r} | error: {e}")
             conn.rollback()
-            raise e
+            raise
         finally:
             self.logger.debug(f"Closing DB connection")
             conn.close()

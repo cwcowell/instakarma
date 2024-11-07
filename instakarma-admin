@@ -26,6 +26,14 @@ def init_db() -> None:
     if not result.startswith('DB already exists'):
         print(result)
 
+def set_status(name: str, new_status: Status) -> None:
+    try:
+        if not entity_manager.name_exists_in_db(name):
+            sys.exit(f"No user with name '{name}' in the DB. No changes made.")
+        entity_manager.set_status(name, new_status)
+    except sqlite3.Error as e:
+        sys.exit(f"Error: {e}")
+    print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
 
 def main() -> None:
     parser: ArgumentParser = argparse.ArgumentParser(
@@ -53,6 +61,8 @@ def main() -> None:
 
     subparsers.add_parser('list-by-name', help="List all entities in alphabetical order")
 
+    subparsers.add_parser('list-opted-out', help="List all opted-out entities")
+
     opt_in_parser = subparsers.add_parser('opt-in',
                                           help="Allow a user like @bob to give and receive karma, "
                                                "or an object like python to receive karma")
@@ -69,40 +79,49 @@ def main() -> None:
 
     if args.command == 'add-entity':
         name: str = args.name
-        if entity_manager.name_exists_in_db(name):
-            sys.exit(f"Entity with name '{name}' already exists in the DB. No changes made.")
-        entity_manager.add_entity(name, None)
+        try:
+            if entity_manager.name_exists_in_db(name):
+                sys.exit(f"Entity with name '{name}' already exists in the DB. No changes made.")
+            entity_manager.add_entity(name, None)
+        except sqlite3.Error as e:
+            sys.exit(f"Error: {e}")
         print(f"Added entity {name}")
 
     elif args.command == 'backup-db':
         db_manager.backup_db()
 
     elif args.command == 'export-grants':
-        grant_manager.export_grant_history()
+        grant_manager.export_grants()
 
     elif args.command == 'list-by-karma':
-        entities = entity_manager.list_entities('karma')
+        try:
+            entities = entity_manager.list_entities('karma')
+        except sqlite3.Error as e:
+            sys.exit(f"Error: {e}")
         for name, karma in entities:
             print(f"{karma},{name}")
 
     elif args.command == 'list-by-name':
-        entities = entity_manager.list_entities('name')
+        try:
+            entities = entity_manager.list_entities('name')
+        except sqlite3.Error as e:
+            sys.exit(f"Error: {e}")
         for name, karma in entities:
             print(f"{name},{karma}")
 
+    elif args.command == 'list-opted-out':
+        try:
+            entities = entity_manager.list_opted_out_entities()
+        except sqlite3.Error as e:
+            sys.exit(f"Error: {e}")
+        for name in entities:
+            print(name)
+
     elif args.command == 'opt-in':
-        name: str = args.name
-        if not entity_manager.name_exists_in_db(name):
-            sys.exit(f"No user with name '{name}' in the DB. No changes made.")
-        entity_manager.set_entity_status(name, Status.OPTED_IN)
-        print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
+        set_status(args.name, Status.OPTED_IN)
 
     elif args.command == 'opt-out':
-        name: str = args.name
-        if not entity_manager.name_exists_in_db(name):
-            sys.exit(f"No user with name '{name}' in the DB. No changes made.")
-        entity_manager.set_entity_status(name, Status.OPTED_OUT)
-        print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
+        set_status(args.name, Status.OPTED_OUT)
 
 
 if __name__ == '__main__':
