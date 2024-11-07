@@ -1,7 +1,14 @@
 {
-  "text1": "foo {name}",
-  "text2": "{name} bar",
+  "instakarma-admin": {
+    "status": {
+      "add_entity": "added entity {name!r} to the DB"
+    }
+  },
   "error": {
-    "general": "This is text for a general error: {e}"
+    "general": "An error occurred: {e}",
+    "sqlite3": {
+      "general": "SQLite3 error: {e}"
+    },
+    "undefined_string": "<STRING FOR {undefined_key_path!r} UNDEFINED>"
   }
 }

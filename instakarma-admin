@@ -8,7 +8,7 @@ from grant_mgr import GrantMgr
 from karma_mgr import KarmaMgr
 from log_mgr import LogMgr
 from message_parser import MessageParser
-from strings_mgr import StringsMgr
+from string_mgr import StringMgr
 
 from argparse import ArgumentParser
 import argparse
@@ -86,8 +86,9 @@ def main() -> None:
                     sys.exit(f"entity with name {name!r} already exists in the DB, so no changes were made")
                 entity_manager.add_entity(name, None)
             except sqlite3.Error as e:
-                sys.exit(f"error: {e}")
-            print(f"added entity {name!r} to the DB")
+                sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+            # print(f"added entity {name!r} to the DB")
+            print(StringMgr.get_string("instakarma-admin.status.add_entity", name=name))
 
         case 'backup-db':
             db_manager.backup_db()
@@ -99,7 +100,7 @@ def main() -> None:
             try:
                 entities = entity_manager.list_entities('karma')
             except sqlite3.Error as e:
-                sys.exit(f"error: {e}")
+                sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
             for name, karma in entities:
                 print(f"{karma},{name}")
 
@@ -107,7 +108,7 @@ def main() -> None:
             try:
                 entities = entity_manager.list_entities('name')
             except sqlite3.Error as e:
-                sys.exit(f"error: {e}")
+                sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
             for name, karma in entities:
                 print(f"{name},{karma}")
 
@@ -115,8 +116,7 @@ def main() -> None:
             try:
                 entities = entity_manager.list_opted_out_entities()
             except sqlite3.Error as e:
-                # sys.exit(f"error: {e}")
-                sys.exit(StringsMgr.get_string('error.generic', error=e))
+                sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
             for name in entities:
                 print(name)
 
@@ -138,10 +138,6 @@ if __name__ == '__main__':
     karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
     grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
-
-    print(StringsMgr.get_string('text1', name='Zoe'))
-    print(StringsMgr.get_string('error.general', e='Zoe'))
-    print(StringsMgr.get_string('errors.general', e='Zoe'))
 
     init_db()
     main()

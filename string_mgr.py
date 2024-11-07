@@ -4,7 +4,7 @@ from string import Template
 from typing import Final
 
 
-class StringsMgr:
+class StringMgr:
     _STRINGS_FILE: Final[str] = 'strings.json'
     _PLACEHOLDER: Final[str] = 'PLACEHOLDER_UI_STRING'  # return this if the key isn't in the map
 
@@ -29,11 +29,11 @@ class StringsMgr:
             cls._load_map()
 
         template = cls._strings_map
-
         try:
             for key in key_path.split('.'):
                 template = template[key]
             string: str = template.format(**kwargs)
             return string
         except:
-            return f"<STRING FOR {key_path!r} UNDEFINED>"
+            # return f"<STRING FOR {key_path!r} UNDEFINED>"
+            return StringMgr.get_string("error.undefined_string", undefined_key_path=key_path)
