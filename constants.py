@@ -1,9 +1,9 @@
 from typing import Final
 
 # db
-DB_FILE: Final[str] = 'db/instakarma.db'
-DB_FILE_BACKUP: Final[str] = f'{DB_FILE}.backup'
-DB_DDL_FILE: Final[str] = 'db/instakarma_ddl.sql'
+DB_FILE_NAME: Final[str] = 'db/instakarma.db'
+DB_BACKUP_FILE_NAME: Final[str] = f'{DB_FILE_NAME}.backup'
+DB_DDL_FILE_NAME: Final[str] = 'db/instakarma_ddl.sql'
 
 # instakarma-admin
 GRANTS_EXPORT_FILE: Final[str] = 'grants.csv'

@@ -51,10 +51,11 @@ class EntityMgr:
                                           WHERE name = ?;""",
                                           (name, ))
             exists: bool = len(results) > 0
-            self.logger.debug(f"{name!r} exists in 'entities' table? {str(exists)}")
+            msg: str = f"{name!r} exists in 'entities' table" if exists else f"{name!r} doesn't exist in 'entities' table"
+            self.logger.debug(msg)
             return exists
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't check if user {name!r} exists in 'entities' table.")
+            self.logger.error(f"couldn't check if user {name!r} exists in 'entities' table")
             raise e
 
     def set_status(self, name: str, new_status: Status) -> None:

@@ -1,7 +1,8 @@
-from constants import DB_FILE, DB_DDL_FILE, DB_FILE_BACKUP
+from constants import DB_FILE_NAME, DB_DDL_FILE_NAME, DB_BACKUP_FILE_NAME
 from logging import Logger
 
 import os
+from pathlib import Path
 from sqlite3 import Connection, Cursor
 import sqlite3
 import sys
@@ -18,10 +19,10 @@ class DbMgr:
         :raises sqlite3.Error: If it can't connect to the DB
         """
         try:
-            self.logger.debug(f"Connecting to DB at {DB_FILE!r}")
-            return sqlite3.connect(DB_FILE)
+            self.logger.debug(f"Connecting to DB at {DB_FILE_NAME!r}")
+            return sqlite3.connect(DB_FILE_NAME)
         except sqlite3.Error as e:
-            self.logger.critical(f"Couldn't connect to database file {DB_FILE!r}: {e}")
+            self.logger.critical(f"Couldn't connect to database file {DB_FILE_NAME!r}: {e}")
             raise
 
     def execute_statement(self, statement: str, parms: tuple) -> list[tuple]:
@@ -51,23 +52,26 @@ class DbMgr:
         :returns: Message explaining what happened, so instakarma-admin can print it to the console
         :raises sqlite3.Error: If anything goes wrong with the DB
         """
-        if os.path.exists(DB_FILE):
-            msg: str = f"DB already exists at {DB_FILE!r}. No changes made."
+        db_path: Path = Path(DB_FILE_NAME)
+        db_ddl_path: Path = Path(DB_DDL_FILE_NAME)
+
+        if db_path.exists():
+            msg: str = f"DB already exists at {db_path.name!r}. No changes made."
             self.logger.info(msg)
             return msg
         with self.get_db_connection() as conn:
-            with open(DB_DDL_FILE) as ddl_file:
+            with open(db_ddl_path) as ddl_file:
                 ddl: str = ddl_file.read()
             try:
                 conn.executescript(ddl)
                 conn.commit()
-                msg: str = f"Created new DB at {DB_FILE!r} using DDL {DB_DDL_FILE!r}"
-                self.logger.info(msg)
-                return msg
             except sqlite3.Error as e:
                 msg: str = f"Couldn't create DB: {e}"
                 self.logger.critical(msg)
                 return msg
+            msg: str = f"Created new DB at {db_path.name!r} using DDL {db_ddl_path.name!r}"
+            self.logger.info(msg)
+            return msg
 
     def format_statement_for_log(self, statement: str) -> str:
         """ Format a statement as a single line for logging.
@@ -80,17 +84,20 @@ class DbMgr:
     def backup_db(self) -> None:
         """ Copy the DB file to another local file.
 
-        Since this should only be called from instakarma-admin, it exits on failure.
+        This should only be called from `instakarma-admin`, so it exits on failure instead of logging and raising.
         """
-        if not os.path.exists(DB_FILE):
-            sys.exit(f"Error: no DB file at {DB_FILE!r} to back up. No changes made.")
+        db_path: Path = Path(DB_FILE_NAME)
+        db_backup_path: Path = Path(DB_BACKUP_FILE_NAME)
 
-        if os.path.exists(DB_FILE_BACKUP):
-            sys.exit(f"Error: DB backup file already exists at {DB_FILE_BACKUP!r}. No changes made.")
+        if not db_path.exists():
+            sys.exit(f"Error: no DB file at {DB_FILE_NAME!r} to back up. No changes made.")
+
+        if db_backup_path.exists():
+            sys.exit(f"Error: DB backup file already exists at {DB_BACKUP_FILE_NAME!r}. No changes made.")
 
         try:
-            with sqlite3.connect(DB_FILE) as source, sqlite3.connect(DB_FILE_BACKUP) as destination:
+            with sqlite3.connect(DB_FILE_NAME) as source, sqlite3.connect(DB_BACKUP_FILE_NAME) as destination:
                 source.backup(destination)
         except sqlite3.Error as e:
             sys.exit(f"DB not backed up. Error while connecting to DB: {e}")
-        print(f"{DB_FILE!r} backed up to {DB_FILE_BACKUP!r}")
+        print(f"{DB_FILE_NAME!r} backed up to {DB_BACKUP_FILE_NAME!r}")

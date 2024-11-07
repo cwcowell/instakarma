@@ -22,18 +22,18 @@ def init_db() -> None:
     try:
         result: str = db_manager.init_db()
     except sqlite3.Error as e:
-        sys.exit(f"Error when initializing DB: {e}")
+        sys.exit(f"error when initializing DB: {e}")
     if not result.startswith('DB already exists'):
         print(result)
 
 def set_status(name: str, new_status: Status) -> None:
     try:
         if not entity_manager.name_exists_in_db(name):
-            sys.exit(f"No user with name '{name}' in the DB. No changes made.")
+            sys.exit(f"no user with name {name!r} in the DB, so no changes were made")
         entity_manager.set_status(name, new_status)
     except sqlite3.Error as e:
-        sys.exit(f"Error: {e}")
-    print(f"'{name}' now has '{entity_manager.get_status(name).value}' status")
+        sys.exit(f"error: {e}")
+    print(f"{name!r} now has {entity_manager.get_status(name).value!r} status")
 
 def main() -> None:
     parser: ArgumentParser = argparse.ArgumentParser(
@@ -77,51 +77,52 @@ def main() -> None:
 
     args: argparse.Namespace = parser.parse_args()
 
-    if args.command == 'add-entity':
-        name: str = args.name
-        try:
-            if entity_manager.name_exists_in_db(name):
-                sys.exit(f"Entity with name '{name}' already exists in the DB. No changes made.")
-            entity_manager.add_entity(name, None)
-        except sqlite3.Error as e:
-            sys.exit(f"Error: {e}")
-        print(f"Added entity {name}")
+    match args.command:
+        case 'add-entity':
+            name: str = args.name
+            try:
+                if entity_manager.name_exists_in_db(name):
+                    sys.exit(f"entity with name {name!r} already exists in the DB, so no changes were made")
+                entity_manager.add_entity(name, None)
+            except sqlite3.Error as e:
+                sys.exit(f"error: {e}")
+            print(f"added entity {name!r} to the DB")
 
-    elif args.command == 'backup-db':
-        db_manager.backup_db()
+        case 'backup-db':
+            db_manager.backup_db()
 
-    elif args.command == 'export-grants':
-        grant_manager.export_grants()
+        case 'export-grants':
+            grant_manager.export_grants()
 
-    elif args.command == 'list-by-karma':
-        try:
-            entities = entity_manager.list_entities('karma')
-        except sqlite3.Error as e:
-            sys.exit(f"Error: {e}")
-        for name, karma in entities:
-            print(f"{karma},{name}")
+        case 'list-by-karma':
+            try:
+                entities = entity_manager.list_entities('karma')
+            except sqlite3.Error as e:
+                sys.exit(f"error: {e}")
+            for name, karma in entities:
+                print(f"{karma},{name}")
 
-    elif args.command == 'list-by-name':
-        try:
-            entities = entity_manager.list_entities('name')
-        except sqlite3.Error as e:
-            sys.exit(f"Error: {e}")
-        for name, karma in entities:
-            print(f"{name},{karma}")
+        case 'list-by-name':
+            try:
+                entities = entity_manager.list_entities('name')
+            except sqlite3.Error as e:
+                sys.exit(f"error: {e}")
+            for name, karma in entities:
+                print(f"{name},{karma}")
 
-    elif args.command == 'list-opted-out':
-        try:
-            entities = entity_manager.list_opted_out_entities()
-        except sqlite3.Error as e:
-            sys.exit(f"Error: {e}")
-        for name in entities:
-            print(name)
+        case 'list-opted-out':
+            try:
+                entities = entity_manager.list_opted_out_entities()
+            except sqlite3.Error as e:
+                sys.exit(f"error: {e}")
+            for name in entities:
+                print(name)
 
-    elif args.command == 'opt-in':
-        set_status(args.name, Status.OPTED_IN)
+        case 'opt-in':
+            set_status(args.name, Status.OPTED_IN)
 
-    elif args.command == 'opt-out':
-        set_status(args.name, Status.OPTED_OUT)
+        case 'opt-out':
+            set_status(args.name, Status.OPTED_OUT)
 
 
 if __name__ == '__main__':
