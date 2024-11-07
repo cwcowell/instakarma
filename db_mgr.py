@@ -32,18 +32,18 @@ class DbMgr:
         :raises sqlite3.Error: If something goes wrong with the DB
         """
         log_friendly_statement: str = self.format_statement_for_log(statement)
-        self.logger.debug(f"Executing SQL statement: {log_friendly_statement!r} with parms: {parms}")
+        self.logger.debug(f"executing SQL statement: {log_friendly_statement!r} with parms: {parms}")
         conn: Connection = self.get_db_connection()
         try:
             cursor: Cursor = conn.execute(statement, parms)
             conn.commit()
             return cursor.fetchall()
         except sqlite3.Error as e:
-            self.logger.error(f"Rolling back. query: {statement!r} | parms: {parms!r} | error: {e}")
+            self.logger.error(f"rolling back after failed query: {statement!r} | parms: {parms!r} | error: {e}")
             conn.rollback()
             raise
         finally:
-            self.logger.debug(f"Closing DB connection")
+            self.logger.debug(f"closing DB connection")
             conn.close()
 
     def init_db(self) -> str:
@@ -56,7 +56,7 @@ class DbMgr:
         db_ddl_path: Path = Path(DB_DDL_FILE_NAME)
 
         if db_path.exists():
-            msg: str = f"DB already exists at {db_path.name!r}. No changes made."
+            msg: str = f"DB already exists at {db_path.name!r}, so no changes were made"
             self.logger.info(msg)
             return msg
         with self.get_db_connection() as conn:
@@ -66,10 +66,10 @@ class DbMgr:
                 conn.executescript(ddl)
                 conn.commit()
             except sqlite3.Error as e:
-                msg: str = f"Couldn't create DB: {e}"
+                msg: str = f"couldn't create DB: {e}"
                 self.logger.critical(msg)
                 return msg
-            msg: str = f"Created new DB at {db_path.name!r} using DDL {db_ddl_path.name!r}"
+            msg: str = f"created new DB at {db_path.name!r} using DDL {db_ddl_path.name!r}"
             self.logger.info(msg)
             return msg
 
@@ -90,14 +90,14 @@ class DbMgr:
         db_backup_path: Path = Path(DB_BACKUP_FILE_NAME)
 
         if not db_path.exists():
-            sys.exit(f"Error: no DB file at {DB_FILE_NAME!r} to back up. No changes made.")
+            sys.exit(f"error: no DB file at {DB_FILE_NAME!r} to back up")
 
         if db_backup_path.exists():
-            sys.exit(f"Error: DB backup file already exists at {DB_BACKUP_FILE_NAME!r}. No changes made.")
+            sys.exit(f"error: DB backup file already exists at {DB_BACKUP_FILE_NAME!r}, so no changes were made")
 
         try:
             with sqlite3.connect(DB_FILE_NAME) as source, sqlite3.connect(DB_BACKUP_FILE_NAME) as destination:
                 source.backup(destination)
         except sqlite3.Error as e:
-            sys.exit(f"DB not backed up. Error while connecting to DB: {e}")
+            sys.exit(f"DB not backed up due to error while connecting to DB: {e}")
         print(f"{DB_FILE_NAME!r} backed up to {DB_BACKUP_FILE_NAME!r}")

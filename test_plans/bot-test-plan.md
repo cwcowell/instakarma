@@ -249,9 +249,9 @@ PASS
 
 Given Database is temporarily non-writable
 When alice `bob++`
-Then messages slack to try again later
+Then messages Slack mentioning a DB error
 
-When @alice `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa++`
+When @alice `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa++`
 Then user is added to DB with karma
 PASS
 

@@ -41,11 +41,11 @@ class ActionMgr:
                                                           ORDER BY karma DESC, name;""",
                                                           ())
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get karma of all objects: {e}")
+            self.logger.error(f"couldn't get karma of all objects: {e}")
             raise e
         leader_text: str = '\n'.join(f"• {karma} {name}" for name, karma in results)
         if not leader_text:
-            leader_text = "No objects have karma"
+            leader_text = "no objects have karma"
         respond(text="show karma of objects",
                 blocks=response_blocks.leaderboard(leader_text),
                 response_type="ephemeral")
@@ -71,7 +71,7 @@ class ActionMgr:
 
         status: Status = entity_mgr.get_status(name)
         if status == Status.OPTED_OUT:
-            your_karma_text: str = f"You've opted out of instakarma, so no stats are available.\n" \
+            your_karma_text: str = f"You've opted out of instakarma, so you can't see any karma stats.\n" \
                                    "Opt in with */instakarma opt-in*"
             respond(text=f"instakarma stats for {name}",
                     blocks=response_blocks.my_stats(name, your_karma_text, '', ''),
@@ -81,19 +81,21 @@ class ActionMgr:
         your_karma_text: str = (f"*How much karma do I have?*\n"
                                 f"You have *{karma_mgr.get_karma(name)}* karma\n")
 
-        top_recipients_text: str = ''
         top_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name)
-        if top_recipients:
-            top_recipients_text = "*Who have I given the most karma to?*\n"
-        for recipient_name, amount in top_recipients:
-            top_recipients_text += f"• {str(amount)} to {recipient_name}\n"
+        top_recipients_text: str = "*Who have I given the most karma to?*\n"
+        if not top_recipients:
+            top_recipients_text += "You haven't given any karma.\n"
+        else:
+            for recipient_name, amount in top_recipients:
+                top_recipients_text += f"• {str(amount)} to {recipient_name}\n"
 
-        top_granters_text: str = ''
         top_granters: list[tuple[str, int]] = karma_mgr.get_top_granters(name)
-        if top_granters:
-            top_granters_text = "*Who has given me the most karma?*\n"
-        for granter_name, amount in top_granters:
-            top_granters_text += f"• {str(amount)} from {granter_name}\n"
+        top_granters_text = "*Who has given me the most karma?*\n"
+        if not top_granters:
+            top_granters_text += "You haven't received any karma.\n"
+        else:
+            for granter_name, amount in top_granters:
+                top_granters_text += f"• {str(amount)} from {granter_name}\n"
 
         respond(text=f"instakarma stats for {name}",
                 blocks=response_blocks.my_stats(name, your_karma_text, top_recipients_text, top_granters_text),

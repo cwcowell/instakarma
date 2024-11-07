@@ -39,12 +39,12 @@ class KarmaMgr:
                 self.logger.info(msg)
                 raise ValueError(msg)
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get karma for {name!r}: {e}")
+            self.logger.error(f"couldn't get karma for {name!r}: {e}")
             raise
 
     def get_top_granters(self, recipient_name: str) -> list[tuple[str, int]]:
         try:
-            self.logger.debug(f"Asking DB for top granters to {recipient_name!r}")
+            self.logger.debug(f"asking DB for top granters to {recipient_name!r}")
             results: list = self.db_mgr.execute_statement(f"""
                                                SELECT e_granter.name as top_granter_name,
                                                       COUNT(*) as times_granted
@@ -59,12 +59,12 @@ class KarmaMgr:
 
             return [(name, int(num_grants)) for name, num_grants in results]
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get biggest granters to {recipient_name!r}: {e}")
+            self.logger.error(f"couldn't get biggest granters to {recipient_name!r}: {e}")
             raise
 
     def get_top_recipients(self, granter_name: str) -> list[tuple[str, int]]:
         try:
-            self.logger.debug(f"Asking DB for top recipients from {granter_name!r}")
+            self.logger.debug(f"asking DB for top recipients from {granter_name!r}")
             results: list = self.db_mgr.execute_statement(f"""
                                          SELECT e_recipient.name as top_recipient_name,
                                                 COUNT(*) as times_received
@@ -78,7 +78,7 @@ class KarmaMgr:
                                                            (granter_name,))
             return [(name, int(num_grants)) for name, num_grants in results]
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get top recipients from {granter_name!r}: {e}")
+            self.logger.error(f"couldn't get top recipients from {granter_name!r}: {e}")
             raise
 
     def grant_karma(self,
@@ -92,7 +92,7 @@ class KarmaMgr:
 
         if self.entity_mgr.get_status(granter_name) == Status.OPTED_OUT:
             self.logger.info(
-                f"Opted-out {granter_name!r} can't grant {amount!r} karma to {recipient_name!r}")
+                f"opted-out {granter_name!r} can't grant {amount!r} karma to {recipient_name!r}")
             raise OptedOutGranterError
 
         try:
@@ -112,6 +112,5 @@ class KarmaMgr:
                                           (amount, recipient_name))
             self.logger.info(f"{granter_name!r} granted {amount!r} karma to {recipient_name!r}")
         except sqlite3.Error as e:
-            self.logger.error(
-                f"Couldn't grant {amount!r} karma from {granter_name!r} to {recipient_name!r}: {e}")
+            self.logger.error(f"couldn't grant {amount!r} karma from {granter_name!r} to {recipient_name!r}: {e}")
             raise

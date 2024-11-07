@@ -44,35 +44,35 @@ class GrantMgr:
         try:
             granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         except SlackApiError:
-            self.logger.error("Couldn't grant karma because couldn't get name for "
-                              f"granter user_id {granter_user_id!r}")
+            self.logger.error("couldn't grant karma because couldn't get name for "
+                              f"granter with user_id {granter_user_id!r}")
             return
 
         try:
             recipient_name: str = self.entity_mgr.get_name_from_user_id(recipient_user_id)
         except SlackApiError:
-            self.logger.error("Couldn't grant karma because couldn't get name for "
-                              f"recipient user_id {recipient_user_id!r}")
+            self.logger.error("couldn't grant karma because couldn't get name for "
+                              f"recipient with user_id {recipient_user_id!r}")
             return
 
         if action == Action.DECREMENT:
             self.logger.info(f"{granter_name!r} tried to reduce karma of a person {recipient_name!r}")
-            say(':x: Sorry, you can only remove karma from things (like python), not people (like @elvis)')
+            say(':x: sorry, you can only remove karma from things (like python), not people (like @elvis)')
             return
 
         if recipient_name == granter_name:
             self.logger.info(f"{granter_name!r} tried to self-grant {amount} karma")
-            say(f":x: Sorry, you can't grant karma to yourself")
+            say(f":x: sorry, you can't grant karma to yourself")
             return
 
         try:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
         except OptedOutRecipientError:
-            say(f":x: Sorry, {recipient_name} has opted out of instakarma")
+            say(f":x: sorry, {recipient_name} has opted out of instakarma")
             return
         except OptedOutGranterError:
-            say(f":x: Sorry, you can't grant karma because you've opted out of instakarma\n"
-                "Opt in with */instakarma opt-in*")
+            say(f":x: sorry, you can't grant karma because you've opted out of instakarma\n"
+                "opt in with */instakarma opt-in*")
             return
         recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
         say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
@@ -94,7 +94,7 @@ class GrantMgr:
         amount, _, _ = self.message_parser.get_amount_verb_emoji(action)
         self.logger.info(f"{granter_name!r} tried to grant {amount!r} karma "
                          f"to invalid person {recipient_name!r}")
-        say(f":x: Sorry, user {recipient_name} isn't registered in Slack")
+        say(f":x: sorry, user {recipient_name} isn't registered in Slack")
 
     def grant_to_object(self,
                         say,
@@ -115,10 +115,10 @@ class GrantMgr:
             recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
             say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma")
         except OptedOutRecipientError:
-            say(f":x: Sorry, {recipient_name} has opted out of instakarma")
+            say(f":x: sorry, {recipient_name} has opted out of instakarma")
         except OptedOutGranterError:
-            say(f":x: Sorry, you can't grant karma because you've opted out of instakarma\n"
-                "Opt in with */instakarma opt-in*")
+            say(f":x: sorry, you can't grant karma because you've opted out of instakarma\n"
+                "opt in with */instakarma opt-in*")
 
     def export_grants(self) -> None:
         """ Dump a history of all grants that are in the DB into a local CSV file.
@@ -140,7 +140,6 @@ class GrantMgr:
                 JOIN entities g on gr.granter_id = g.entity_id
                 ORDER BY gr.timestamp;""",
                 ())
-
         except sqlite3.Error as e:
             sys.exit(f"Error: {e}")
 
@@ -150,5 +149,5 @@ class GrantMgr:
                 for recipient_name, granter_name, delta, timestamp in results:
                     file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
         except Exception as e:
-            sys.exit(f"Error writing to {GRANTS_EXPORT_FILE!r}: {e}")
+            sys.exit(f"error writing to {GRANTS_EXPORT_FILE!r}: {e}")
         print(f"all grants exported as CSV to {GRANTS_EXPORT_FILE}")
