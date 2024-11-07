@@ -8,6 +8,7 @@ from grant_mgr import GrantMgr
 from karma_mgr import KarmaMgr
 from log_mgr import LogMgr
 from message_parser import MessageParser
+from strings_mgr import StringsMgr
 
 from argparse import ArgumentParser
 import argparse
@@ -114,7 +115,8 @@ def main() -> None:
             try:
                 entities = entity_manager.list_opted_out_entities()
             except sqlite3.Error as e:
-                sys.exit(f"error: {e}")
+                # sys.exit(f"error: {e}")
+                sys.exit(StringsMgr.get_string('error.generic', error=e))
             for name in entities:
                 print(name)
 
@@ -136,6 +138,10 @@ if __name__ == '__main__':
     karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
     grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
+
+    print(StringsMgr.get_string('text1', name='Zoe'))
+    print(StringsMgr.get_string('error.general', e='Zoe'))
+    print(StringsMgr.get_string('errors.general', e='Zoe'))
 
     init_db()
     main()

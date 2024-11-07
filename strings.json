@@ -1,0 +1,7 @@
+{
+  "text1": "foo {name}",
+  "text2": "{name} bar",
+  "error": {
+    "general": "This is text for a general error: {e}"
+  }
+}
