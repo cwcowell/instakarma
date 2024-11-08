@@ -1,6 +1,6 @@
 {
   "error": {
-    "general": "An error occurred: {e}",
+    "general": "an error occurred: {e}",
     "sqlite3": {
       "general": "SQLite3 error: {e}"
     },
