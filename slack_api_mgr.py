@@ -8,8 +8,6 @@ from slack_sdk.web import SlackResponse
 
 class SlackApiMgr:
 
-    NAME_PREFIX: Final[str] = '@'
-
     def __init__(self, app: App, logger: Logger):
         self.app = app
         self.logger = logger
@@ -24,4 +22,4 @@ class SlackApiMgr:
             raise
         name: str = user_info['user']['name']
         self.logger.debug(f"Slack API returned name {name!r} for user_id {user_id!r}")
-        return self.NAME_PREFIX + name
+        return '@' + name

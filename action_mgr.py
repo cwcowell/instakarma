@@ -7,6 +7,8 @@ import response_blocks
 from logging import Logger
 import sqlite3
 
+from string_mgr import StringMgr
+
 
 class ActionMgr:
 
@@ -22,7 +24,8 @@ class ActionMgr:
         """ Set an entity's status to either `opted-in` or `opted-out`. """
         name: str = '@' + command['user_name']
         entity_mgr.set_status(name, new_status)
-        respond(text=f"{name} is now {new_status.value} in instakarma",
+        # respond(text=f"{name} is now {new_status.value} in instakarma",
+        respond(text=StringMgr.get_string('entity-status', name=name, status=new_status.value),
                 blocks=response_blocks.change_status(new_status),
                 response_type='ephemeral')
 

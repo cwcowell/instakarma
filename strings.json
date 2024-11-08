@@ -6,6 +6,7 @@
     },
     "undefined_string": "<STRING FOR {undefined_key_path!r} IS UNDEFINED>"
   },
+  "entity-status": "{name} is now {status}",
   "instakarma-admin": {
     "add-entity": {
       "failed": "{name!r} already exists in DB",
