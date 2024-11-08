@@ -1,14 +1,40 @@
 {
-  "instakarma-admin": {
-    "status": {
-      "add_entity": "added entity {name!r} to the DB"
-    }
-  },
   "error": {
     "general": "An error occurred: {e}",
     "sqlite3": {
       "general": "SQLite3 error: {e}"
     },
-    "undefined_string": "<STRING FOR {undefined_key_path!r} UNDEFINED>"
+    "undefined_string": "<STRING FOR {undefined_key_path!r} IS UNDEFINED>"
+  },
+  "instakarma-admin": {
+    "add-entity": {
+      "failed": "{name!r} already exists in DB",
+      "successful": "added {name!r} to the DB"
+    },
+    "current-status": "{name!r} now has {status!r} status",
+    "description": "instakarma-admin: a set of admin tools for the instakarma bot",
+    "epilog": "author: Chris Cowell (christopher.cowell@instabase.com)",
+    "no-entity-exists": "no user with name {name!r} exists in the DB",
+    "help": {
+      "add-entity": {
+        "command": "add user or object to DB with 'opt-in' status and 0 karma (this happens automatically as users interact with instakarma-bot)",
+        "name-var": "name of the user (like '@bob') or entity (like 'python') to add"
+      },
+      "backup-db": "make a local backup of the DB",
+      "export-grants": "export history of all grants",
+      "list-by-karma": "list all entities in descending karma order",
+      "list-by-name": "list all entities in alphabetical order",
+      "list-opted-out": "list all opted-out entities",
+      "opt-in": {
+        "command": "allow a user (like @bob) to give and receive karma, or an object (like python) to receive karma",
+        "name-var": "name of the user (like '@bob') or entity (like 'python') to opt in"
+      },
+      "opt-out": {
+        "command": "prevent a user (like @bob) from giving or receiving karma, or an object (like python) from receiving karma",
+        "name-var": "name of the user (like '@bob') or entity (like 'python') to opt out"
+      }
+    },
+    "nobody-opted-out": "nobody has opted out",
+    "prog": "instakarma-admin"
   }
 }

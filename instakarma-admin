@@ -23,57 +23,53 @@ def init_db() -> None:
     try:
         result: str = db_manager.init_db()
     except sqlite3.Error as e:
-        sys.exit(f"error when initializing DB: {e}")
+        sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
     if not result.startswith('DB already exists'):
         print(result)
+
 
 def set_status(name: str, new_status: Status) -> None:
     try:
         if not entity_manager.name_exists_in_db(name):
-            sys.exit(f"no user with name {name!r} in the DB, so no changes were made")
+            sys.exit(StringMgr.get_string('instakarma-admin.no-entity-exists', name=name))
         entity_manager.set_status(name, new_status)
     except sqlite3.Error as e:
-        sys.exit(f"error: {e}")
-    print(f"{name!r} now has {entity_manager.get_status(name).value!r} status")
+        sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+    print(StringMgr.get_string('instakarma-admin.current-status',
+                               name=name,
+                               status=entity_manager.get_status(name).value))
+
 
 def main() -> None:
     parser: ArgumentParser = argparse.ArgumentParser(
-        description='instakarma-admin: a set of admin tools for the instakarma bot',
-        prog='instakarma-admin',
-        epilog='author: Chris Cowell (christopher.cowell@instabase.com')
+        description=StringMgr.get_string('instakarma-admin.description'),
+        prog=StringMgr.get_string('instakarma-admin.prog'),
+        epilog=StringMgr.get_string('instakarma-admin.epilog'))
 
     subparsers = parser.add_subparsers(dest='command', required=True)
 
     add_entity_parser = subparsers.add_parser('add-entity',
-                                              help="Add user or object to DB with 'opt-in' status and 0 karma. "
-                                                   "Normally this happens automatically as 'instakarma-bot' runs and "
-                                                   "users interact with it.")
+                                              help=StringMgr.get_string('instakarma-admin.help.add-entity.command'))
     add_entity_parser.add_argument('name',
-                                   help="Name of the user (like '@bob') or entity (like 'python') to add",
+                                   help=StringMgr.get_string('instakarma-admin.help.add-entity.name-var'),
                                    metavar='NAME')
 
-    subparsers.add_parser('backup-db', help=f"Make a local backup of the DB")
-
-    subparsers.add_parser('export-grants', help=f"Export history of all grants")
-
-    subparsers.add_parser('init-db', help=f"Initialize the DB if it doesn't exist, no-op if it does")
-
-    subparsers.add_parser('list-by-karma', help="List all entities in descending karma order")
-
-    subparsers.add_parser('list-by-name', help="List all entities in alphabetical order")
-
-    subparsers.add_parser('list-opted-out', help="List all opted-out entities")
+    subparsers.add_parser('backup-db', help=StringMgr.get_string('instakarma-admin.help.backup-db'))
+    subparsers.add_parser('export-grants', help=StringMgr.get_string('instakarma-admin.help.export-grants'))
+    subparsers.add_parser('list-by-karma', help=StringMgr.get_string('instakarma-admin.help.list-by-karma'))
+    subparsers.add_parser('list-by-name', help=StringMgr.get_string('instakarma-admin.help.list-by-name'))
+    subparsers.add_parser('list-opted-out', help=StringMgr.get_string('instakarma-admin.help.list-opted-out'))
 
     opt_in_parser = subparsers.add_parser('opt-in',
-                                          help="Allow a user like @bob to give and receive karma, "
-                                               "or an object like python to receive karma")
-    opt_in_parser.add_argument('name', help="Name of the user (like '@bob') or entity (like 'python') to opt in",
+                                          help=StringMgr.get_string('instakarma-admin.help.opt-in.command'))
+    opt_in_parser.add_argument('name',
+                               help=StringMgr.get_string('instakarma-admin.help.opt-in.name-var'),
                                metavar='NAME')
 
     opt_out_parser = subparsers.add_parser('opt-out',
-                                           help="Prevent a user like @bob from giving or receiving karma, "
-                                                "or an object like python from receiving karma")
-    opt_out_parser.add_argument('name', help="Name of the user (like '@bob') or entity (like 'python') to opt out",
+                                           help=StringMgr.get_string('instakarma-admin.help.opt-out.command'))
+    opt_out_parser.add_argument('name',
+                                help=StringMgr.get_string('instakarma-admin.help.opt-out.name-var'),
                                 metavar='NAME')
 
     args: argparse.Namespace = parser.parse_args()
@@ -83,12 +79,11 @@ def main() -> None:
             name: str = args.name
             try:
                 if entity_manager.name_exists_in_db(name):
-                    sys.exit(f"entity with name {name!r} already exists in the DB, so no changes were made")
+                    sys.exit(StringMgr.get_string('instakarma-admin.add-entity.failed', name=name))
                 entity_manager.add_entity(name, None)
             except sqlite3.Error as e:
                 sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
-            # print(f"added entity {name!r} to the DB")
-            print(StringMgr.get_string("instakarma-admin.status.add_entity", name=name))
+            print(StringMgr.get_string("instakarma-admin.add-entity.successful", name=name))
 
         case 'backup-db':
             db_manager.backup_db()
@@ -117,6 +112,8 @@ def main() -> None:
                 entities = entity_manager.list_opted_out_entities()
             except sqlite3.Error as e:
                 sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+            if not entities:
+                print(StringMgr.get_string('instakarma-admin.nobody-opted-out'))
             for name in entities:
                 print(name)
 

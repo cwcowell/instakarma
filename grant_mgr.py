@@ -7,8 +7,10 @@ from karma_mgr import KarmaMgr
 from message_parser import MessageParser
 
 from logging import Logger
+from pathlib import Path
 import sqlite3
 import sys
+from typing import Final
 
 from slack_sdk.errors import SlackApiError
 
@@ -128,6 +130,10 @@ class GrantMgr:
         * Exit rather than raise an error if anything goes wrong
         * Print messages instead of logging them
         """
+        grants_export_file_path: Final[Path] = Path(GRANTS_EXPORT_FILE)
+        if grants_export_file_path.exists():
+            sys.exit(f"aborted export because {grants_export_file_path.name!r} already exists")
+
         try:
             results: list = self.db_mgr.execute_statement(
                 """
@@ -141,13 +147,13 @@ class GrantMgr:
                 ORDER BY gr.timestamp;""",
                 ())
         except sqlite3.Error as e:
-            sys.exit(f"Error: {e}")
+            sys.exit(f"error: {e}")
 
         try:
-            with open(GRANTS_EXPORT_FILE, 'w') as file:
+            with open(grants_export_file_path, 'w') as file:
                 file.write('TIMESTAMP,GRANTER,AMOUNT,RECIPIENT\n')
                 for recipient_name, granter_name, delta, timestamp in results:
                     file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
         except Exception as e:
-            sys.exit(f"error writing to {GRANTS_EXPORT_FILE!r}: {e}")
-        print(f"all grants exported as CSV to {GRANTS_EXPORT_FILE}")
+            sys.exit(f"error writing to {grants_export_file_path.name!r}: {e}")
+        print(f"all grants exported as CSV to {grants_export_file_path.name!r}")

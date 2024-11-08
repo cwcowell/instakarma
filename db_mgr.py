@@ -93,7 +93,7 @@ class DbMgr:
             sys.exit(f"error: no DB file at {DB_FILE_NAME!r} to back up")
 
         if db_backup_path.exists():
-            sys.exit(f"error: DB backup file already exists at {DB_BACKUP_FILE_NAME!r}, so no changes were made")
+            sys.exit(f"DB backup file already exists at {DB_BACKUP_FILE_NAME!r}, so backup was aborted")
 
         try:
             with sqlite3.connect(DB_FILE_NAME) as source, sqlite3.connect(DB_BACKUP_FILE_NAME) as destination:
