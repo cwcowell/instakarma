@@ -15,7 +15,7 @@
       "my-karma": "you have *{amount}* karma",
       "my-karma-header": "*How much karma do I have?*",
       "opt-in-instructions": "opt in with */instakarma opt-in*",
-      "opted-out": "you've opted out of instakarma, so you can't see any karma stats"
+      "opted-out": "you've opted out of instakarma, so you can't see any karma stats",
       "respond-text": "instakarma stats for {name}",
       "top-granter": "• {amount} from {granter_name}",
       "top-granters-header": "*Who has given me the most karma?*",
@@ -25,6 +25,34 @@
       "top-recipients-none": "you haven't given any karma",
       "your-karma-text-when-user-not-in-db": "you haven't granted or received any karma"
     }
+  },
+  "db": {
+    "db-created-new": "created new DB at {db_path!r} using DDL {db_ddl_path!r}",
+    "db-exists": "DB already exists at {db_path!r}, so no changes were made",
+    "error": {
+      "could-not-backup": "error: DB backup failed: {e}",
+      "could-not-create": "error: couldn't create DB: {e}",
+      "db-backup-file-exists": "error: DB backup file already exists at {db_backup_path!r}, so backup was aborted",
+      "connection": "error: couldn't connect to database file {db_file_name!r}: {e}",
+      "no-db-file": "error: no DB file at {db_path!r} to back up",
+      "rollback": "error: rolled back after failed query: {statement!r} | parms: {parms!r} | error: {e}"
+    }
+  },
+  "entity": {
+    "error": {
+      "could-not-add-entity": "couldn't add entity with name {name!r} and user_id {user_id!r: {e}",
+      "could-not-add-name-and-user-id": "couldn't add row with name {name!r] and user_id {user_id!r} to entities table: {e}",
+      "could-not-check-name": "couldn't check if name {name!r} exists in 'entities' table: {e}",
+      "could-not-check-user-id": "couldn't check if user_id {user_id!r} exists in 'entities' table: {e}",
+      "could-not-get-name-from-user-id": "couldn't look up name for user_id {user_id!r}: {e}",
+      "could-not-list-entities": "couldn't retrieve list of entities: {e}",
+      "could-not-list-opted-out": "couldn't retrieve list of opted-out entities: {e}",
+      "could-not-set-name": "couldn't set name to {name!r} for user_id of {user_id!r}: {e}",
+      "could-not-set-status": "couldn't set user {name!r} status to {status!r}: {e}",
+      "no-status": "couldn't get status for {name!r}: {e}",
+      "not-in-db": "{name!r} doesn't exist in 'entities' table"
+    },
+    "current-status": "{name!r} now has status {status!r}"
   },
   "error": {
     "general": "error: {e}",
