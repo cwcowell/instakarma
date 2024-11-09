@@ -1,12 +1,38 @@
 {
+  "action": {
+    "set-status": {
+      "respond-text": "{name} is now {status}"
+    },
+    "help": {
+      "respond-text": "instakarma usage"
+    },
+    "leaderboard": {
+      "sqlite3-error": "couldn't get karma of all objects: {e}",
+      "leader-text-when-no-karma": "no objects have karma",
+      "respond-text": "show karma of objects"
+    },
+    "my-stats": {
+      "my-karma": "you have *{amount}* karma",
+      "my-karma-header": "*How much karma do I have?*",
+      "opt-in-instructions": "opt in with */instakarma opt-in*",
+      "opted-out": "you've opted out of instakarma, so you can't see any karma stats"
+      "respond-text": "instakarma stats for {name}",
+      "top-granter": "• {amount} from {granter_name}",
+      "top-granters-header": "*Who has given me the most karma?*",
+      "top-granters-none": "you haven't received any karma",
+      "top-recipient": "• {amount} to {recipient_name}",
+      "top-recipients-header": "*Who have I given the most karma to?*",
+      "top-recipients-none": "you haven't given any karma",
+      "your-karma-text-when-user-not-in-db": "you haven't granted or received any karma"
+    }
+  },
   "error": {
-    "general": "an error occurred: {e}",
+    "general": "error: {e}",
     "sqlite3": {
       "general": "SQLite3 error: {e}"
     },
     "undefined_string": "<STRING FOR {undefined_key_path!r} IS UNDEFINED>"
   },
-  "entity-status": "{name} is now {status}",
   "instakarma-admin": {
     "add-entity": {
       "failed": "{name!r} already exists in DB",

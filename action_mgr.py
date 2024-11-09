@@ -1,3 +1,5 @@
+from tokenize import String
+
 from db_mgr import DbMgr
 from entity_mgr import EntityMgr
 from karma_mgr import KarmaMgr
@@ -24,13 +26,12 @@ class ActionMgr:
         """ Set an entity's status to either `opted-in` or `opted-out`. """
         name: str = '@' + command['user_name']
         entity_mgr.set_status(name, new_status)
-        # respond(text=f"{name} is now {new_status.value} in instakarma",
-        respond(text=StringMgr.get_string('entity-status', name=name, status=new_status.value),
+        respond(text=StringMgr.get_string('action.set-status.respond-text', name=name, status=new_status.value),
                 blocks=response_blocks.change_status(new_status),
                 response_type='ephemeral')
 
     def help(self, respond):
-        respond(text="instakarma usage",
+        respond(text=StringMgr.get_string('action.help.respond-text'),
                 blocks=response_blocks.help,
                 response_type='ephemeral')
 
@@ -44,12 +45,12 @@ class ActionMgr:
                                                           ORDER BY karma DESC, name;""",
                                                           ())
         except sqlite3.Error as e:
-            self.logger.error(f"couldn't get karma of all objects: {e}")
-            raise e
+            self.logger.error(StringMgr.get_string('action.leaderboard.sqlite3error', e=e))
+            raise
         leader_text: str = '\n'.join(f"• {karma} {name}" for name, karma in results)
         if not leader_text:
-            leader_text = "no objects have karma"
-        respond(text="show karma of objects",
+            leader_text = StringMgr.get_string('action.leaderboard.leader-text-when-no-karma')
+        respond(text=StringMgr.get_string('action.leaderboard.respond-text'),
                 blocks=response_blocks.leaderboard(leader_text),
                 response_type="ephemeral")
 
@@ -66,40 +67,47 @@ class ActionMgr:
         name: str = '@' + command['user_name']
 
         if not entity_mgr.name_exists_in_db(name):
-            your_karma_text: str = "You haven't granted or received any karma yet."
-            respond(text=f"instakarma stats for {name}",
+            your_karma_text: str = StringMgr.get_string('action.my-stats.your-karma-text-when-user-not-in-db')
+            respond(text=StringMgr.get_string('action.my-stats.respond-text', name=name),
                     blocks=response_blocks.my_stats(name, your_karma_text, '', ''),
                     response_type='ephemeral')
             return
 
         status: Status = entity_mgr.get_status(name)
         if status == Status.OPTED_OUT:
-            your_karma_text: str = f"You've opted out of instakarma, so you can't see any karma stats.\n" \
-                                   "Opt in with */instakarma opt-in*"
-            respond(text=f"instakarma stats for {name}",
+            your_karma_text: str = StringMgr.get_string('action.my-stats.opted-out') + \
+                                   '\n' + \
+                                   StringMgr.get_string('action.my-stats.opt-in-instructions')
+            respond(text=StringMgr.get_string('action.my-stats.respond-text', name=name),
                     blocks=response_blocks.my_stats(name, your_karma_text, '', ''),
                     response_type='ephemeral')
             return
 
-        your_karma_text: str = (f"*How much karma do I have?*\n"
-                                f"You have *{karma_mgr.get_karma(name)}* karma\n")
+        your_karma_text: str = StringMgr.get_string('action.my-stats.my-karma-header') + \
+                               '\n' + \
+                               StringMgr.get_string('action.my-stats.my-karma',
+                                                    amount=karma_mgr.get_karma(name))
 
         top_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name)
-        top_recipients_text: str = "*Who have I given the most karma to?*\n"
+        top_recipients_text: str = StringMgr.get_string('action.my-stats.top-recipients-header') + "\n"
         if not top_recipients:
-            top_recipients_text += "You haven't given any karma.\n"
+            top_recipients_text += StringMgr.get_string('action.my-stats.top-recipients-none') + '\n'
         else:
             for recipient_name, amount in top_recipients:
-                top_recipients_text += f"• {str(amount)} to {recipient_name}\n"
+                top_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
+                                                          amount=str(amount),
+                                                          granter_name=recipient_name) + '\n'
 
         top_granters: list[tuple[str, int]] = karma_mgr.get_top_granters(name)
-        top_granters_text = "*Who has given me the most karma?*\n"
+        top_granters_text = StringMgr.get_string('action.my-stats.top-granters-header)') + '\n'
         if not top_granters:
-            top_granters_text += "You haven't received any karma.\n"
+            top_granters_text += StringMgr.get_string('action.my-stats.top-granters-none') + '\n'
         else:
             for granter_name, amount in top_granters:
-                top_granters_text += f"• {str(amount)} from {granter_name}\n"
+                top_granters_text += StringMgr.get_string('action.my-stats.top-granter',
+                                                          amount=str(amount),
+                                                          granter_name=granter_name) + '\n'
 
-        respond(text=f"instakarma stats for {name}",
+        respond(text=StringMgr.get_string('action.my-stats.respond-text', name=name),
                 blocks=response_blocks.my_stats(name, your_karma_text, top_recipients_text, top_granters_text),
                 response_type='ephemeral')
