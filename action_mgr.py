@@ -96,10 +96,10 @@ class ActionMgr:
             for recipient_name, amount in top_recipients:
                 top_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
                                                           amount=str(amount),
-                                                          granter_name=recipient_name) + '\n'
+                                                          recipient_name=recipient_name) + '\n'
 
         top_granters: list[tuple[str, int]] = karma_mgr.get_top_granters(name)
-        top_granters_text = StringMgr.get_string('action.my-stats.top-granters-header)') + '\n'
+        top_granters_text = StringMgr.get_string('action.my-stats.top-granters-header') + '\n'
         if not top_granters:
             top_granters_text += StringMgr.get_string('action.my-stats.top-granters-none') + '\n'
         else:

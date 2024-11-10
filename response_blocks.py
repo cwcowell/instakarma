@@ -39,13 +39,14 @@ help: list[dict] = [
                 "text": ("*@robin++*   give 1 karma to Slack user *@robin*\n"
                          "*python++*   give 1 karma to object *python*\n"
                          "*python--*   remove 1 karma from object *python*\n"
+                         "\n"
                          "_optionally add a space between *recipient* and *++* or *--*_\n"
                          "\n"
                          "*/instakarma help*   display this usage guide\n"
                          "*/instakarma leaderboard*   see the karma of all objects\n"
                          "*/instakarma my-stats*   see your karma and top granters and receivers\n"
                          "*/instakarma opt-in*   participate in instakarma\n"
-                         "*/instakarma opt-out*   decline to participate in instakarma\n"
+                         "*/instakarma opt-out*   don't participate in instakarma\n"
                          "\n"
                          "contact christopher.cowell@instabase.com or <@chris cowell> with problems")
             }
