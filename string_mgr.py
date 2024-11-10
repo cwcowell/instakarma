@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from string import Template
 from typing import Final
 
 
@@ -35,5 +34,4 @@ class StringMgr:
             string: str = template.format(**kwargs)
             return string
         except:
-            # return f"<STRING FOR {key_path!r} UNDEFINED>"
             return StringMgr.get_string("error.undefined_string", undefined_key_path=key_path)

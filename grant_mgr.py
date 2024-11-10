@@ -75,11 +75,10 @@ class GrantMgr:
         try:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
         except OptedOutRecipientError:
-            say(f":x: sorry, {recipient_name} has opted out of instakarma")
+            say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name))
             return
         except OptedOutGranterError:
-            say(f":x: sorry, you can't grant karma because you've opted out of instakarma\n"
-                "opt in with */instakarma opt-in*")
+            say(StringMgr.get_string('grant.granter-opted-out'))
             return
         recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
         say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
@@ -92,16 +91,18 @@ class GrantMgr:
         try:
             granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         except SlackApiError:
-            self.logger.error("Couldn't grant karma because couldn't get name for "
-                              f"granter user_id {granter_user_id!r}")
+            self.logger.error(StringMgr.get_string('grant.log.error.no-name-for-user-id',
+                                                   user_id=granter_user_id))
             return
 
         recipient_name: str = recipient[0]
         action: Action = recipient[1]
         amount, _, _ = self.message_parser.get_amount_verb_emoji(action)
-        self.logger.info(f"{granter_name!r} tried to grant {amount!r} karma "
-                         f"to invalid person {recipient_name!r}")
-        say(f":x: sorry, user {recipient_name} isn't registered in Slack")
+        self.logger.info(StringMgr.get_string('grant.log.info.invalid-person',
+                                              granter_name=granter_name,
+                                              amount=amount,
+                                              recipient_name=recipient_name))
+        say(StringMgr.get_string('grant.invalid-person'))
 
     def grant_to_object(self,
                         say,
@@ -122,10 +123,9 @@ class GrantMgr:
             recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
             say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma")
         except OptedOutRecipientError:
-            say(f":x: sorry, {recipient_name} has opted out of instakarma")
+            say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name))
         except OptedOutGranterError:
-            say(f":x: sorry, you can't grant karma because you've opted out of instakarma\n"
-                "opt in with */instakarma opt-in*")
+            say(StringMgr.get_string('grant.granter-opted-out', name=recipient_name))
 
     def export_grants(self) -> None:
         """ Dump a history of all grants that are in the DB into a local CSV file.
@@ -137,8 +137,8 @@ class GrantMgr:
         """
         grants_export_file_path: Final[Path] = Path(GRANTS_EXPORT_FILE)
         if grants_export_file_path.exists():
-            sys.exit(f"aborted export because {grants_export_file_path.name!r} already exists")
-
+            sys.exit(StringMgr.get_string('grant.log.error.export-file-exists',
+                                          grants_export_file_path=grants_export_file_path.resolve()))
         try:
             results: list = self.db_mgr.execute_statement(
                 """
@@ -153,12 +153,13 @@ class GrantMgr:
                 ())
         except sqlite3.Error as e:
             sys.exit(f"error: {e}")
-
         try:
             with open(grants_export_file_path, 'w') as file:
                 file.write('TIMESTAMP,GRANTER,AMOUNT,RECIPIENT\n')
                 for recipient_name, granter_name, delta, timestamp in results:
                     file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
         except Exception as e:
-            sys.exit(f"error writing to {grants_export_file_path.name!r}: {e}")
-        print(f"all grants exported as CSV to {grants_export_file_path.name!r}")
+            sys.exit(StringMgr.get_string('grants.log.error.write-file',
+                                          grants_export_file_path=grants_export_file_path.resolve(),
+                                          e=e))
+        print(StringMgr.get_string('grant.grants-exported', grants_export_file_path=grants_export_file_path.resolve()))
