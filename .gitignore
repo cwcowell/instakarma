@@ -8,3 +8,5 @@ db/instakarma.db-shm
 db/instakarma.db-wal
 
 logs/
+
+grants.csv
