@@ -55,7 +55,7 @@ class DbMgr:
         db_ddl_path: Path = Path(DB_DDL_FILE_NAME)
 
         if db_path.exists():
-            msg: str = StringMgr.get_string('db.db-exists', db_path=db_path)
+            msg: str = StringMgr.get_string('db.db-exists', db_path=db_path.resolve())
             self.logger.info(msg)
             return msg
         with self.get_db_connection() as conn:
@@ -68,8 +68,9 @@ class DbMgr:
                 msg: str = StringMgr.get_string('db.error.could-not-create', e=e)
                 self.logger.critical(msg)
                 return msg
-            # msg: str = f"created new DB at {db_path.name!r} using DDL {db_ddl_path.name!r}"
-            msg: str = StringMgr.get_string('db.created-new', db_path=db_path, ddl_path=db_ddl_path)
+            msg: str = StringMgr.get_string('db.created-new',
+                                            db_path=db_path.resolve(),
+                                            ddl_path=db_ddl_path.resolve())
             self.logger.info(msg)
             return msg
 

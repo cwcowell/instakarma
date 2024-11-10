@@ -1,22 +1,15 @@
-class OptedOutRecipientError(Exception):
-    """A user has tried to grant karma to an opted-out entity.
+"""All of these custom exceptions should be handled, not ignored."""
 
-    This should be handled.
-    """
+class OptedOutRecipientError(Exception):
+    """A user has tried to grant karma to an opted-out entity."""
     pass
 
 
 class OptedOutGranterError(Exception):
-    """An opted-out user has tried to grant karma.
-
-    This should be handled.
-    """
+    """An opted-out user has tried to grant karma."""
     pass
 
 
 class NoSlackApiMgrDefinedError:
-    """Tried to make a Slack API call, but no mgr is defined.
-
-    This should be handled.
-    """
+    """Tried to make a Slack API call, but no mgr is defined."""
     pass

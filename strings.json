@@ -61,6 +61,19 @@
     },
     "undefined_string": "<STRING FOR {undefined_key_path!r} IS UNDEFINED>"
   },
+  "grant": {
+    "log": {
+      "error": {
+        "no-name-for-user-id": "couldn't grant karma because couldn't get name for user_id {user_dir!r}"
+      },
+      "info": {
+        "remove-karma-from-person": "{granter_name!r} tried to reduce karma of a person {recipient_name!r}",
+        "self-grant": "{granter_name!r} tried to self-grant {amount} karma"
+      }
+    },
+    "remove-karma-from-person": ":x: sorry, you can only remove karma from things (like python), not people (like @elvis)",
+    "self-grant": ":x: sorry, you can't grant karma to yourself"
+  },
   "instakarma-admin": {
     "add-entity": {
       "failed": "{name!r} already exists in DB",

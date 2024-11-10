@@ -14,6 +14,8 @@ from typing import Final
 
 from slack_sdk.errors import SlackApiError
 
+from string_mgr import StringMgr
+
 
 class GrantMgr:
 
@@ -46,25 +48,28 @@ class GrantMgr:
         try:
             granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         except SlackApiError:
-            self.logger.error("couldn't grant karma because couldn't get name for "
-                              f"granter with user_id {granter_user_id!r}")
+            self.logger.error(StringMgr.get_string('grant.log.error.no-name-for-user-id',
+                                                   user_id=granter_user_id))
             return
-
         try:
             recipient_name: str = self.entity_mgr.get_name_from_user_id(recipient_user_id)
         except SlackApiError:
-            self.logger.error("couldn't grant karma because couldn't get name for "
-                              f"recipient with user_id {recipient_user_id!r}")
+            self.logger.error(StringMgr.get_string('grant.log.error.no-name-for-user-id',
+                                                   user_id=recipient_user_id))
             return
 
         if action == Action.DECREMENT:
-            self.logger.info(f"{granter_name!r} tried to reduce karma of a person {recipient_name!r}")
-            say(':x: sorry, you can only remove karma from things (like python), not people (like @elvis)')
+            self.logger.info(StringMgr.get_string('grant.log.info.remove-karma-from-person',
+                                                  granter_name=granter_name,
+                                                  recipient_name=recipient_name))
+            say(StringMgr.get_string('grant.remove-karma-from-person'))
             return
 
         if recipient_name == granter_name:
-            self.logger.info(f"{granter_name!r} tried to self-grant {amount} karma")
-            say(f":x: sorry, you can't grant karma to yourself")
+            self.logger.info(StringMgr.get_string('grant.log.info.self-grant',
+                                                  granter_name=granter_name,
+                                                  amount=amount))
+            say(StringMgr.get_string('grant.self-grant'))
             return
 
         try:
