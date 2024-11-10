@@ -1,0 +1,98 @@
+action:
+  set-status:
+    respond-text: "{name} is now {status}"
+  help:
+    respond-text: "instakarma usage"
+  leaderboard:
+    sqlite3-error: "couldn't get karma of all objects: {e}"
+    leader-text-when-no-karma: "no objects have karma"
+    respond-text: "show karma of objects"
+  my-stats:
+    my-karma: "you have *{amount}* karma"
+    my-karma-header: "*How much karma do I have?*"
+    opt-in-instructions: "opt in with */instakarma opt-in*"
+    opted-out: "you've opted out of instakarma, so you can't see any karma stats"
+    respond-text: "instakarma stats for {name}"
+    top-granter: "• {amount} from {granter_name}"
+    top-granters-header: "*Who has given me the most karma?*"
+    top-granters-none: "you haven't received any karma"
+    top-recipient: "• {amount} to {recipient_name}"
+    top-recipients-header: "*Who have I given the most karma to?*"
+    top-recipients-none: "you haven't given any karma"
+    your-karma-text-when-user-not-in-db: "you haven't given or received any karma"
+
+db:
+  db-created-new: "created new DB at {db_path!r} using DDL {db_ddl_path!r}"
+  db-exists: "DB already exists at {db_path!r}, so no changes were made"
+  error:
+    could-not-backup: "error: DB backup failed: {e}"
+    could-not-create: "error: couldn't create DB: {e}"
+    db-backup-file-exists: "error: DB backup file already exists at '{db_backup_path}', so backup was aborted"
+    connection: "error: couldn't connect to database file {db_file_name!r}: {e}"
+    no-db-file: "error: no DB file at {db_path!r} to back up"
+    rollback: "error: rolled back after failed query: {statement!r} | parms: {parms!r} | error: {e}"
+
+entity:
+  error:
+    could-not-add-entity: "couldn't add entity with name {name!r} and user_id {user_id!r}: {e}"
+    could-not-add-name-and-user-id: "couldn't add row with name {name!r} and user_id {user_id!r} to entities table: {e}"
+    could-not-check-name: "couldn't check if name {name!r} exists in 'entities' table: {e}"
+    could-not-check-user-id: "couldn't check if user_id {user_id!r} exists in 'entities' table: {e}"
+    could-not-get-name-from-user-id: "couldn't look up name for user_id {user_id!r}: {e}"
+    could-not-list-entities: "couldn't retrieve list of entities: {e}"
+    could-not-list-opted-out: "couldn't retrieve list of opted-out entities: {e}"
+    could-not-set-name: "couldn't set name to {name!r} for user_id of {user_id!r}: {e}"
+    could-not-set-status: "couldn't set user {name!r} status to {status!r}: {e}"
+    no-status: "couldn't get status for {name!r}: {e}"
+    not-in-db: "{name!r} doesn't exist in 'entities' table"
+  current-status: "{name!r} now has status {status!r}"
+
+error:
+  general: "error: {e}"
+  malformed-yaml: "<STRING FOR {undefined_key_path!r} IS UNDEFINED DUE TO MALFORMED YAML>"
+  sqlite3:
+    general: "SQLite3 error: {e}"
+  undefined-string: "<STRING FOR {undefined_key_path!r} IS UNDEFINED>"
+
+grant:
+  log:
+    error:
+      export-file-exists: "aborted export because '{grants_export_file_path}' already exists"
+      no-name-for-user-id: "couldn't grant karma because couldn't get name for user_id {user_id!r}"
+      write-file: "error writing to {grants_export_file_path!r}: {e}"
+    info:
+      invalid-person: "{granter_name!r} tried to grant {amount!r} karma to invalid person {recipient_name!r}"
+      remove-karma-from-person: "{granter_name!r} tried to reduce karma of a person {recipient_name!r}"
+      self-grant: "{granter_name!r} tried to self-grant {amount} karma"
+  granter-opted-out: ":x: sorry, you can't grant karma because you've opted out of instakarma\nopt in with */instakarma opt-in*"
+  grants-exported: "all grants exported to '{grants_export_file_path}'"
+  invalid-person: ":x: sorry, user {recipient_name} isn't registered in Slack"
+  recipient-opted-out: ":x: sorry, {name} has opted out of instakarma"
+  remove-karma-from-person: ":x: sorry, you can only remove karma from things (like python), not people (like @elvis)"
+  self-grant: ":x: sorry, you can't grant karma to yourself"
+
+instakarma-admin:
+  add-entity:
+    failed: "{name!r} already exists in DB"
+    successful: "added {name!r} to the DB"
+  current-status: "{name!r} now has {status!r} status"
+  description: "instakarma-admin: a set of admin tools for the instakarma bot"
+  epilog: "author: Chris Cowell (christopher.cowell@instabase.com)"
+  no-entity-exists: "no user with name {name!r} exists in the DB"
+  help:
+    add-entity:
+      command: "add user or object to DB with 'opt-in' status and 0 karma (this happens automatically as users interact with instakarma-bot)"
+      name-var: "name of the user (like '@bob') or entity (like 'python') to add"
+    backup-db: "make a local backup of the DB"
+    export-grants: "export history of all grants"
+    list-by-karma: "list all entities in descending karma order"
+    list-by-name: "list all entities in alphabetical order"
+    list-opted-out: "list all opted-out entities"
+    opt-in:
+      command: "allow a user (like @bob) to give and receive karma, or an object (like python) to receive karma"
+      name-var: "name of the user (like '@bob') or entity (like 'python') to opt in"
+    opt-out:
+      command: "prevent a user (like @bob) from giving or receiving karma, or an object (like python) from receiving karma"
+      name-var: "name of the user (like '@bob') or entity (like 'python') to opt out"
+  nobody-opted-out: "nobody has opted out"
+  prog: "instakarma-admin"

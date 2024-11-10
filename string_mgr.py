@@ -1,10 +1,10 @@
-import json
+import yaml
 from pathlib import Path
 from typing import Final
 
 
 class StringMgr:
-    _STRINGS_FILE: Final[str] = 'strings.json'
+    _STRINGS_FILE: Final[str] = 'strings.yml'
     _PLACEHOLDER: Final[str] = 'PLACEHOLDER_UI_STRING'  # return this if the key isn't in the map
 
     _strings_map: dict[str, str] = {}
@@ -20,7 +20,8 @@ class StringMgr:
         """
         strings_file_path: Path = Path(cls._STRINGS_FILE)
         with open(strings_file_path) as strings_file:
-            cls._strings_map = json.load(strings_file)
+            cls._strings_map = yaml.safe_load(strings_file)
+            cls._is_map_loaded = True
 
     @classmethod
     def get_string(cls, key_path: str, **kwargs) -> str:
@@ -33,5 +34,7 @@ class StringMgr:
                 template = template[key]
             string: str = template.format(**kwargs)
             return string
-        except:
-            return StringMgr.get_string("error.undefined_string", undefined_key_path=key_path)
+        except (AttributeError, KeyError, TypeError):
+            return StringMgr.get_string("error.undefined-string", undefined_key_path=key_path)
+        except yaml.YAMLError:
+            return StringMgr.get_string("error.malformed-yaml", undefined_key_path=key_path)
