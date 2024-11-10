@@ -23,7 +23,7 @@
       "top-recipient": "• {amount} to {recipient_name}",
       "top-recipients-header": "*Who have I given the most karma to?*",
       "top-recipients-none": "you haven't given any karma",
-      "your-karma-text-when-user-not-in-db": "you haven't granted or received any karma"
+      "your-karma-text-when-user-not-in-db": "you haven't given or received any karma"
     }
   },
   "db": {
