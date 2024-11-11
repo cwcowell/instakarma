@@ -26,7 +26,6 @@ class KarmaMgr:
         :raises ValueError: If there's no entity with that name in the DB, or if they have opted-out status
         """
         try:
-            self.logger.debug(f"Asking DB for karma of {name!r}")
             results: list = self.db_mgr.execute_statement("""
                                                           SELECT karma
                                                           FROM entities
@@ -44,7 +43,6 @@ class KarmaMgr:
 
     def get_top_granters(self, recipient_name: str) -> list[tuple[str, int]]:
         try:
-            self.logger.debug(f"asking DB for top granters to {recipient_name!r}")
             results: list = self.db_mgr.execute_statement(f"""
                                                SELECT e_granter.name as top_granter_name,
                                                       COUNT(*) as times_granted
@@ -64,7 +62,6 @@ class KarmaMgr:
 
     def get_top_recipients(self, granter_name: str) -> list[tuple[str, int]]:
         try:
-            self.logger.debug(f"asking DB for top recipients from {granter_name!r}")
             results: list = self.db_mgr.execute_statement(f"""
                                          SELECT e_recipient.name as top_recipient_name,
                                                 COUNT(*) as times_received
