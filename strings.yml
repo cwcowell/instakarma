@@ -49,6 +49,7 @@ entity:
 
 error:
   general: "error: {e}"
+  invalid-parm: ":x: Sorry, */instakarma {parm}* isn't a valid command"
   malformed-yaml: "<STRING FOR {undefined_key_path!r} IS UNDEFINED DUE TO MALFORMED YAML>"
   sqlite3:
     general: "SQLite3 error: {e}"

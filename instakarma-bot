@@ -17,6 +17,7 @@ import os
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
+from string_mgr import StringMgr
 
 app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
@@ -27,13 +28,8 @@ def handle_karma_grants(message: dict, say) -> None:
     msg_text: str = message['text']
 
     valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
-    logger.debug("valid user recipients: " + str(valid_user_recipients))
-
     invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
-    logger.debug("invalid user recipients: " + str(invalid_user_recipients))
-
     object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
-    logger.debug("object recipients: " + str(object_recipients))
 
     amount: int
     verb: str
@@ -51,29 +47,29 @@ def handle_karma_grants(message: dict, say) -> None:
 @app.command('/instakarma')
 def handle_instakarma_command(ack, respond, command) -> None:
     ack()
-    parameter = command['text'].lower()
+    parm = command['text'].lower()
 
-    if parameter in ['help', '']:
+    if parm in ['help', '']:
         action_manager.help(respond)
         return
 
-    if parameter == 'leaderboard':
+    if parm == 'leaderboard':
         action_manager.leaderboard(respond)
         return
 
-    if parameter == 'my-stats':
+    if parm == 'my-stats':
         action_manager.my_stats(command, respond, entity_manager, karma_manager)
         return
 
-    if parameter == 'opt-in':
+    if parm == 'opt-in':
         action_manager.set_status(command, respond, Status.OPTED_IN, entity_manager)
         return
 
-    if parameter == 'opt-out':
+    if parm == 'opt-out':
         action_manager.set_status(command, respond, Status.OPTED_OUT, entity_manager)
         return
 
-    respond(f":x: Sorry, */instakarma {parameter}* isn't a valid command")
+    respond(StringMgr.get_string('error.invalid-parm', parm=parm))
     action_manager.help(respond)
 
 
