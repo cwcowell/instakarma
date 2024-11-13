@@ -102,7 +102,7 @@ class GrantMgr:
                                               granter_name=granter_name,
                                               amount=amount,
                                               recipient_name=recipient_name))
-        say(StringMgr.get_string('grant.invalid-person'))
+        say(StringMgr.get_string('grant.invalid-person', recipient_name=recipient_name))
 
     def grant_to_object(self,
                         say,

@@ -19,7 +19,7 @@ class SlackApiMgr:
         try:
             user_info: SlackResponse = self.app.client.users_info(user=user_id)
         except SlackApiError as sae:
-            self.logger.error(StringMgr.get_string('slack-api.get-name.api-error', response=sae.response))
+            self.logger.error(StringMgr.get_string('slack-api.error', response=sae.response))
             raise
         name: str = user_info['user']['name']
         return '@' + name

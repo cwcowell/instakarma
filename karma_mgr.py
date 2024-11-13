@@ -1,8 +1,9 @@
 from constants import NUM_TOP_GRANTERS, NUM_TOP_RECIPIENTS
 from db_mgr import DbMgr
 from entity_mgr import EntityMgr
-from exceptions import OptedOutRecipientError, OptedOutGranterError
 from enums import Action, Status
+from exceptions import OptedOutGranterError, OptedOutRecipientError
+from string_mgr import StringMgr
 
 from logging import Logger
 import sqlite3
@@ -39,8 +40,8 @@ class KarmaMgr:
                 self.logger.info(msg)
                 raise ValueError(msg)
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get karma for {name!r}")
-            raise e
+            self.logger.error(StringMgr.get_string('karma.get-karma.sql-error', name=name, e=e))
+            raise
 
     def get_top_granters(self, recipient_name: str) -> list[tuple[str, int]]:
         try:
@@ -58,8 +59,10 @@ class KarmaMgr:
 
             return [(name, int(num_grants)) for name, num_grants in results]
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get biggest granters to {recipient_name!r}: {e}")
-            raise e
+            self.logger.error(StringMgr.get_string('karma.get-top-granters.sql-error',
+                                                   name=recipient_name,
+                                                   e=e))
+            raise
 
     def get_top_recipients(self, granter_name: str, action: Action) -> list[tuple[str, int]]:
         amount: int = 1 if action is Action.INCREMENT else -1
@@ -73,27 +76,32 @@ class KarmaMgr:
                                          WHERE granter.name = ?
                                          AND g.amount = ?
                                          GROUP BY g.recipient_id
-                                         ORDER BY times_received {'DESC' if action is Action.INCREMENT else 'ASC'}, 
-                                                  top_recipient_name
+                                         ORDER BY times_received DESC, top_recipient_name
                                          LIMIT ?;""",
                                                           (granter_name, amount, NUM_TOP_RECIPIENTS))
-            return [(name, int(num_grants)) for name, num_grants in results]
+            return [(name, (int(num_grants)) * amount) for name, num_grants in results]
         except sqlite3.Error as e:
-            self.logger.error(f"Couldn't get top recipients from {granter_name!r}: {e}")
-            raise e
+            self.logger.error(StringMgr.get_string('karma.get-top-recipients.sql-error',
+                                                   name=granter_name,
+                                                   e=e))
+            raise
 
     def grant_karma(self,
                     granter_name: str,
                     recipient_name: str,
                     amount: int) -> None:
         if self.entity_mgr.get_status(recipient_name) == Status.OPTED_OUT:
-            self.logger.info(
-                f"{granter_name!r} can't grant {amount!r} karma to opted-out {recipient_name!r}")
+            self.logger.info(StringMgr.get_string('karma.grant-karma.recipient-opted-out',
+                                                  granter_name=granter_name,
+                                                  amount=amount,
+                                                  recipient_name=recipient_name))
             raise OptedOutRecipientError
 
         if self.entity_mgr.get_status(granter_name) == Status.OPTED_OUT:
-            self.logger.info(
-                f"Opted-out {granter_name!r} can't grant {amount!r} karma to {recipient_name!r}")
+            self.logger.info(StringMgr.get_string('karma.grant-karma.granter-opted-out',
+                                                  granter_name=granter_name,
+                                                  amount=amount,
+                                                  recipient_name=recipient_name))
             raise OptedOutGranterError
 
         try:
@@ -111,8 +119,14 @@ class KarmaMgr:
                                               SET karma = karma + ?
                                               WHERE name = ?;""",
                                           (amount, recipient_name))
-            self.logger.info(f"{granter_name!r} granted {amount!r} karma to {recipient_name!r}")
+            self.logger.info(StringMgr.get_string('karma.grant-karma.granted',
+                                                  granter_name=granter_name,
+                                                  amount=amount,
+                                                  recipient_name=recipient_name))
         except sqlite3.Error as e:
-            self.logger.error(
-                f"Couldn't grant {amount!r} karma from {granter_name!r} to {recipient_name!r}: {e}")
-            raise e
+            self.logger.error(StringMgr.get_string('karma.grant-karma.sql-error',
+                                                   granter_name=granter_name,
+                                                   amount=amount,
+                                                   recipient_name=recipient_name,
+                                                   e=e))
+            raise

@@ -10,23 +10,20 @@ Now let's say Jean denied my attempt to expense PTO airplane tickets to Hawaii! 
 
     @jean --
 
-But as you can see, you can't karma way from people.
+But as you can see, you can't take karma way from your coworkers.
 
-You can give karma to non-people, such as a place, a product, or a technology, or anything, really.
+You can give karma to people who aren't Slack users, or things that aren't people, like a place, a product, or a technology, or anything, really.
 
     pie++
 
 If the thing contains a space, use a hyphen instead.
 
-    the-beatles++
+    brighton-and-hove-albion-football-club++
 
 We saw that you can't take karma away from people, but you can take it away from things...
 
     cilantro--
-
-Or if I'm having a rough time figuring out a programming problem, I can let the world know
-
-    javascript--
+    the-entire-ruby-ecosystem--
 
 So those are the main operations.
 
@@ -36,9 +33,11 @@ But instakarma also has slash commands, similar to what you've used with other S
 
 This command shows how much karma you have, the five people or things you've given the most karma to, and the five things you've taken away the most karma from.
 
-You can see a list of all non-people and how much karma they have, which is a fun way to judge what your coworkers are happy or upset about...
+You can see a list of all non-users and how much karma they have, which is a fun way to judge what your coworkers are happy or upset about...
 
     /instakarma leaderboard
+
+Note that this list excludes Slack users, but includes other people outside of Instabase.
 
 If you don't like the whole idea of granting karma, you can opt out of the system entirely...
 
@@ -46,7 +45,7 @@ If you don't like the whole idea of granting karma, you can opt out of the syste
 
 When you're opted out, you can't grant or receive karma.
 
-    @anant++
+    @melissa++
 
 But you can change your mind and opt back in...
 
@@ -54,13 +53,13 @@ But you can change your mind and opt back in...
 
 And then everything goes back to normal...
 
-    @anant++
+    @melissa++
 
 If you forget how to use instakarma, it's easy to get help.
 
     /instakarma help
 
-There are also some administration tools for doing things like backing up the instakarma database or exporting karma to other formats, but those are only interesting to the instakarma administrator, so I won't bother showing them here.
+There are also some administration tools for doing things like backing up the instakarma database, but those are only interesting to IT folks, so I won't bother showing them here.
 
 ---
 
@@ -73,7 +72,7 @@ Rosie gives me 4
 Melissa gives me 4
 Anshu gives me 1
 
-I give karma to
+I give karma to:
 
 @jean ++ 23
 tofu-and-marmite-omelettes++ 6
