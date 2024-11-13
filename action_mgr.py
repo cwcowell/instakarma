@@ -1,15 +1,13 @@
-from tokenize import String
-
 from db_mgr import DbMgr
 from entity_mgr import EntityMgr
 from karma_mgr import KarmaMgr
-from enums import Status
+from enums import Action, Status
 import response_blocks
+from string_mgr import StringMgr
 
 from logging import Logger
 import sqlite3
 
-from string_mgr import StringMgr
 
 
 class ActionMgr:
@@ -39,9 +37,10 @@ class ActionMgr:
         """ Respond to Slack with a list of all non-user entities and their karma, in descending karma order. """
         try:
             results: list = self.db_mgr.execute_statement("""
-                                                          SELECT name, karma 
-                                                          FROM entities 
-                                                          WHERE user_id IS NULL 
+                                                          SELECT name, karma
+                                                          FROM entities
+                                                          WHERE user_id IS NULL
+                                                          AND karma IS NOT 0
                                                           ORDER BY karma DESC, name;""",
                                                           ())
         except sqlite3.Error as e:
@@ -88,13 +87,23 @@ class ActionMgr:
                                StringMgr.get_string('action.my-stats.my-karma',
                                                     amount=karma_mgr.get_karma(name))
 
-        top_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name)
-        top_recipients_text: str = StringMgr.get_string('action.my-stats.top-recipients-header') + "\n"
-        if not top_recipients:
-            top_recipients_text += StringMgr.get_string('action.my-stats.top-recipients-none') + '\n'
+        top_positive_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name, Action.INCREMENT)
+        top_positive_recipients_text: str = StringMgr.get_string('action.my-stats.top-positive-recipients-header') + "\n"
+        if not top_positive_recipients:
+            top_positive_recipients_text += StringMgr.get_string('action.my-stats.top-recipients-none') + '\n'
         else:
-            for recipient_name, amount in top_recipients:
-                top_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
+            for recipient_name, amount in top_positive_recipients:
+                top_positive_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
+                                                          amount=str(amount),
+                                                          recipient_name=recipient_name) + '\n'
+
+        top_negative_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name, Action.DECREMENT)
+        top_negative_recipients_text: str = StringMgr.get_string('action.my-stats.top-negative-recipients-header') + "\n"
+        if not top_negative_recipients:
+            top_negative_recipients_text += StringMgr.get_string('action.my-stats.top-recipients-none') + '\n'
+        else:
+            for recipient_name, amount in top_negative_recipients:
+                top_negative_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
                                                           amount=str(amount),
                                                           recipient_name=recipient_name) + '\n'
 
@@ -109,5 +118,5 @@ class ActionMgr:
                                                           granter_name=granter_name) + '\n'
 
         respond(text=StringMgr.get_string('action.my-stats.respond-text', name=name),
-                blocks=response_blocks.my_stats(name, your_karma_text, top_recipients_text, top_granters_text),
+                blocks=response_blocks.my_stats(name, your_karma_text, top_positive_recipients_text, top_granters_text),
                 response_type='ephemeral')

@@ -5,6 +5,8 @@ from slack_bolt import App
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from string_mgr import StringMgr
+
 
 class SlackApiMgr:
 
@@ -17,7 +19,7 @@ class SlackApiMgr:
         try:
             user_info: SlackResponse = self.app.client.users_info(user=user_id)
         except SlackApiError as sae:
-            self.logger.error(f"Slack API call failed: {sae.response}")
+            self.logger.error(StringMgr.get_string('slack-api.get-name.api-error', response=sae.response))
             raise
         name: str = user_info['user']['name']
         return '@' + name

@@ -1,7 +1,7 @@
 from logging import Logger
 import logging.handlers
 from logging.handlers import RotatingFileHandler
-import os
+import pathlib
 
 
 class LogMgr:
@@ -9,8 +9,14 @@ class LogMgr:
 
     _logger: Logger | None = None
 
-    @staticmethod
-    def get_logger(name: str,
+    def __new__(cls):
+        """Prevent instantiation of this class."""
+        raise Exception("LogMgr class cannot be instantiated. Use `LogMgr.get_logger()` instead.")
+
+
+    @classmethod  # needs access to `_logger` so it must be class instead of static
+    def get_logger(cls,
+                   name: str,
                    log_file: str,
                    log_level: str,
                    log_file_size: int,
@@ -19,13 +25,14 @@ class LogMgr:
             LogMgr._logger = LogMgr._init_logger(name, log_file, log_level, log_file_size, log_file_count)
         return LogMgr._logger
 
-    @staticmethod
+    @staticmethod  # doesn't need access to class state, so can be static
     def _init_logger(name: str,
                      log_file: str,
                      log_level: str,
                      log_file_size: int,
                      log_file_count: int):
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)  # make logs dirs, if needed
+        log_path = pathlib.Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)  # make parent dir(s) if needed
         logger: Logger = logging.getLogger(name)
         logger.setLevel(log_level)
         formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s',

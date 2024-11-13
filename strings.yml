@@ -17,19 +17,20 @@ action:
     top-granters-header: "*Who has given me the most karma?*"
     top-granters-none: "you haven't received any karma"
     top-recipient: "• {amount} to {recipient_name}"
-    top-recipients-header: "*Who have I given the most karma to?*"
+    top-negative-recipients-header: "*What have I taken the most karma from?*"
+    top-positive-recipients-header: "*Who have I given the most karma to?*"
     top-recipients-none: "you haven't given any karma"
     your-karma-text-when-user-not-in-db: "you haven't given or received any karma"
 
 db:
-  db-created-new: "created new DB at {db_path!r} using DDL {db_ddl_path!r}"
-  db-exists: "DB already exists at {db_path!r}, so no changes were made"
+  db-created-new: "created new DB at '{db_path}' using DDL '{db_ddl_path}'"
+  db-exists: "DB already exists at '{db_path}', so no changes were made"
   error:
     could-not-backup: "error: DB backup failed: {e}"
     could-not-create: "error: couldn't create DB: {e}"
     db-backup-file-exists: "error: DB backup file already exists at '{db_backup_path}', so backup was aborted"
     connection: "error: couldn't connect to database file {db_file_name!r}: {e}"
-    no-db-file: "error: no DB file at {db_path!r} to back up"
+    no-db-file: "error: no DB file at '{db_path}' to back up"
     rollback: "error: rolled back after failed query: {statement!r} | parms: {parms!r} | error: {e}"
 
 entity:
@@ -97,3 +98,59 @@ instakarma-admin:
       name-var: "name of the user (like '@bob') or entity (like 'python') to opt out"
   nobody-opted-out: "nobody has opted out"
   prog: "instakarma-admin"
+
+karma:
+  get:
+    opted-out: "{name!r} is opted-out or doesn't exist in 'entities' table"
+    sql-error: "couldn't get karma for {name!r}: {e}"
+  get-top-granters:
+    sql-error: "couldn't get biggest granters to {name!r}: {e}"
+  get-top-recipients:
+    sql-error: "couldn't get biggest recipients from {name!r}: {e}"
+  grant-karma:
+    granted: "{granter_name!r} granted {amount!r} karma to {recipient_name!r}"
+    granter-opted-out: "opted-out {granter_name!r} can't grant {amount!r} karma to {recipient_name!r}"
+    recipient-opted-out: "{granter_name!r} can't grant {amount!r} karma to opted-out {recipient_name!r}"
+    sql-error: "{granter_name!r} couldn't grant {amount!r} karma to {recipient_name!r}: {e}"
+
+message-parser:
+  decrement:
+    emoji: ":dumpster_fire:"
+    verb: "took a hit"
+  increment:
+    emoji: ":thumbsup_all:"
+    verb: "leveled up"
+  unrecognized:
+    emoji: ':question:'
+    log-msg: "unrecognized action: {action!r}"
+    verb: 'unrecognized'
+
+response-blocks:
+  change-status:
+    current-status: "you're now {status}"
+    opt-in-instructions: "opt in with */instakarma opt-in*"
+    opt-out-instructions: "opt out with */instakarma opt-out*"
+  help:
+    header: "How do I use instakarma?"
+    section: |
+      *@robin++*   give 1 karma to Slack user *@robin*
+      *python++*   give 1 karma to object *python*
+      *python--*   remove 1 karma from object *python*
+      
+      _optionally add a space between *recipient* and *++* or *--*_
+      
+      */instakarma help*   display this usage guide
+      */instakarma leaderboard*   see the karma of all objects
+      */instakarma my-stats*   see your karma and top granters and receivers
+      */instakarma opt-in*   participate in instakarma (default status)
+      */instakarma opt-out*   don't participate in instakarma
+      
+      contact christopher.cowell@instabase.com or <@chris cowell> with problems
+  leaderboard:
+    header: "How much karma do objects have?"
+  my-stats:
+    header: "Instakarma stats for {name}"
+
+slack-api:
+  get-name:
+    api-error: "Slack API call failed: {response}"

@@ -1,14 +1,17 @@
 """ Slack text blocks used to respond to instakarma slash commands and instakarma operations """
 
 from enums import Status
+from string_mgr import StringMgr
+
 
 def change_status(new_status: Status) -> list[dict]:
     """ Generate Slack text blocks with info about a user's opted-in/opted-out status. """
-    text: str = f"you're now {new_status.value}\n"
+    text: str = StringMgr.get_string('response-blocks.change-status.current-status', status=new_status.value) + \
+                '\n'
     if new_status == Status.OPTED_OUT:
-        text += "opt in with */instakarma opt-in*"
+        text += StringMgr.get_string('response-blocks.change-status.opt-in-instructions')
     else:
-        text += "opt out with */instakarma opt-out*"
+        text += StringMgr.get_string('response-blocks.change-status.opt-out-instructions')
 
     return [
         {
@@ -28,7 +31,7 @@ help: list[dict] = [
         "text":
             {
                 "type": "plain_text",
-                "text": "How do I use instakarma?",
+                "text": StringMgr.get_string('response-blocks.help.header')
             }
     },
     {
@@ -36,19 +39,7 @@ help: list[dict] = [
         "text":
             {
                 "type": "mrkdwn",
-                "text": ("*@robin++*   give 1 karma to Slack user *@robin*\n"
-                         "*python++*   give 1 karma to object *python*\n"
-                         "*python--*   remove 1 karma from object *python*\n"
-                         "\n"
-                         "_optionally add a space between *recipient* and *++* or *--*_\n"
-                         "\n"
-                         "*/instakarma help*   display this usage guide\n"
-                         "*/instakarma leaderboard*   see the karma of all objects\n"
-                         "*/instakarma my-stats*   see your karma and top granters and receivers\n"
-                         "*/instakarma opt-in*   participate in instakarma\n"
-                         "*/instakarma opt-out*   don't participate in instakarma\n"
-                         "\n"
-                         "contact christopher.cowell@instabase.com or <@chris cowell> with problems")
+                "text": StringMgr.get_string('response-blocks.help.section')
             }
     }
 ]
@@ -62,7 +53,7 @@ def leaderboard(leader_text: str) -> list[dict]:
             "text":
                 {
                     "type": "plain_text",
-                    "text": "How much karma do objects have?",
+                    "text": StringMgr.get_string('response-blocks.leaderboard.header'),
                 }
         },
         {
@@ -87,7 +78,7 @@ def my_stats(name: str,
             "text":
                 {
                     "type": "plain_text",
-                    "text": f"Instakarma stats for {name}",
+                    "text": StringMgr.get_string('response-blocks.my-stats.header', name=name)
                 }
         },
         {
