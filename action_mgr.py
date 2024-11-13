@@ -68,29 +68,27 @@ class ActionMgr:
         if not entity_mgr.name_exists_in_db(name):
             your_karma_text: str = StringMgr.get_string('action.my-stats.your-karma-text-when-user-not-in-db')
             respond(text=StringMgr.get_string('action.my-stats.respond-text', name=name),
-                    blocks=response_blocks.my_stats(name, your_karma_text, '', ''),
+                    blocks=response_blocks.my_stats(name, your_karma_text, '', '', ''),
                     response_type='ephemeral')
             return
 
         status: Status = entity_mgr.get_status(name)
         if status == Status.OPTED_OUT:
-            your_karma_text: str = StringMgr.get_string('action.my-stats.opted-out') + \
-                                   '\n' + \
+            your_karma_text: str = StringMgr.get_string('action.my-stats.opted-out') + "\n" + \
                                    StringMgr.get_string('action.my-stats.opt-in-instructions')
             respond(text=StringMgr.get_string('action.my-stats.respond-text', name=name),
-                    blocks=response_blocks.my_stats(name, your_karma_text, '', ''),
+                    blocks=response_blocks.my_stats(name, your_karma_text, '', '', ''),
                     response_type='ephemeral')
             return
 
-        your_karma_text: str = StringMgr.get_string('action.my-stats.my-karma-header') + \
-                               '\n' + \
+        your_karma_text: str = StringMgr.get_string('action.my-stats.my-karma-header') + "\n" + \
                                StringMgr.get_string('action.my-stats.my-karma',
-                                                    amount=karma_mgr.get_karma(name))
+                                                    amount=karma_mgr.get_karma(name)) + "\n"
 
         top_positive_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name, Action.INCREMENT)
         top_positive_recipients_text: str = StringMgr.get_string('action.my-stats.top-positive-recipients-header') + "\n"
         if not top_positive_recipients:
-            top_positive_recipients_text += StringMgr.get_string('action.my-stats.top-recipients-none') + '\n'
+            top_positive_recipients_text += StringMgr.get_string('action.my-stats.top-positive-recipients-none') + "\n"
         else:
             for recipient_name, amount in top_positive_recipients:
                 top_positive_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
@@ -100,23 +98,27 @@ class ActionMgr:
         top_negative_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name, Action.DECREMENT)
         top_negative_recipients_text: str = StringMgr.get_string('action.my-stats.top-negative-recipients-header') + "\n"
         if not top_negative_recipients:
-            top_negative_recipients_text += StringMgr.get_string('action.my-stats.top-recipients-none') + '\n'
+            top_negative_recipients_text += StringMgr.get_string('action.my-stats.top-negative-recipients-none') + '\n'
         else:
             for recipient_name, amount in top_negative_recipients:
                 top_negative_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
                                                           amount=str(amount),
-                                                          recipient_name=recipient_name) + '\n'
+                                                          recipient_name=recipient_name) + "\n"
 
         top_granters: list[tuple[str, int]] = karma_mgr.get_top_granters(name)
-        top_granters_text = StringMgr.get_string('action.my-stats.top-granters-header') + '\n'
+        top_granters_text = StringMgr.get_string('action.my-stats.top-granters-header') + "\n"
         if not top_granters:
-            top_granters_text += StringMgr.get_string('action.my-stats.top-granters-none') + '\n'
+            top_granters_text += StringMgr.get_string('action.my-stats.top-granters-none') + "\n"
         else:
             for granter_name, amount in top_granters:
                 top_granters_text += StringMgr.get_string('action.my-stats.top-granter',
                                                           amount=str(amount),
-                                                          granter_name=granter_name) + '\n'
+                                                          granter_name=granter_name) + "\n"
 
         respond(text=StringMgr.get_string('action.my-stats.respond-text', name=name),
-                blocks=response_blocks.my_stats(name, your_karma_text, top_positive_recipients_text, top_granters_text),
+                blocks=response_blocks.my_stats(name,
+                                                your_karma_text,
+                                                top_positive_recipients_text,
+                                                top_negative_recipients_text,
+                                                top_granters_text),
                 response_type='ephemeral')

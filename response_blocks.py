@@ -69,7 +69,8 @@ def leaderboard(leader_text: str) -> list[dict]:
 
 def my_stats(name: str,
              your_karma_text: str,
-             top_recipients_text: str,
+             top_positive_recipients_text: str,
+             top_negative_recipients_text: str,
              top_granters_text: str) -> list[dict]:
     """ Generate Slack text blocks that contain a user's karma stats. """
     return [
@@ -87,7 +88,9 @@ def my_stats(name: str,
                 "type": "mrkdwn",
                 "text": your_karma_text +
                         "\n" +
-                        top_recipients_text +
+                        top_positive_recipients_text +
+                        "\n" +
+                        top_negative_recipients_text +
                         "\n" +
                         top_granters_text
             }

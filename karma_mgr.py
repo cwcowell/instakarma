@@ -62,7 +62,7 @@ class KarmaMgr:
             raise e
 
     def get_top_recipients(self, granter_name: str, action: Action) -> list[tuple[str, int]]:
-        expected_amount: int = 1 if action is Action.INCREMENT else -1
+        amount: int = 1 if action is Action.INCREMENT else -1
         try:
             results: list = self.db_mgr.execute_statement(f"""
                                          SELECT recipient.name as top_recipient_name,
@@ -71,12 +71,12 @@ class KarmaMgr:
                                          JOIN entities granter ON g.granter_id = granter.entity_id
                                          JOIN entities recipient ON g.recipient_id = recipient.entity_id
                                          WHERE granter.name = ?
-                                         AND g.amount = 1
+                                         AND g.amount = ?
                                          GROUP BY g.recipient_id
                                          ORDER BY times_received {'DESC' if action is Action.INCREMENT else 'ASC'}, 
                                                   top_recipient_name
                                          LIMIT ?;""",
-                                                          (granter_name, expected_amount, NUM_TOP_RECIPIENTS))
+                                                          (granter_name, amount, NUM_TOP_RECIPIENTS))
             return [(name, int(num_grants)) for name, num_grants in results]
         except sqlite3.Error as e:
             self.logger.error(f"Couldn't get top recipients from {granter_name!r}: {e}")

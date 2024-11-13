@@ -19,7 +19,8 @@ action:
     top-recipient: "• {amount} to {recipient_name}"
     top-negative-recipients-header: "*What have I taken the most karma from?*"
     top-positive-recipients-header: "*Who have I given the most karma to?*"
-    top-recipients-none: "you haven't given any karma"
+    top-positive-recipients-none: "you haven't given any karma"
+    top-negative-recipients-none: "you haven't taken away any karma"
     your-karma-text-when-user-not-in-db: "you haven't given or received any karma"
 
 db:
