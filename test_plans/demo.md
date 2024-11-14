@@ -1,45 +1,53 @@
-The main focus of instakarma is thanking or acknowledging other Instabasers by giving karma to a coworker.
+Instakarma is a tool for thanking or acknowledging other Instabasers by giving them karma.
 
 Let's see how it works.
 
-Let's say Jean approved my last-minute PTO request...
+We're in a new Slack channel. Before using instakarma, you have to invite it to whatever channel or group direct message you're in. For privacy reasons, instakarma does _not_ work with 1-to-1 direct messages.
+
+    @instakarma get in here
+
+Now let's say my boss Jean Bond approved my last-minute PTO request, and I want to thank her.
 
     @jean ++
 
-Now let's say Jean denied my attempt to expense PTO airplane tickets to Hawaii! The nerve of her. I might try to take karma away from her...
+Now let's say Jean denied my attempt to expense a Ferrari. She's such a stickler for rules. I might try to take karma away from her...
 
     @jean --
 
-But as you can see, you can't take karma way from your coworkers.
+But instakarma won't let you take karma away from your coworkers.
 
-You can give karma to people who aren't Slack users, or things that aren't people, like a place, a product, or a technology, or anything, really.
+You can also give karma to people who aren't Instabase employees, or things that aren't people, like a place, a product, or a technology, or anything, really.
 
     pie++
 
-If the thing contains a space, use a hyphen instead.
+If the thing you're giving karma to contains a space, use a hyphen instead.
 
     brighton-and-hove-albion-football-club++
 
-We saw that you can't take karma away from people, but you can take it away from things...
+We saw that you can't take karma away from Instabasers, but you can take it away from things...
 
     cilantro--
     the-entire-ruby-ecosystem--
 
-So those are the main operations.
+So now you've seen the main operations.
 
-But instakarma also has slash commands, similar to what you've used with other Slack apps...
+Instakarma also has slash commands, similar to what you've probably used with other Slack apps.
+
+Here's one...
 
     /instakarma my-stats
 
 This command shows how much karma you have, the five people or things you've given the most karma to, and the five things you've taken away the most karma from.
 
-You can see a list of all non-users and how much karma they have, which is a fun way to judge what your coworkers are happy or upset about...
+In this case only 3 people have given me karma, which is kind of depressing.
+
+Here's another command...
 
     /instakarma leaderboard
 
-Note that this list excludes Slack users, but includes other people outside of Instabase.
+It lists anything that isn't a registered Slack user, along with how much karma they have. This lets you know what your coworkers are happy or upset about.
 
-If you don't like the whole idea of granting karma, you can opt out of the system entirely...
+If you don't like the whole idea of granting or receiving karma, you can opt out of the system entirely...
 
     /instakarma opt-out
 
@@ -60,6 +68,8 @@ If you forget how to use instakarma, it's easy to get help.
     /instakarma help
 
 There are also some administration tools for doing things like backing up the instakarma database, but those are only interesting to IT folks, so I won't bother showing them here.
+
+    short-demos++
 
 ---
 

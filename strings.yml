@@ -135,18 +135,19 @@ response-blocks:
     header: "How do I use instakarma?"
     section: |
       *@robin++*   give 1 karma to Slack user *@robin*
-      *python++*   give 1 karma to object *python*
-      *python--*   remove 1 karma from object *python*
+      *python++*   give 1 karma to non-Slack user *python*
+      *python--*   remove 1 karma from non-Slack user *python*
       
       _optionally add a space between *recipient* and *++* or *--*_
+      _you must invite *@instakarma* to channels or multi-person DMs in order to give karma_
       
       */instakarma help*   display this usage guide
-      */instakarma leaderboard*   see the karma of all objects and non-users
+      */instakarma leaderboard*   see the karma of all non-Slack users
       */instakarma my-stats*   see your karma and top granters and receivers
       */instakarma opt-in*   participate in instakarma (default status)
       */instakarma opt-out*   don't participate in instakarma
       
-      contact christopher.cowell@instabase.com or <@chris cowell> with problems
+      _contact christopher.cowell@instabase.com or <@chris cowell> with problems_
   leaderboard:
     header: "How much karma do objects and non-users have?"
   my-stats:
