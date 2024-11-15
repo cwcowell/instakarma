@@ -10,7 +10,7 @@ from string_mgr import StringMgr
 
 class MessageParser:
     INVALID_USER_RECIPIENT_REGEX: Final[Pattern] = re.compile(r'(?<!<)(@\w+)\s?(\+\+|--)')
-    OBJECT_RECIPIENT_REGEX: Final[Pattern] = re.compile(r'\b(?<!@)([\w-]+)\s?(\+\+|--)')
+    OBJECT_RECIPIENT_REGEX: Final[Pattern] = re.compile(r"\b(?<!@)([\w'-]+)\s?(\+\+|--)")
     VALID_USER_RECIPIENT_REGEX: Final[Pattern] = re.compile(r'<@(.*?)>\s?(\+\+|--)')
 
     def __init__(self, logger: Logger):
