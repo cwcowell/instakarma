@@ -1,11 +1,10 @@
 from enums import Action
+from string_mgr import StringMgr
 
 from logging import Logger
 import re
 from re import Pattern
 from typing import Final
-
-from string_mgr import StringMgr
 
 
 class MessageParser:

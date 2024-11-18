@@ -1,15 +1,12 @@
 from logging import Logger
-from typing import Final
+from string_mgr import StringMgr
 
 from slack_bolt import App
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
-from string_mgr import StringMgr
-
 
 class SlackApiMgr:
-
     def __init__(self, app: App, logger: Logger):
         self.app = app
         self.logger = logger

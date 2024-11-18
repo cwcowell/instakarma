@@ -1,7 +1,7 @@
 from db_mgr import DbMgr
+from enums import Action, Status
 from entity_mgr import EntityMgr
 from karma_mgr import KarmaMgr
-from enums import Action, Status
 import response_blocks
 from string_mgr import StringMgr
 
@@ -9,24 +9,10 @@ from logging import Logger
 import sqlite3
 
 
-
 class ActionMgr:
-
     def __init__(self, db_mgr: DbMgr, logger: Logger):
         self.db_mgr = db_mgr
         self.logger = logger
-
-    def set_status(self,
-                   command: dict,
-                   respond,
-                   new_status: Status,
-                   entity_mgr: EntityMgr) -> None:
-        """ Set an entity's status to either `opted-in` or `opted-out`. """
-        name: str = '@' + command['user_name']
-        entity_mgr.set_status(name, new_status)
-        respond(text=StringMgr.get_string('action.set-status.respond-text', name=name, status=new_status.value),
-                blocks=response_blocks.change_status(new_status),
-                response_type='ephemeral')
 
     def help(self, respond):
         respond(text=StringMgr.get_string('action.help.respond-text'),
@@ -46,7 +32,7 @@ class ActionMgr:
         except sqlite3.Error as e:
             self.logger.error(StringMgr.get_string('action.leaderboard.sqlite3error', e=e))
             raise
-        leader_text: str = '\n'.join(f"• {karma} {name}" for name, karma in results)
+        leader_text: str = "\n".join(f"• {karma} {name}" for name, karma in results)
         if not leader_text:
             leader_text = StringMgr.get_string('action.leaderboard.leader-text-when-no-karma')
         respond(text=StringMgr.get_string('action.leaderboard.respond-text'),
@@ -86,24 +72,26 @@ class ActionMgr:
                                                     amount=karma_mgr.get_karma(name)) + "\n"
 
         top_positive_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name, Action.INCREMENT)
-        top_positive_recipients_text: str = StringMgr.get_string('action.my-stats.top-positive-recipients-header') + "\n"
+        top_positive_recipients_text: str = StringMgr.get_string(
+            'action.my-stats.top-positive-recipients-header') + "\n"
         if not top_positive_recipients:
             top_positive_recipients_text += StringMgr.get_string('action.my-stats.top-positive-recipients-none') + "\n"
         else:
             for recipient_name, amount in top_positive_recipients:
                 top_positive_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
-                                                          amount=str(amount),
-                                                          recipient_name=recipient_name) + '\n'
+                                                                     amount=str(amount),
+                                                                     recipient_name=recipient_name) + "\n"
 
         top_negative_recipients: list[tuple[str, int]] = karma_mgr.get_top_recipients(name, Action.DECREMENT)
-        top_negative_recipients_text: str = StringMgr.get_string('action.my-stats.top-negative-recipients-header') + "\n"
+        top_negative_recipients_text: str = StringMgr.get_string(
+            'action.my-stats.top-negative-recipients-header') + "\n"
         if not top_negative_recipients:
-            top_negative_recipients_text += StringMgr.get_string('action.my-stats.top-negative-recipients-none') + '\n'
+            top_negative_recipients_text += StringMgr.get_string('action.my-stats.top-negative-recipients-none') + "\n"
         else:
             for recipient_name, amount in top_negative_recipients:
                 top_negative_recipients_text += StringMgr.get_string('action.my-stats.top-recipient',
-                                                          amount=str(amount),
-                                                          recipient_name=recipient_name) + "\n"
+                                                                     amount=str(amount),
+                                                                     recipient_name=recipient_name) + "\n"
 
         top_granters: list[tuple[str, int]] = karma_mgr.get_top_granters(name)
         top_granters_text = StringMgr.get_string('action.my-stats.top-granters-header') + "\n"
@@ -122,3 +110,16 @@ class ActionMgr:
                                                 top_negative_recipients_text,
                                                 top_granters_text),
                 response_type='ephemeral')
+
+    def set_status(self,
+                   command: dict,
+                   respond,
+                   new_status: Status,
+                   entity_mgr: EntityMgr) -> None:
+        """ Set an entity's status to either `opted-in` or `opted-out`. """
+        name: str = '@' + command['user_name']
+        entity_mgr.set_status(name, new_status)
+        respond(text=StringMgr.get_string('action.set-status.respond-text', name=name, status=new_status.value),
+                blocks=response_blocks.change_status(new_status),
+                response_type='ephemeral')
+

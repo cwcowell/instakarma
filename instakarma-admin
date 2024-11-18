@@ -23,7 +23,7 @@ def init_db() -> None:
     try:
         result: str = db_manager.init_db()
     except sqlite3.Error as e:
-        sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+        sys.exit(StringMgr.get_string('error.sqlite3', e=e))
     if not result.startswith('DB already exists'):
         print(result)
 
@@ -34,7 +34,7 @@ def set_status(name: str, new_status: Status) -> None:
             sys.exit(StringMgr.get_string('instakarma-admin.no-entity-exists', name=name))
         entity_manager.set_status(name, new_status)
     except sqlite3.Error as e:
-        sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+        sys.exit(StringMgr.get_string('error.sqlite3', e=e))
     print(StringMgr.get_string('instakarma-admin.current-status',
                                name=name,
                                status=entity_manager.get_status(name).value))
@@ -82,7 +82,7 @@ def main() -> None:
                     sys.exit(StringMgr.get_string('instakarma-admin.add-entity.failed', name=name))
                 entity_manager.add_entity(name, None)
             except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+                sys.exit(StringMgr.get_string('error.sqlite3', e=e))
             print(StringMgr.get_string("instakarma-admin.add-entity.successful", name=name))
 
         case 'backup-db':
@@ -95,7 +95,7 @@ def main() -> None:
             try:
                 entities = entity_manager.list_entities('karma')
             except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+                sys.exit(StringMgr.get_string('error.sqlite3', e=e))
             for name, karma in entities:
                 print(f"{karma},{name}")
 
@@ -103,7 +103,7 @@ def main() -> None:
             try:
                 entities = entity_manager.list_entities('name')
             except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+                sys.exit(StringMgr.get_string('error.sqlite3', e=e))
             for name, karma in entities:
                 print(f"{name},{karma}")
 
@@ -111,7 +111,7 @@ def main() -> None:
             try:
                 entities = entity_manager.list_opted_out_entities()
             except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('error.sqlite3.general', e=e))
+                sys.exit(StringMgr.get_string('error.sqlite3', e=e))
             if not entities:
                 print(StringMgr.get_string('instakarma-admin.nobody-opted-out'))
             for name in entities:

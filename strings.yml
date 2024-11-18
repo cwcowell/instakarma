@@ -1,6 +1,6 @@
+# User-facing text lives in this file for easy editing
+
 action:
-  set-status:
-    respond-text: "{name} is now {status}"
   help:
     respond-text: "instakarma usage"
   leaderboard:
@@ -22,10 +22,13 @@ action:
     top-positive-recipients-none: "you haven't given any karma"
     top-recipient: "• {amount} to {recipient_name}"
     your-karma-text-when-user-not-in-db: "you haven't given or received any karma"
+  set-status:
+    respond-text: "{name} is now {status}"
 
 db:
-  db-created-new: "created new DB at '{db_path}' using DDL '{db_ddl_path}'"
-  db-exists: "DB already exists at '{db_path}', so no changes were made"
+  backed-up: "'{db_file_path}' backed up to '{db_backup_file_path}'"
+  created-new: "created new DB at '{db_path}' using DDL '{db_ddl_path}'"
+  exists: "DB already exists at '{db_path}', so no changes were made"
   error:
     connection: "error: couldn't connect to database file {db_file_name!r}: {e}"
     could-not-backup: "error: DB backup failed: {e}"
@@ -35,6 +38,7 @@ db:
     no-db-file: "error: no DB file at '{db_path}' to back up"
     rollback: "error: rolled back after failed query: {statement!r} | parms: {parms!r} | error: {e}"
     truncation-blocked: "error: DB truncation blocked by another process -- backup aborted"
+  truncated: "DB truncated into single file at '{single_db_file}'"
 
 entity:
   current-status: "{name!r} now has status {status!r}"
@@ -53,13 +57,15 @@ entity:
 
 error:
   general: "error: {e}"
-  invalid-parm: ":x: Sorry, */instakarma {parm}* isn't a valid command"
+  invalid-slash-subcommand: ":x: Sorry, */instakarma {subcommand}* isn't a valid command"
   malformed-yaml: "<STRING FOR {undefined_key_path!r} IS UNDEFINED DUE TO MALFORMED YAML>"
-  sqlite3:
-    general: "SQLite3 error: {e}"
+  sqlite3: "SQLite3 error: {e}"
   undefined-string: "<STRING FOR {undefined_key_path!r} IS UNDEFINED>"
 
 grant:
+  granter-opted-out: ":x: sorry, you can't grant karma because you've opted out of instakarma\nopt in with */instakarma opt-in*"
+  grants-exported: "all grants exported to '{grants_export_file_path}'"
+  invalid-person: ":x: sorry, user {recipient_name} isn't registered in Slack"
   log:
     error:
       export-file-exists: "aborted export because '{grants_export_file_path}' already exists"
@@ -69,9 +75,6 @@ grant:
       invalid-person: "{granter_name!r} tried to grant {amount!r} karma to invalid person {recipient_name!r}"
       remove-karma-from-person: "{granter_name!r} tried to reduce karma of a Slack user {recipient_name!r}"
       self-grant: "{granter_name!r} tried to self-grant {amount} karma"
-  granter-opted-out: ":x: sorry, you can't grant karma because you've opted out of instakarma\nopt in with */instakarma opt-in*"
-  grants-exported: "all grants exported to '{grants_export_file_path}'"
-  invalid-person: ":x: sorry, user {recipient_name} isn't registered in Slack"
   recipient-opted-out: ":x: sorry, {name} opted out of instakarma"
   remove-karma-from-person: ":x: sorry, you can't remove karma from Slack users"
   self-grant: ":x: sorry, you can't grant karma to yourself"

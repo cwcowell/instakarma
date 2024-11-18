@@ -1,6 +1,6 @@
-import yaml
 from pathlib import Path
 from typing import Final
+import yaml
 
 
 class StringMgr:

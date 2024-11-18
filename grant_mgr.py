@@ -1,10 +1,11 @@
 from constants import GRANTS_EXPORT_FILE
 from db_mgr import DbMgr
-from enums import Action
 from entity_mgr import EntityMgr
+from enums import Action
 from exceptions import OptedOutRecipientError, OptedOutGranterError
 from karma_mgr import KarmaMgr
 from message_parser import MessageParser
+from string_mgr import StringMgr
 
 from logging import Logger
 from pathlib import Path
@@ -13,8 +14,6 @@ import sys
 from typing import Final
 
 from slack_sdk.errors import SlackApiError
-
-from string_mgr import StringMgr
 
 
 class GrantMgr:

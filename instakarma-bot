@@ -10,78 +10,67 @@ from karma_mgr import KarmaMgr
 from log_mgr import LogMgr
 from message_parser import MessageParser
 from slack_api_mgr import SlackApiMgr
+from string_mgr import StringMgr
 
 from logging import Logger
 import os
+from threading import Lock
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-from string_mgr import StringMgr
 
 app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
 # Listen for "++" or "--" in any message in any channel the bot subscribes to.
 @app.message(r'(\+\+)|(--)')
 def handle_karma_grants(message: dict, say) -> None:
-    granter_user_id: str = message['user']
-    msg_text: str = message['text']
+    with bot_lock:
+        granter_user_id: str = message['user']
+        msg_text: str = message['text']
 
-    valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
-    invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
-    object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
+        valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
+        invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
+        object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
 
-    amount: int
-    verb: str
-
-    for recipient in valid_user_recipients:
-        grant_handler.grant_to_valid_user(say, granter_user_id, recipient)
-
-    for recipient in invalid_user_recipients:
-        grant_handler.grant_to_invalid_user(say, granter_user_id, recipient)
-
-    for recipient in object_recipients:
-        grant_handler.grant_to_object(say, granter_user_id, recipient)
+        for recipient in valid_user_recipients:
+            grant_handler.grant_to_valid_user(say, granter_user_id, recipient)
+        for recipient in invalid_user_recipients:
+            grant_handler.grant_to_invalid_user(say, granter_user_id, recipient)
+        for recipient in object_recipients:
+            grant_handler.grant_to_object(say, granter_user_id, recipient)
 
 
 @app.command('/instakarma')
 def handle_instakarma_command(ack, respond, command) -> None:
-    ack()
-    parm = command['text'].lower()
-
-    if parm in ['help', '']:
-        action_manager.help(respond)
-        return
-
-    if parm == 'leaderboard':
-        action_manager.leaderboard(respond)
-        return
-
-    if parm == 'my-stats':
-        action_manager.my_stats(command, respond, entity_manager, karma_manager)
-        return
-
-    if parm == 'opt-in':
-        action_manager.set_status(command, respond, Status.OPTED_IN, entity_manager)
-        return
-
-    if parm == 'opt-out':
-        action_manager.set_status(command, respond, Status.OPTED_OUT, entity_manager)
-        return
-
-    respond(StringMgr.get_string('error.invalid-parm', parm=parm))
-    action_manager.help(respond)
+    with bot_lock:
+        ack()
+        subcommand = command['text'].lower()
+        match subcommand:
+            case 'help' | '':
+                action_manager.help(respond)
+            case 'leaderboard':
+                action_manager.leaderboard(respond)
+            case 'my-stats':
+                action_manager.my_stats(command, respond, entity_manager, karma_manager)
+            case 'opt-in':
+                action_manager.set_status(command, respond, Status.OPTED_IN, entity_manager)
+            case 'opt-out':
+                action_manager.set_status(command, respond, Status.OPTED_OUT, entity_manager)
+            case _:
+                respond(StringMgr.get_string('error.invalid-slash-subcommand', subcommand=subcommand))
+                action_manager.help(respond)
 
 
 @app.event("message")
 def handle_message_events(body, logger):
-    pass  # suppress console output that normally comes from every message
+    with bot_lock:
+        pass  # suppress console output that normally comes from every message
 
 
 if __name__ == "__main__":
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app,
                                                                  app_token=os.environ["SLACK_APP_TOKEN"])
-
     logger: Logger = LogMgr.get_logger(LOGGER_NAME,
                                        LOG_FILE,
                                        LOG_LEVEL,
@@ -96,5 +85,5 @@ if __name__ == "__main__":
     grant_handler: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
 
     db_manager.init_db()
-
+    bot_lock: Lock = Lock()  # bot isn't thread-safe, so prevent concurrent operations
     slack_message_handler.start()  # launch the Slack listener

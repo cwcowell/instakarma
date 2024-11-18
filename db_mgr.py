@@ -53,7 +53,7 @@ class DbMgr:
         db_ddl_path: Path = Path(DB_DDL_FILE_NAME)
 
         if db_path.exists():
-            msg: str = StringMgr.get_string('db.db-exists', db_path=db_path.resolve())
+            msg: str = StringMgr.get_string('db.exists', db_path=db_path.resolve())
             self.logger.info(msg)
             return msg
         with self.get_db_connection() as conn:
@@ -68,7 +68,7 @@ class DbMgr:
                 return msg
             msg: str = StringMgr.get_string('db.created-new',
                                             db_path=db_path.resolve(),
-                                            ddl_path=db_ddl_path.resolve())
+                                            db_ddl_path=db_ddl_path.resolve())
             self.logger.info(msg)
             return msg
 
@@ -104,6 +104,7 @@ class DbMgr:
                 results: tuple[int, int, int] = cursor.fetchone()
                 if results[0]:
                     sys.exit(StringMgr.get_string('db.error.truncation-blocked'))
+                print(StringMgr.get_string('db.truncated', single_db_file=db_path.resolve()))
             except sqlite3.Error as e:
                 sys.exit(StringMgr.get_string('db.error.could-not-truncate', e=e))
 
@@ -114,4 +115,6 @@ class DbMgr:
         except sqlite3.Error as e:
             sys.exit(StringMgr.get_string('db.error.could-not-backup', e=e))
 
-        print(f"{DB_FILE_NAME!r} backed up to {DB_BACKUP_FILE_NAME!r}")
+        print(StringMgr.get_string('db.backed-up',
+                                   db_file_path=db_path.resolve(),
+                                   db_backup_file_path=db_backup_path.resolve()))
