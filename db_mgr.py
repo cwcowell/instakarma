@@ -9,11 +9,13 @@ import sys
 
 
 class DbMgr:
+    """Collect all DB-related methods in one class."""
+
     def __init__(self, logger: Logger):
         self.logger: Logger = logger
 
     def get_db_connection(self) -> Connection:
-        """ Open and return a DB connection.
+        """Open and return a DB connection.
 
         :returns: Connection object to DB
         :raises sqlite3.Error: If it can't connect to the DB
@@ -25,11 +27,12 @@ class DbMgr:
             raise
 
     def execute_statement(self, statement: str, parms: tuple) -> list[tuple]:
-        """ Open a DB connection, execute an SQL statement, close the connection.
+        """Open a DB connection, execute an SQL statement, close the connection.
 
         :returns: List of results as tuples
         :raises sqlite3.Error: If something goes wrong with the DB
         """
+
         log_friendly_statement: str = self.format_statement_for_log(statement)
         with self.get_db_connection() as conn:
             try:
@@ -44,11 +47,14 @@ class DbMgr:
                 raise
 
     def init_db(self) -> str:
-        """ Create an empty DB if it doesn't already exist. If it does, no-op.
+        """Create an empty DB if it doesn't already exist.
 
-        :returns: Message explaining what happened, so instakarma-admin can print it to the console
+        No-op if there is already a DB.
+
+        :returns: Message explaining what happened, so `instakarma-admin` can print it to the console
         :raises sqlite3.Error: If anything goes wrong with the DB
         """
+
         db_path: Path = Path(DB_FILE_NAME)
         db_ddl_path: Path = Path(DB_DDL_FILE_NAME)
 
@@ -73,21 +79,23 @@ class DbMgr:
             return msg
 
     def format_statement_for_log(self, statement: str) -> str:
-        """ Format a statement as a single line for logging.
+        """Format a statement as a single line for logging.
 
         :returns: Statement formatted as a single line
         :raises ValueError: if `statement` isn't a string
         """
+
         if not isinstance(statement, str):
             raise ValueError(f'Statement must be a string, but got {type(statement)}')
         statement = statement.replace('\n', ' ')  # replace newlines with spaces
         return ' '.join(statement.split())  # replace multiple spaces with a single space
 
     def backup_db(self) -> None:
-        """ Copy the DB file to another local file.
+        """Copy the DB file to another local file.
 
         This should only be called from `instakarma-admin`, so it exits on failure instead of logging and raising.
         """
+
         db_path: Path = Path(DB_FILE_NAME)
         db_backup_path: Path = Path(DB_BACKUP_FILE_NAME)
 

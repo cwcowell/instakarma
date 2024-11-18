@@ -19,7 +19,11 @@ class MessageParser:
         """Capture "foo" and "++" from "<@foo>++" and "<@foo> ++".
 
         This covers cases where the recipient is a user registered in Slack.
+
+        :returns: List of tuples where each tuple contains a recipient's name and
+                  the Action (increment or decrement)
         """
+
         matches: list[tuple[str, Action]] = self.VALID_USER_RECIPIENT_REGEX.findall(text)
         valid_user_recipients = [(user_id,
                                   Action.INCREMENT if action == Action.INCREMENT.value else Action.DECREMENT)
@@ -30,7 +34,11 @@ class MessageParser:
         """Capture "foo" from "@foo++" and "@foo ++" where there's no "<" before the "@".
 
         This covers cases of trying to grant karma to a user not registered in Slack.
+
+        :returns: List of tuples where each tuple contains an invalid user's name and
+                  the Action (increment or decrement)
         """
+
         matches: list[tuple[str, Action]] = self.INVALID_USER_RECIPIENT_REGEX.findall(text)
         invalid_user_recipients = [(user_id,
                                     Action.INCREMENT if action == Action.INCREMENT.value else Action.DECREMENT)
@@ -41,14 +49,18 @@ class MessageParser:
         """Capture "foo" and "++" from "foo++" and "foo ++ only when there's no @ before "foo".
 
         This covers cases where the recipient is an object, like "banyan" or "the-internet".
+
+        :returns: List of tuples where each tuple contains an object's name and
+                  the Action (increment or decrement)
         """
+
         matches: list[tuple[str, Action]] = self.OBJECT_RECIPIENT_REGEX.findall(text)
         object_recipients = [(user_id.lower(),
                               Action.INCREMENT if action == Action.INCREMENT.value else Action.DECREMENT)
                              for user_id, action in matches]
         return object_recipients
 
-    def get_amount_verb_emoji(self, action) -> tuple[int, str, str]:
+    def get_amount_verb_emoji(self, action: Action) -> tuple[int, str, str]:
         """ Convert an action into three elements of a Slack message: karma amount, verb, and emoji.
 
         :returns: Tuple with the karma amount, verb, and emoji

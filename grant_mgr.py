@@ -17,6 +17,7 @@ from slack_sdk.errors import SlackApiError
 
 
 class GrantMgr:
+    """Handle all behavior relating to the granting of karma."""
 
     def __init__(self,
                  entity_mgr: EntityMgr,
@@ -34,12 +35,18 @@ class GrantMgr:
                             say,
                             granter_user_id: str,
                             recipient: tuple[str, Action]) -> None:
-        """ Grant positive karma to a person already registered in Slack.
+        """Grant positive karma to a person already registered in Slack.
 
         Add granter and/or recipient to DB if they don't exist already.
         Disallow grants of karma to yourself.
         If the recipient has opted-out status, don't grant karma to them.
+
+        :param say: Any text passed to this callback will be displayed to the user in Slack
+        :param granter_user_id: User ID of the person granting karma
+        :param recipient: Tuple containing the name of the recipient and the Action
+                          (so we know whether to increment or decrement the recipient's karma)
         """
+
         recipient_user_id: str = recipient[0]
         action: Action = recipient[1]
         amount, verb, emoji = self.message_parser.get_amount_verb_emoji(action)
@@ -80,13 +87,24 @@ class GrantMgr:
             say(StringMgr.get_string('grant.granter-opted-out'))
             return
         recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
-        say(f"{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma")
+        say(StringMgr.get_string('grant.success',
+                                 emoji=emoji,
+                                 recipient_name=recipient_name,
+                                 verb=verb,
+                                 recipient_total_karma=recipient_total_karma))
 
     def grant_to_invalid_user(self,
                               say: callable,
                               granter_user_id: str,
                               recipient: tuple[str, Action]) -> None:
-        """ Respond to Slack channel saying it can't grant karma to a user who Slack doesn't recognize. """
+        """Respond to Slack channel saying it can't grant karma to a user that Slack doesn't recognize.
+
+        :param say: Any text passed to this callback will be displayed to the user in Slack
+        :param granter_user_id: User ID of the person granting karma
+        :param recipient: Tuple containing the name of the recipient and the Action
+                          (so we know whether to increment or decrement the recipient's karma)
+        """
+
         try:
             granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         except SlackApiError:
@@ -111,7 +129,13 @@ class GrantMgr:
 
         Add recipient to DB if they don't exist already.
         If the recipient has opted-out status, don't grant karma to them.
+
+        :param say: Any text passed to this callback will be displayed to the user in Slack
+        :param granter_user_id: User ID of the person granting karma
+        :param recipient: Tuple containing the name of the recipient and the Action
+                          (so we know whether to increment or decrement the recipient's karma)
         """
+
         granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
         recipient_name: str = recipient[0]
         action: Action = recipient[1]
@@ -129,11 +153,13 @@ class GrantMgr:
     def export_grants(self) -> None:
         """ Dump a history of all grants that are in the DB into a local CSV file.
 
-        Since this is designed to be called from `instakarma-admin` only:
+        Since this is designed to be called only from `instakarma-admin`:
+            * Exit rather than raise an error if anything goes wrong
+            * Print messages instead of logging them
 
-        * Exit rather than raise an error if anything goes wrong
-        * Print messages instead of logging them
+        :raises SystemExit: If anything goes wrong
         """
+
         grants_export_file_path: Final[Path] = Path(GRANTS_EXPORT_FILE)
         if grants_export_file_path.exists():
             sys.exit(StringMgr.get_string('grant.log.error.export-file-exists',
@@ -161,4 +187,5 @@ class GrantMgr:
             sys.exit(StringMgr.get_string('grants.log.error.write-file',
                                           grants_export_file_path=grants_export_file_path.resolve(),
                                           e=e))
-        print(StringMgr.get_string('grant.grants-exported', grants_export_file_path=grants_export_file_path.resolve()))
+        print(StringMgr.get_string('grant.grants-exported',
+                                   grants_export_file_path=grants_export_file_path.resolve()))

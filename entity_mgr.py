@@ -23,7 +23,7 @@ class EntityMgr:
     def get_status(self, name: str) -> Status:
         """Get the status of an entity, identifying it by name.
 
-        :return: Status of the entity
+        :returns: Status of the entity
         :raises sqlite3.error: If something goes wrong with the DB
         """
 
@@ -45,11 +45,12 @@ class EntityMgr:
             raise
 
     def name_exists_in_db(self, name: str) -> bool:
-        """ See if an entity with a particular name exists in the 'entities' table.
+        """See if an entity with a particular name exists in the 'entities' table.
 
-        :return: Whether the name exists in the DB
+        :returns: Whether the name exists in the DB
         :raises sqlite3.error: If something goes wrong with the DB
         """
+
         try:
             results: list = self.db_mgr.execute_statement("""
                                                           SELECT *
@@ -67,6 +68,7 @@ class EntityMgr:
 
         :raises sqlite3.error: If something goes wrong with the DB
         """
+
         try:
             self.db_mgr.execute_statement(f"""
                                            UPDATE entities
@@ -82,15 +84,15 @@ class EntityMgr:
             raise
 
     def get_name_from_user_id(self, user_id: str) -> str:
-        """ Convert an entity's user_id to its name.
+        """ onvert an entity's user_id to its name.
 
         Consult the DB and/or Slack API and add DB entries as needed.
 
-        :return: The name that corresponds to the provided user_id
+        :returns: Name corresponding to the provided user_id
         :raises sqlite3.error: If something goes wrong with the DB
         """
 
-        # if row exists in DB with that user_id and name, RETURN name
+        # if row exists in DB with that user_id and name, return name
         try:
             results: list = self.db_mgr.execute_statement("""
                                                           SELECT name
@@ -108,7 +110,7 @@ class EntityMgr:
             return name
 
         # else if row exists for that `user_id`, look up `name` in the API and update the row with `name`.
-        # RETURN `name`
+        # Return `name`
         try:
             results: list = self.db_mgr.execute_statement("""
                                                           SELECT *
@@ -161,10 +163,13 @@ class EntityMgr:
         return name
 
     def add_entity(self, name: str, user_id: str | None) -> None:
-        """Add an entity to the table. No-op if it already exists.
+        """Add an entity to the table.
+
+        No-op if it already exists. Store the user_id in the entity's row if it was passed in.
 
         :raises sqlite3.Error: If something goes wrong with the DB
         """
+
         try:
             self.db_mgr.execute_statement("""
                                           INSERT OR IGNORE INTO entities (name, user_id)
@@ -180,9 +185,10 @@ class EntityMgr:
     def list_entities(self, attribute: Literal['karma', 'name']) -> list[tuple[str, int]]:
         """List all entities in the DB either alphabetically or by descending karma.
 
-        :return: List of tuples, where each tuple contains an entity name and user_id
+        :returns: List of tuples, where each tuple contains an entity name and user_id
         :raises sqlite3.Error: If something goes wrong with the DB
         """
+
         try:
             results: list = self.db_mgr.execute_statement(f"""
                                          SELECT name, karma
@@ -197,11 +203,12 @@ class EntityMgr:
         return entities
 
     def list_opted_out_entities(self) -> list[str]:
-        """ List all entities in the DB with 'opted-out' status.
+        """List all entities in the DB with 'opted-out' status.
 
-        :return: List of tuples, each containing an opted-out entity name and user_id
+        :returns: List of tuples, each containing an opted-out entity name and user_id
         :raises sqlite3.error: If something goes wrong with the DB
         """
+
         try:
             results: list = self.db_mgr.execute_statement(f"""
                                                           SELECT name

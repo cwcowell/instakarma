@@ -10,15 +10,21 @@ from log_mgr import LogMgr
 from message_parser import MessageParser
 from string_mgr import StringMgr
 
-from argparse import ArgumentParser
 import argparse
+from argparse import ArgumentParser
 from logging import Logger
 import sqlite3
 import sys
 
 
 def init_db() -> None:
-    """ Initialize the DB with every restart to simplify error handling. """
+    """Initialize the DB.
+
+    No-op if the DB already exists.
+
+    :raises SystemExit: If there are DB errors
+    """
+
     result: str = ''
     try:
         result: str = db_manager.init_db()
@@ -29,6 +35,15 @@ def init_db() -> None:
 
 
 def set_status(name: str, new_status: Status) -> None:
+    """Set the opted-in/opted-out status of an entity.
+
+    Also prints the entity's new status.
+
+    Intended to be called from `instakarma-admin` only.
+
+    :raises SystemExit: If there are DB errors or the entity doesn't exist in the DB
+    """
+
     try:
         if not entity_manager.name_exists_in_db(name):
             sys.exit(StringMgr.get_string('instakarma-admin.no-entity-exists', name=name))
@@ -41,6 +56,8 @@ def set_status(name: str, new_status: Status) -> None:
 
 
 def main() -> None:
+    """Parse CLI parameters and handle each valid parameter."""
+
     parser: ArgumentParser = argparse.ArgumentParser(
         description=StringMgr.get_string('instakarma-admin.description'),
         prog=StringMgr.get_string('instakarma-admin.prog'),
@@ -88,7 +105,7 @@ def main() -> None:
                 entity_manager.add_entity(name, None)
             except sqlite3.Error as e:
                 sys.exit(StringMgr.get_string('error.sqlite3', e=e))
-            print(StringMgr.get_string("instakarma-admin.add-entity.successful", name=name))
+            print(StringMgr.get_string('instakarma-admin.add-entity.successful', name=name))
 
         case 'backup-db':
             db_manager.backup_db()
@@ -141,5 +158,5 @@ if __name__ == '__main__':
     message_parser: MessageParser = MessageParser(logger)
     grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
 
-    init_db()
+    init_db()  # error handling is easier if you know there's a DB present
     main()

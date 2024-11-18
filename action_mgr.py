@@ -10,17 +10,22 @@ import sqlite3
 
 
 class ActionMgr:
+    """Collection of methods to handle each action (not slash command) a user can perform with instakarma."""
+
     def __init__(self, db_mgr: DbMgr, logger: Logger):
         self.db_mgr = db_mgr
         self.logger = logger
 
     def help(self, respond):
+        """Print usage info."""
+
         respond(text=StringMgr.get_string('action.help.respond-text'),
                 blocks=response_blocks.help,
                 response_type='ephemeral')
 
     def leaderboard(self, respond) -> None:
-        """ Respond to Slack with a list of all non-user entities and their karma, in descending karma order. """
+        """Respond to Slack with a list of all non-user entities and their karma, in descending karma order."""
+
         try:
             results: list = self.db_mgr.execute_statement("""
                                                           SELECT name, karma
@@ -44,11 +49,12 @@ class ActionMgr:
                  respond,
                  entity_mgr: EntityMgr,
                  karma_mgr: KarmaMgr) -> None:
-        """ Respond to Slack with how much karma the user has, who they've given the most karma to,
+        """Respond to Slack with how much karma the user has, who they've given the most karma to,
         and who has given them the most karma.
 
         If the user has opted out, don't display any stats.
         """
+
         name: str = '@' + command['user_name']
 
         if not entity_mgr.name_exists_in_db(name):
@@ -116,10 +122,12 @@ class ActionMgr:
                    respond,
                    new_status: Status,
                    entity_mgr: EntityMgr) -> None:
-        """ Set an entity's status to either `opted-in` or `opted-out`. """
+        """Set an entity's status to either `opted-in` or `opted-out`."""
+
         name: str = '@' + command['user_name']
         entity_mgr.set_status(name, new_status)
-        respond(text=StringMgr.get_string('action.set-status.respond-text', name=name, status=new_status.value),
+        respond(text=StringMgr.get_string('action.set-status.respond-text',
+                                          name=name,
+                                          status=new_status.value),
                 blocks=response_blocks.change_status(new_status),
                 response_type='ephemeral')
-

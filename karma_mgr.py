@@ -10,6 +10,7 @@ import sqlite3
 
 
 class KarmaMgr:
+    """Handle all behavior relating to karma."""
 
     def __init__(self,
                  db_mgr: DbMgr,
@@ -20,12 +21,13 @@ class KarmaMgr:
         self.logger = logger
 
     def get_karma(self, name: str) -> int:
-        """ Get the current karma for any entity, whether person or object.
+        """Get the current karma for any entity, whether person or object.
 
         :return: The entity's current karma
         :raises sqlite3.Error: If anything goes wrong with the DB
         :raises ValueError: If there's no entity with that name in the DB, or if they have opted-out status
         """
+
         try:
             results: list = self.db_mgr.execute_statement("""
                                                           SELECT karma
@@ -44,6 +46,13 @@ class KarmaMgr:
             raise
 
     def get_top_granters(self, recipient_name: str) -> list[tuple[str, int]]:
+        """Get the names and amount of karma granted to a specific person by their most generous granters.
+
+        :returns: List of tuples, where each tuple contains the name of the granter
+                  and the amount of karma they've granted to the recipient
+        :raises sqlite3.Error: If anything goes wrong with the DB
+        """
+
         try:
             results: list = self.db_mgr.execute_statement(f"""
                                                SELECT e_granter.name as top_granter_name,
@@ -65,6 +74,13 @@ class KarmaMgr:
             raise
 
     def get_top_recipients(self, granter_name: str, action: Action) -> list[tuple[str, int]]:
+        """Get the names and amount of karma that the granter has been most generous to.
+
+        :returns: List of tuples, where each tuple contains the name of the recipient
+                  and the amount of karma they've received from the recipient
+        :raises sqlite3.Error: If anything goes wrong with the DB
+        """
+
         amount: int = 1 if action is Action.INCREMENT else -1
         try:
             results: list = self.db_mgr.execute_statement(f"""
@@ -90,12 +106,12 @@ class KarmaMgr:
                     granter_name: str,
                     recipient_name: str,
                     amount: int) -> None:
-        if self.entity_mgr.get_status(recipient_name) == Status.OPTED_OUT:
-            self.logger.info(StringMgr.get_string('karma.grant-karma.recipient-opted-out',
-                                                  granter_name=granter_name,
-                                                  amount=amount,
-                                                  recipient_name=recipient_name))
-            raise OptedOutRecipientError
+        """Grant karma.
+
+        :raises OptedOutGranterError: If the granter has `opted-out` status
+        :raises OptedOutRecipientError: If the recipient has `opted-out` status
+        :raises sqlite3.Error: If anything goes wrong with the DB
+        """
 
         if self.entity_mgr.get_status(granter_name) == Status.OPTED_OUT:
             self.logger.info(StringMgr.get_string('karma.grant-karma.granter-opted-out',
@@ -103,6 +119,13 @@ class KarmaMgr:
                                                   amount=amount,
                                                   recipient_name=recipient_name))
             raise OptedOutGranterError
+
+        if self.entity_mgr.get_status(recipient_name) == Status.OPTED_OUT:
+            self.logger.info(StringMgr.get_string('karma.grant-karma.recipient-opted-out',
+                                                  granter_name=granter_name,
+                                                  amount=amount,
+                                                  recipient_name=recipient_name))
+            raise OptedOutRecipientError
 
         try:
             # make an entry in the 'grants' table using subqueries to look up 'entity_id' for granter and recipient

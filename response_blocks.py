@@ -1,11 +1,12 @@
-""" Slack text blocks used to respond to instakarma slash commands and instakarma operations """
+"""Slack text blocks used to respond to instakarma slash commands and instakarma operations."""
 
 from enums import Status
 from string_mgr import StringMgr
 
 
 def change_status(new_status: Status) -> list[dict]:
-    """ Generate Slack text blocks with info about a user's opted-in/opted-out status. """
+    """Generate Slack text blocks with info about a user's opted-in/opted-out status."""
+
     text: str = StringMgr.get_string('response-blocks.change-status.current-status', status=new_status.value) + \
                 '\n'
     if new_status == Status.OPTED_OUT:
@@ -46,7 +47,8 @@ help: list[dict] = [
 
 
 def leaderboard(leader_text: str) -> list[dict]:
-    """ Generate Slack text blocks that contain all object names and karma. """
+    """Generate Slack text blocks that contain all object names and karma."""
+
     return [
         {
             "type": "header",
@@ -72,7 +74,8 @@ def my_stats(name: str,
              top_positive_recipients_text: str,
              top_negative_recipients_text: str,
              top_granters_text: str) -> list[dict]:
-    """ Generate Slack text blocks that contain a user's karma stats. """
+    """Generate Slack text blocks that contain a user's karma stats."""
+
     return [
         {
             "type": "header",

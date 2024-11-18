@@ -63,6 +63,7 @@ error:
   undefined-string: "<STRING FOR {undefined_key_path!r} IS UNDEFINED>"
 
 grant:
+  success: "{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma"
   granter-opted-out: ":x: sorry, you can't grant karma because you've opted out of instakarma\nopt in with */instakarma opt-in*"
   grants-exported: "all grants exported to '{grants_export_file_path}'"
   invalid-person: ":x: sorry, user {recipient_name} isn't registered in Slack"

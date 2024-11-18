@@ -22,10 +22,19 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
-# Listen for "++" or "--" in any message in any channel the bot subscribes to.
 @app.message(r'(\+\+)|(--)')
 def handle_karma_grants(message: dict, say) -> None:
-    with bot_lock:
+    """Handle "++" or "--" in any message in any channel the bot is a member of.
+
+    Parse the message looking for "++" or "--", and figure out whether each instance of that text is aimed
+    at a registered Slack user (valid user like `@bob`), an unregistered Slack user (invalid user like `@foo`)
+    or an object (like `pie` or `elvis-presley`).
+
+    :param message: The incoming Slack message
+    :param say: any text passed to this callback function will be displayed to the user in Slack
+    """
+
+    with bot_lock:  # block other slash commands from processing until this one is done
         granter_user_id: str = message['user']
         msg_text: str = message['text']
 
@@ -43,8 +52,15 @@ def handle_karma_grants(message: dict, say) -> None:
 
 @app.command('/instakarma')
 def handle_instakarma_command(ack, respond, command) -> None:
-    with bot_lock:
-        ack()
+    """Parse the `/instakarma` slash command and call the appropriate handler for the specified subcommand.
+
+    :param ack: Slack requires us to call this callback to acknowledge receipt of the slash command
+    :param respond: Any text passed to this callback function will be displayed to the user in Slack
+    :param command: If the user typed `/instakarma foo` this is `foo`
+    """
+
+    with bot_lock:  # block other slash commands from processing until this one is done
+        ack()  # required by Slack SDK
         subcommand = command['text'].lower()
         match subcommand:
             case 'help' | '':
@@ -64,8 +80,13 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
 @app.event("message")
 def handle_message_events(body, logger):
-    with bot_lock:
-        pass  # suppress console output that normally comes from every message
+    """Accept all messages but do nothing.
+
+    This suppresses console output that normally appears after every message.
+    """
+
+    with bot_lock:  # block other slash commands from processing until this one is done
+        pass
 
 
 if __name__ == "__main__":
