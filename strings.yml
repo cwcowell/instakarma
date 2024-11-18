@@ -30,9 +30,11 @@ db:
     connection: "error: couldn't connect to database file {db_file_name!r}: {e}"
     could-not-backup: "error: DB backup failed: {e}"
     could-not-create: "error: couldn't create DB: {e}"
+    could-not-truncate: "error: couldn't truncate DB, so aborted the DB backup: {e}"
     db-backup-file-exists: "error: DB backup file already exists at '{db_backup_path}', so backup was aborted"
     no-db-file: "error: no DB file at '{db_path}' to back up"
     rollback: "error: rolled back after failed query: {statement!r} | parms: {parms!r} | error: {e}"
+    truncation-blocked: "error: DB truncation blocked by another process -- backup aborted"
 
 entity:
   current-status: "{name!r} now has status {status!r}"

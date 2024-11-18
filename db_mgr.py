@@ -31,19 +31,17 @@ class DbMgr:
         :raises sqlite3.Error: If something goes wrong with the DB
         """
         log_friendly_statement: str = self.format_statement_for_log(statement)
-        conn: Connection = self.get_db_connection()
-        try:
-            cursor: Cursor = conn.execute(statement, parms)
-            conn.commit()
-            return cursor.fetchall()
-        except sqlite3.Error as e:
-            conn.rollback()
-            self.logger.error(StringMgr.get_string('db.error.rollback',
-                                                   statement=log_friendly_statement,
-                                                   parms=parms, e=e))
-            raise
-        finally:
-            conn.close()
+        with self.get_db_connection() as conn:
+            try:
+                cursor: Cursor = conn.execute(statement, parms)
+                conn.commit()
+                return cursor.fetchall()
+            except sqlite3.Error as e:
+                conn.rollback()
+                self.logger.error(StringMgr.get_string('db.error.rollback',
+                                                       statement=log_friendly_statement,
+                                                       parms=parms, e=e))
+                raise
 
     def init_db(self) -> str:
         """ Create an empty DB if it doesn't already exist. If it does, no-op.
@@ -78,7 +76,10 @@ class DbMgr:
         """ Format a statement as a single line for logging.
 
         :returns: Statement formatted as a single line
+        :raises ValueError: if `statement` isn't a string
         """
+        if not isinstance(statement, str):
+            raise ValueError(f'Statement must be a string, but got {type(statement)}')
         statement = statement.replace('\n', ' ')  # replace newlines with spaces
         return ' '.join(statement.split())  # replace multiple spaces with a single space
 
@@ -96,9 +97,21 @@ class DbMgr:
         if db_backup_path.exists():
             sys.exit(StringMgr.get_string('db.error.db-backup-file-exists', db_backup_path=db_backup_path))
 
+        # checkpoint to truncate WAL and consolidate DB to 1 file
+        with self.get_db_connection() as conn:
+            try:
+                cursor: Cursor = conn.execute('PRAGMA wal_checkpoint(TRUNCATE);')
+                results: tuple[int, int, int] = cursor.fetchone()
+                if results[0]:
+                    sys.exit(StringMgr.get_string('db.error.truncation-blocked'))
+            except sqlite3.Error as e:
+                sys.exit(StringMgr.get_string('db.error.could-not-truncate', e=e))
+
         try:
-            with sqlite3.connect(DB_FILE_NAME) as source, sqlite3.connect(DB_BACKUP_FILE_NAME) as destination:
+            with sqlite3.connect(DB_FILE_NAME) as source, \
+                 sqlite3.connect(DB_BACKUP_FILE_NAME) as destination:
                 source.backup(destination)
         except sqlite3.Error as e:
             sys.exit(StringMgr.get_string('db.error.could-not-backup', e=e))
+
         print(f"{DB_FILE_NAME!r} backed up to {DB_BACKUP_FILE_NAME!r}")

@@ -1,8 +1,8 @@
 -- data definitions for SQLite 3.45
 
 PRAGMA foreign_keys = ON; -- weirdly required by SQLite
-
-PRAGMA synchronous = NORMAL; -- for testing only: slower but flushes with every commit()
+PRAGMA journal_mode = WAL; -- speeds DB access but can result in multiple DB files
+PRAGMA synchronous = NORMAL; -- good balance between speed and safety
 
 -- store current (not historical) karma for all entities
 CREATE TABLE entities
