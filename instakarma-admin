@@ -46,7 +46,7 @@ def main() -> None:
         prog=StringMgr.get_string('instakarma-admin.prog'),
         epilog=StringMgr.get_string('instakarma-admin.epilog'))
 
-    subparsers = parser.add_subparsers(dest='command', required=True)
+    subparsers = parser.add_subparsers(dest='command')
 
     add_entity_parser = subparsers.add_parser('add-entity',
                                               help=StringMgr.get_string('instakarma-admin.help.add-entity.command'))
@@ -73,6 +73,11 @@ def main() -> None:
                                 metavar='NAME')
 
     args: argparse.Namespace = parser.parse_args()
+
+    # print help if no command is provided
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
 
     match args.command:
         case 'add-entity':
