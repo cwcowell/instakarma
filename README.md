@@ -96,11 +96,12 @@ Check with the contributors below before adding new features, since we want to k
 
 ### Prerequisites
 
-* Python - Instakarma was tested on Python 3.13 but might work on earlier versions
-* `pip install pyyaml` - for parsing the YAML file that holds user-facing strings
-* `pip install slack_bolt` - the Slack SDK
-* A free [Slack API sandbox](https://api.slack.com/docs/developer-sandbox) - for testing
-* A Slack app configured as described in the section above - for testing
+* Python 3.13 -- instakarma was tested on Python 3.13 but might work on earlier versions
+* `pip install -r requirements.txt` -- to install 2 Python libraries that are dependencies:
+   * `PyYAML` -- for parsing the YAML file that holds user-facing strings
+   * `slack_bolt` -- the Slack SDK
+* A free [Slack API sandbox](https://api.slack.com/docs/developer-sandbox) -- for testing
+* A Slack app configured as described in the section above -- for testing
 
 
 ### Contributors
