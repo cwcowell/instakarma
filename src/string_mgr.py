@@ -1,4 +1,4 @@
-from constants import STRINGS_FILE, STRING_PLACEHOLDER
+from constants import STRINGS_FILE
 
 from pathlib import Path
 import yaml

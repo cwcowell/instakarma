@@ -12,9 +12,9 @@ There are 2 runnable Python programs:
 
 ## Architecture
 
-The instakarma karma bot requires a Slack app with certain permissions that's installed in a Slack workspace. The `instakarma-bot` programs runs on a server somewhere, and it creates a websocket connection to either the Slack app or the Slack workspace (I'm not sure which, but it doesn't matter). All messages in public channels, private channels, or multi-person DMs in that Slack workspace are sent via websocket to `instakarma-bot`, which listens for karma-related text (like `foo++` or `/instakarma my-stats`) and acts on any karma-related text it sees. For example, if `instakarma-bot` sees `foo++` in a message, it updates the DB to grant karma to `foo`. The `instakarma-bot` program generates output to the user whenever it handles karma, and sends this output back to the Slack app or Slack workspace via websocket, where it's displayed to the user.
+Instakarma requires a Slack app with certain permissions to be installed in a Slack workspace. See the **Running instakarma-bot** section below for details.
 
-**The `instakarma-bot` program uses regexes to look for certain phrases (like `foo++`) in text typed by users, but it doesn't store or forward any text. It is not spyware.**
+It also requires the `instakarma-bot` program to be running on a server somewhere. This program creates a websocket connection to either the Slack app or the Slack workspace (I'm not sure which, but it doesn't matter). All messages in public channels, private channels, or multi-person DMs in that Slack workspace are sent via websocket to `instakarma-bot`, which listens for karma-related text (like `foo++` or `/instakarma my-stats`) and acts on any karma-related text it sees. For example, if `instakarma-bot` sees `foo++` in a message, it updates the DB to grant karma to the entity `foo`.
 
 The `instakarma-admin` program is an optional administration tool. It never needs to be run, but can be a helpful way to manage the instakarma DB, export data, etc.
 
@@ -56,7 +56,7 @@ When you run `instakarma-bot` it will listen for any karma-related messages on w
 Here's how to get things set up.
 
 1. Make a slack app with these tokens or configuration settings:
-    * An app-level token with `connection:write` scope
+    * An app-level token with `connections:write` scope
     * A bot token with these **OAuth Scopes**:
         * `channels:history`
         * `chat:write`
@@ -78,14 +78,21 @@ Here's how to get things set up.
 1. Set env vars
    * `export SLACK_APP_TOKEN=<SLACK-APP-TOKEN-THAT-STARTS-WITH-'xapp-'>`
    * `export SLACK_BOT_TOKEN=<SLACK-BOT-TOKEN-THAT-STARTS-WITH-'xoxb-'>`
+1. Make sure Python 3.13 is installed (it might work on earlier versions, but was only tested on 3.13)
+1. `cd <REPO-ROOT-DIR>`
+1. `pip install -r requirements.txt` (you only have to do this once)
+1. `cd src`
 1. `./instakarma-bot`
 
 
 ## Running `instakarma-admin`
 
-
-1. Get Python 3.13 (`instakarma-admin` might work on earlier versions, but was only tested on 3.13)
+1. Make sure Python 3.13 is installed (it might work on earlier versions, but was only tested on 3.13)
+1. `cd <REPO-ROOT-DIR>`
+1. `pip install -r requirements.txt` (you only have to do this once)
+1. `cd src`
 1. `./instakarma-admin help`
+
 
 ## Contributing
 
@@ -96,20 +103,28 @@ Check with the contributors below before adding new features, since we want to k
 
 ### Prerequisites
 
-* Python 3.13 -- instakarma was tested on Python 3.13 but might work on earlier versions
-* `pip install -r requirements.txt` -- to install 2 Python libraries that are dependencies:
+* Make sure Python 3.13 is installed (it might work on earlier versions, but was only tested on 3.13)
+* `pip install -r requirements.txt` -- to install 2 Python libraries
    * `PyYAML` -- for parsing the YAML file that holds user-facing strings
    * `slack_bolt` -- the Slack SDK
 * A free [Slack API sandbox](https://api.slack.com/docs/developer-sandbox) -- for testing
 * A Slack app configured as described in the section above -- for testing
 
 
+
+### FAQ
+
+* I launched the bot with `./instakarma-bot`, so why does nothing happen when I type `foo++` in a Slack channel? _Check `logs/instakarma.log` for errors. If there are no errors, did you invite the instakarma to the channel or DM you typed `foo++` in? If not, invite it by mentioning `@instakarma` in that channel or DM._
+* Is this spyware? _The `instakarma-bot` program uses regexes to look for certain phrases (like `++`) in text typed by users, but it doesn't store or forward any of the text it sees. It isn't spyware._
+* Where does instakarma work? _Public channels, private channels, and multiple-person DMs. It doesn't work in 1-to-1 DMs._
+
+
 ### Contributors
 
-* Chris Cowell - `christopher.cowell@instabase.com` or `christopher.w.cowell@gmail.com`
+Chris Cowell - `christopher.cowell@instabase.com` or `christopher.w.cowell@gmail.com`
 
 
 ### License
 
-Copyright © 2024 Christopher Cowell
+Copyright © 2024 Christopher W. Cowell <br/>
 All rights reserved.

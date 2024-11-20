@@ -1,3 +1,5 @@
+# Install these Python dependencies with `pip install -r requirements.txt` from the project root.
+
 PyYAML~=6.0.2
 slack_bolt~=1.21.0
 slack_sdk~=3.33.1

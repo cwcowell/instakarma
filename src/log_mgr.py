@@ -1,4 +1,5 @@
 from constants import LOG_FILE, LOG_LEVEL, LOG_FILE_SIZE, LOG_FILE_COUNT
+
 from logging import Logger
 import logging.handlers
 from logging.handlers import RotatingFileHandler

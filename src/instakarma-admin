@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+import os
+import sys
+
+if os.path.basename(os.getcwd()) != 'src':
+    print("Error: 'instakarma-admin' must be run from the '<REPO-ROOT-DIR>/src/' directory")
+    sys.exit(1)
+
 from constants import *
 from db_mgr import DbMgr
 from entity_mgr import EntityMgr
@@ -158,5 +165,5 @@ if __name__ == '__main__':
     message_parser: MessageParser = MessageParser(logger)
     grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
 
-    init_db()  # error handling is easier if you know there's a DB present
+    init_db()  # error handling is easier there's a DB guaranteed to be present
     main()

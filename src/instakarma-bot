@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+import os
+import sys
+
+if os.path.basename(os.getcwd()) != 'src':
+    print("Error: 'instakarma-bot' must be run from the '<REPO-ROOT-DIR>/src/' directory")
+    sys.exit(1)
+
 from action_mgr import ActionMgr
 from constants import *
 from db_mgr import DbMgr
@@ -13,14 +20,13 @@ from slack_api_mgr import SlackApiMgr
 from string_mgr import StringMgr
 
 from logging import Logger
-import os
 from threading import Lock
 
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-
 app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
+
 
 @app.message(r'(\+\+)|(--)')
 def handle_karma_grants(message: dict, say) -> None:
@@ -92,6 +98,7 @@ def handle_message_events(body, logger):
 if __name__ == "__main__":
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app,
                                                                  app_token=os.environ["SLACK_APP_TOKEN"])
+    # slack_message_handler: SocketModeHandler = SocketModeHandler(app=app)
     logger: Logger = LogMgr.get_logger(LOGGER_NAME,
                                        LOG_FILE,
                                        LOG_LEVEL,
