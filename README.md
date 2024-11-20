@@ -106,3 +106,9 @@ Check with the contributors below before adding new features, since we want to k
 ### Contributors
 
 * Chris Cowell - `christopher.cowell@instabase.com` or `christopher.w.cowell@gmail.com`
+
+
+### License
+
+Copyright © 2024 Christopher Cowell
+All rights reserved.
