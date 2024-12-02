@@ -1,0 +1,2 @@
+class EntityDAO:
+    pass

@@ -1,0 +1,2 @@
+class GrantDAO:
+    pass

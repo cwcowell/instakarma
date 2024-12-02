@@ -6,5 +6,5 @@ class Grant(BaseModel):
     amount: int
     granter_id: int
     recipient_id: int
-    table_id: int | None = None
+    grants_table_id: int | None = None
     timestamp: datetime
