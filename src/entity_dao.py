@@ -48,7 +48,7 @@ class EntityDAO:
                    SET opted_in = ?
                    WHERE name = ?;
                    """
-        params: tuple = ((new_status == Status.OPTED_IN), name)
+        params: tuple = (new_status == Status.OPTED_IN, name)
         try:
             self.db_mgr.execute_statement(sql, params)
             self.logger.info(StringMgr.get_string(key_path='entity.current-status',
