@@ -10,7 +10,7 @@ if os.path.basename(os.getcwd()) != 'src':
 from constants import *
 from db_mgr import DbMgr
 from entity import Entity
-from entity_dao import EntityDAO
+from src.entity_dao import EntityDAO
 from entity_mgr import EntityMgr
 from enums import Status
 from grant_mgr import GrantMgr

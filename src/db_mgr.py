@@ -8,55 +8,9 @@ import sqlite3
 import sys
 from typing import Self, ClassVar
 
-# ---
-# class Singleton:
-#     _field = 7
-#
-#     def __new__(cls, *args, **kwargs):
-#         raise NotImplementedError("This class cannot be instantiated")
-#
-#     @classmethod
-#     def get_field(cls):
-#         return cls._field
-#
-# better, from Gemini:
-#
-#class UninstantiableClass:
-# foo = "bar"
-#
-# @classmethod
-# def class_method(cls):
-#     print("This is a class method.")
-#     print(cls.foo)
-#
-# @staticmethod
-# def static_method():
-#     print("This is a static method.")
-#
-# ---
 
 class DbMgr:
     """Collect all DB-related methods in one singleton class."""
-
-    _instance: ClassVar[Self | None] = None
-
-    def _new_(cls) -> Self:
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            try:
-                cls._instance._connection: Connection | None = sqlite3.connect(DB_FILE_NAME)
-            except Exception as e:
-                print(e.with_traceback())
-                sys.exit()
-                cls._instance._connection = None
-                raise SystemError(StringMgr.get_string('db.error.connection',
-                                                        db_file_name=DB_FILE_NAME,
-                                                        e=e))
-        return cls._instance
-
-    def __init__(cls):
-        """Prevent instantiation of this class."""
-        raise Exception("DbMgr class cannot be instantiated. Use its class methods instead.")
 
     @classmethod
     def execute_statement(cls, statement: str, params: tuple = ()) -> list[tuple]:

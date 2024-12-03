@@ -4,11 +4,9 @@ from db_mgr import DbMgr
 
 class EntityDAO:
 
-    def __init__(self, db_mgr: DbMgr):
-        self.db_mgr: DbMgr = db_mgr
+    db_mgr: DbMgr = DbMgr()
 
-
-    def list_opted_out(self) -> list[Entity]:
+    def list_opted_out(cls) -> list[Entity]:
         sql: str = """
             SELECT name
             FROM entities
