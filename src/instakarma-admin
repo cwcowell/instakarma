@@ -10,7 +10,7 @@ if os.path.basename(os.getcwd()) != 'src':
 from constants import *
 from db_mgr import DbMgr
 from entity import Entity
-from src.entity_dao import EntityDAO
+from entity_dao import EntityDAO
 from entity_mgr import EntityMgr
 from enums import Status
 from grant_mgr import GrantMgr
@@ -47,19 +47,21 @@ def set_status(name: str, new_status: Status) -> None:
     """Set the opted-in/opted-out status of an entity.
 
     Also prints the entity's new status.
-
     Intended to be called from `instakarma-admin` only.
 
     :raises SystemExit: If there are DB errors or the entity doesn't exist in the DB
     """
 
+    entity_dao = EntityDAO(db_mgr, logger)
     try:
-        if not entity_manager.name_exists_in_db(name):
-            sys.exit(StringMgr.get_string('instakarma-admin.no-entity-exists', name=name))
-        entity_manager.set_status(name, new_status)
+        if not entity_dao.is_in_db(name):
+            raise SystemExit(StringMgr.get_string(key_path='instakarma-admin.no-entity-exists',
+                                                  name=name))
+        entity_dao.set_status(name, new_status)
     except sqlite3.Error as e:
-        sys.exit(StringMgr.get_string('error.sqlite3', e=e))
-    print(StringMgr.get_string('instakarma-admin.current-status',
+        raise SystemExit(StringMgr.get_string(key_path='error_sqlite3',
+                                              e=e))
+    print(StringMgr.get_string(key_path='instakarma-admin.current-status',
                                name=name,
                                status=entity_manager.get_status(name).value))
 
@@ -139,7 +141,7 @@ def main() -> None:
                 print(f"{name},{karma}")
 
         case 'list-opted-out':
-            entity_dao = EntityDAO(db_mgr=db_mgr)
+            entity_dao = EntityDAO(db_mgr, logger)
             entities: list[Entity] = entity_dao.list_opted_out()
             if not entities:
                 print(StringMgr.get_string('instakarma-admin.nobody-opted-out'))
@@ -165,5 +167,5 @@ if __name__ == '__main__':
     message_parser: MessageParser = MessageParser(logger)
     grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_mgr)
 
-    init_db()  # error handling is easier there's a DB guaranteed to be present
+    init_db()  # error handling is easier if there's a DB guaranteed to be present
     main()
