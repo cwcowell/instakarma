@@ -7,6 +7,18 @@ from sqlite3 import Connection, Cursor
 import sqlite3
 import sys
 
+# ---
+# class Singleton:
+#     _field = 7
+#
+#     def __new__(cls, *args, **kwargs):
+#         raise NotImplementedError("This class cannot be instantiated")
+#
+#     @classmethod
+#     def get_field(cls):
+#         return cls._field
+#
+# ---
 
 class DbMgr:
     """Collect all DB-related methods in one class."""
