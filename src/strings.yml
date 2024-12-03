@@ -48,6 +48,7 @@ entity:
     could-not-check-name: "couldn't check if name {name!r} exists in 'entities' table: {e}"
     could-not-check-user-id: "couldn't check if user_id {user_id!r} exists in 'entities' table: {e}"
     could-not-get-name-from-user-id: "couldn't look up name for user_id {user_id!r}: {e}"
+    could-not-check-if-entity-exists: "couldn't check if name {name!r} or user_id {user_id!r} exists in 'entities' table"
     could-not-list-entities: "couldn't retrieve list of entities: {e}"
     could-not-list-opted-out: "couldn't retrieve list of opted-out entities: {e}"
     could-not-set-name: "couldn't set name to {name!r} for user_id of {user_id!r}: {e}"

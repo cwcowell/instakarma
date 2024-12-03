@@ -13,17 +13,36 @@ class EntityDAO:
         self.db_mgr = db_mgr
         self.logger = logger
 
-    def is_in_db(self, name: str) -> bool:
+    def add(self, entity: Entity) -> None:
+        sql: str = """
+                   INSERT OR IGNORE INTO entities (name, user_id)
+                   VALUES (?, ?);
+                   """
+        params: tuple = (entity.name, entity.user_id)
+        try:
+            self.db_mgr.execute_statement(sql, params)
+        except sqlite3.Error as e:
+            self.logger.error(StringMgr.get_string(key_path='entity.error.could-not-add-entity',
+                                                   name=entity.name,
+                                                   user_id=entity.user_id,
+                                                   e=e))
+            raise
+
+
+    def is_in_db(self, entity: Entity) -> bool:
         sql: str = """
                    SELECT name
                    FROM entities
-                   WHERE name = ?;        
+                   WHERE name = ? or user_id = ?;
                    """
-        params: tuple = (name,)
+        params: tuple = (entity.name, entity.user_id)
         try:
             results: list[tuple] = self.db_mgr.execute_statement(sql, params)
         except sqlite3.Error as e:
-            self.logger.error(StringMgr.get_string('entity.error.could-not-check-name', name=name, e=e))
+            self.logger.error(StringMgr.get_string(key_path='entity.error.could-not-check-if-entity-exists',
+                                                   name=entity.name,
+                                                   user_id=entity.user_id,
+                                                   e=e))
             raise
         return len(results) > 0
 
@@ -42,21 +61,21 @@ class EntityDAO:
             entities.append(entity)
         return entities
 
-    def set_status(self, name: str, new_status: Status) -> None:
+    def set_status(self, entity: Entity, new_status: Status) -> None:
         sql: str = f"""
                    UPDATE entities
                    SET opted_in = ?
                    WHERE name = ?;
                    """
-        params: tuple = (new_status == Status.OPTED_IN, name)
+        params: tuple = (new_status == Status.OPTED_IN, entity.name)
         try:
             self.db_mgr.execute_statement(sql, params)
             self.logger.info(StringMgr.get_string(key_path='entity.current-status',
-                                                  name=name,
+                                                  name=entity.name,
                                                   status=new_status.value))
         except sqlite3.Error as e:
             self.logger.error(StringMgr.get_string(key_path='entity.error.could-not-set-status',
-                                                   name=name,
+                                                   name=entity.name,
                                                    status=new_status.value,
                                                    e=e))
             raise

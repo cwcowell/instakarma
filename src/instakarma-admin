@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
 import os
-import sys
 
 if os.path.basename(os.getcwd()) != 'src':
-    print("Error: 'instakarma-admin' must be run from the '<REPO-ROOT-DIR>/src/' directory")
-    sys.exit(1)
+    raise SystemExit("Error: 'instakarma-admin' must be run from the '<REPO-ROOT>/src/' directory")
 
 from constants import *
 from db_mgr import DbMgr
@@ -23,7 +21,6 @@ import argparse
 from argparse import ArgumentParser
 from logging import Logger
 import sqlite3
-import sys
 
 
 def init_db() -> None:
@@ -38,7 +35,8 @@ def init_db() -> None:
     try:
         result: str = db_mgr.init_db()
     except sqlite3.Error as e:
-        sys.exit(StringMgr.get_string('error.sqlite3', e=e))
+        raise SystemExit(StringMgr.get_string(key_path='error.sqlite3',
+                                              e=e))
     if not result.startswith('DB already exists'):
         print(result)
 
@@ -53,14 +51,13 @@ def set_status(name: str, new_status: Status) -> None:
     """
 
     entity_dao = EntityDAO(db_mgr, logger)
+    entity: Entity = Entity(name=name)
     try:
-        if not entity_dao.is_in_db(name):
-            raise SystemExit(StringMgr.get_string(key_path='instakarma-admin.no-entity-exists',
-                                                  name=name))
-        entity_dao.set_status(name, new_status)
+        if not entity_dao.is_in_db(entity):
+            raise SystemExit(StringMgr.get_string(key_path='instakarma-admin.no-entity-exists', name=name))
+        entity_dao.set_status(entity, new_status)
     except sqlite3.Error as e:
-        raise SystemExit(StringMgr.get_string(key_path='error_sqlite3',
-                                              e=e))
+        raise SystemExit(StringMgr.get_string(key_path='error_sqlite3', e=e))
     print(StringMgr.get_string(key_path='instakarma-admin.current-status',
                                name=name,
                                status=entity_manager.get_status(name).value))
@@ -105,18 +102,20 @@ def main() -> None:
     # print help if no command is provided
     if not args.command:
         parser.print_help()
-        sys.exit(1)
+        raise SystemExit()
 
     match args.command:
         case 'add-entity':
             name: str = args.name
+            entity: Entity = Entity(name=name)
+            entity_dao: EntityDAO = EntityDAO(db_mgr, logger)
             try:
-                if entity_manager.name_exists_in_db(name):
-                    sys.exit(StringMgr.get_string('instakarma-admin.add-entity.failed', name=name))
-                entity_manager.add_entity(name, None)
+                if entity_dao.is_in_db(entity):
+                    raise SystemExit(StringMgr.get_string(key_path='instakarma-admin.add-entity.failed', name=name))
+                entity_dao.add(entity)
             except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('error.sqlite3', e=e))
-            print(StringMgr.get_string('instakarma-admin.add-entity.successful', name=name))
+                raise SystemExit(StringMgr.get_string(key_path='error.sqlite3', e=e))
+            print(StringMgr.get_string(key_path='instakarma-admin.add-entity.successful', name=name))
 
         case 'backup-db':
             db_mgr.backup_db()
@@ -128,7 +127,8 @@ def main() -> None:
             try:
                 entities = entity_manager.list_entities('karma')
             except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('error.sqlite3', e=e))
+                raise SystemExit(StringMgr.get_string(key_path='error.sqlite3',
+                                                      e=e))
             for name, karma in entities:
                 print(f"{karma},{name}")
 
@@ -136,7 +136,8 @@ def main() -> None:
             try:
                 entities = entity_manager.list_entities('name')
             except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('error.sqlite3', e=e))
+                raise SystemExit(StringMgr.get_string(key_path='error.sqlite3',
+                                                      e=e))
             for name, karma in entities:
                 print(f"{name},{karma}")
 
