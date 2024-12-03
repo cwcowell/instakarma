@@ -18,6 +18,20 @@ import sys
 #     def get_field(cls):
 #         return cls._field
 #
+# better, from Gemini:
+#
+#class UninstantiableClass:
+# foo = "bar"
+#
+# @classmethod
+# def class_method(cls):
+#     print("This is a class method.")
+#     print(cls.foo)
+#
+# @staticmethod
+# def static_method():
+#     print("This is a static method.")
+#
 # ---
 
 class DbMgr:
