@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlite3 import Connection, Cursor
 import sqlite3
 import sys
+from typing import Self, ClassVar
 
 # ---
 # class Singleton:
@@ -35,44 +36,57 @@ import sys
 # ---
 
 class DbMgr:
-    """Collect all DB-related methods in one class."""
+    """Collect all DB-related methods in one singleton class."""
 
-    def __init__(self, logger: Logger):
-        self.logger: Logger = logger
+    _instance: ClassVar[Self | None] = None
 
-    def get_db_connection(self) -> Connection:
-        """Open and return a DB connection.
+    def _new_(cls) -> Self:
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            try:
+                cls._instance._connection: Connection | None = sqlite3.connect(DB_FILE_NAME)
+            except Exception as e:
+                print(e.with_traceback())
+                sys.exit()
+                cls._instance._connection = None
+                raise SystemError(StringMgr.get_string('db.error.connection',
+                                                        db_file_name=DB_FILE_NAME,
+                                                        e=e))
+        return cls._instance
 
-        :returns: Connection object to DB
-        :raises sqlite3.Error: If it can't connect to the DB
-        """
-        try:
-            return sqlite3.connect(DB_FILE_NAME)
-        except sqlite3.Error as e:
-            self.logger.critical(StringMgr.get_string('db.error.connection', db_file_name=DB_FILE_NAME, e=e))
-            raise
+    def __init__(cls):
+        """Prevent instantiation of this class."""
+        raise Exception("DbMgr class cannot be instantiated. Use its class methods instead.")
 
-    def execute_statement(self, statement: str, parms: tuple) -> list[tuple]:
-        """Open a DB connection, execute an SQL statement, close the connection.
+    @classmethod
+    def execute_statement(cls, statement: str, params: tuple = ()) -> list[tuple]:
+        """Execute SQL statement and return results.
 
         :returns: List of results as tuples
         :raises sqlite3.Error: If something goes wrong with the DB
         """
+        instance = cls()
 
-        log_friendly_statement: str = self.format_statement_for_log(statement)
-        with self.get_db_connection() as conn:
-            try:
-                cursor: Cursor = conn.execute(statement, parms)
-                conn.commit()
-                return cursor.fetchall()
-            except sqlite3.Error as e:
-                conn.rollback()
-                self.logger.error(StringMgr.get_string('db.error.rollback',
-                                                       statement=log_friendly_statement,
-                                                       parms=parms, e=e))
-                raise
+        try:
+            cursor: Cursor = instance._connection.execute(statement, params)
+            instance._connection.commit()  # no-op for SELECT statements
+            return cursor.fetchall()
 
-    def init_db(self) -> str:
+        except sqlite3.Error as e:
+            instance._connection.rollback()
+            log_friendly_statement: str = instance.format_statement_for_log(statement)
+            instance.logger.error(StringMgr.get_string('db.error.rollback',
+                                                   statement=log_friendly_statement,
+                                                   parms=params,
+                                                   e=e))
+            raise
+
+    def __del__(self):
+        """Close up the database connection"""
+        self._connection.close()
+
+    @classmethod
+    def init_db(cls) -> str:
         """Create an empty DB if it doesn't already exist.
 
         No-op if there is already a DB.
@@ -86,25 +100,25 @@ class DbMgr:
 
         if db_path.exists():
             msg: str = StringMgr.get_string('db.exists', db_path=db_path.resolve())
-            self.logger.info(msg)
+            cls.logger.info(msg)
             return msg
-        with self.get_db_connection() as conn:
-            with open(db_ddl_path) as ddl_file:
-                ddl: str = ddl_file.read()
-            try:
-                conn.executescript(ddl)
-                conn.commit()
-            except sqlite3.Error as e:
-                msg: str = StringMgr.get_string('db.error.could-not-create', e=e)
-                self.logger.critical(msg)
-                return msg
-            msg: str = StringMgr.get_string('db.created-new',
-                                            db_path=db_path.resolve(),
-                                            db_ddl_path=db_ddl_path.resolve())
-            self.logger.info(msg)
+        with open(db_ddl_path) as ddl_file:
+            ddl: str = ddl_file.read()
+        try:
+            cls.conn.executescript(ddl)
+            cls.conn.commit()
+        except sqlite3.Error as e:
+            msg: str = StringMgr.get_string('db.error.could-not-create', e=e)
+            cls.logger.critical(msg)
             return msg
+        msg: str = StringMgr.get_string('db.created-new',
+                                        db_path=db_path.resolve(),
+                                        db_ddl_path=db_ddl_path.resolve())
+        cls.logger.info(msg)
+        return msg
 
-    def format_statement_for_log(self, statement: str) -> str:
+    @staticmethod
+    def format_statement_for_log(statement: str) -> str:
         """Format a statement as a single line for logging.
 
         :returns: Statement formatted as a single line
@@ -116,7 +130,8 @@ class DbMgr:
         statement = statement.replace('\n', ' ')  # replace newlines with spaces
         return ' '.join(statement.split())  # replace multiple spaces with a single space
 
-    def backup_db(self) -> None:
+    @classmethod
+    def backup_db(cls) -> None:
         """Copy the DB file to another local file.
 
         This should only be called from `instakarma-admin`, so it exits on failure instead of logging and raising.
@@ -132,19 +147,18 @@ class DbMgr:
             sys.exit(StringMgr.get_string('db.error.db-backup-file-exists', db_backup_path=db_backup_path))
 
         # checkpoint to truncate WAL and consolidate DB to 1 file
-        with self.get_db_connection() as conn:
-            try:
-                cursor: Cursor = conn.execute('PRAGMA wal_checkpoint(TRUNCATE);')
-                results: tuple[int, int, int] = cursor.fetchone()
-                if results[0]:
-                    sys.exit(StringMgr.get_string('db.error.truncation-blocked'))
-                print(StringMgr.get_string('db.truncated', single_db_file=db_path.resolve()))
-            except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('db.error.could-not-truncate', e=e))
+        try:
+            cursor: Cursor = self.conn.execute('PRAGMA wal_checkpoint(TRUNCATE);')
+            results: tuple[int, int, int] = cursor.fetchone()
+            if results[0]:
+                sys.exit(StringMgr.get_string('db.error.truncation-blocked'))
+            print(StringMgr.get_string('db.truncated', single_db_file=db_path.resolve()))
+        except sqlite3.Error as e:
+            sys.exit(StringMgr.get_string('db.error.could-not-truncate', e=e))
 
         try:
             with sqlite3.connect(DB_FILE_NAME) as source, \
-                 sqlite3.connect(DB_BACKUP_FILE_NAME) as destination:
+                    sqlite3.connect(DB_BACKUP_FILE_NAME) as destination:
                 source.backup(destination)
         except sqlite3.Error as e:
             sys.exit(StringMgr.get_string('db.error.could-not-backup', e=e))

@@ -9,6 +9,8 @@ if os.path.basename(os.getcwd()) != 'src':
 
 from constants import *
 from db_mgr import DbMgr
+from entity import Entity
+from entity_dao import EntityDAO
 from entity_mgr import EntityMgr
 from enums import Status
 from grant_mgr import GrantMgr
@@ -34,7 +36,7 @@ def init_db() -> None:
 
     result: str = ''
     try:
-        result: str = db_manager.init_db()
+        result: str = db_mgr.init_db()
     except sqlite3.Error as e:
         sys.exit(StringMgr.get_string('error.sqlite3', e=e))
     if not result.startswith('DB already exists'):
@@ -115,7 +117,7 @@ def main() -> None:
             print(StringMgr.get_string('instakarma-admin.add-entity.successful', name=name))
 
         case 'backup-db':
-            db_manager.backup_db()
+            db_mgr.backup_db()
 
         case 'export-grants':
             grant_manager.export_grants()
@@ -137,14 +139,12 @@ def main() -> None:
                 print(f"{name},{karma}")
 
         case 'list-opted-out':
-            try:
-                entities = entity_manager.list_opted_out_entities()
-            except sqlite3.Error as e:
-                sys.exit(StringMgr.get_string('error.sqlite3', e=e))
+            entity_dao = EntityDAO(db_mgr=db_mgr)
+            entities: list[Entity] = entity_dao.list_opted_out()
             if not entities:
                 print(StringMgr.get_string('instakarma-admin.nobody-opted-out'))
-            for name in entities:
-                print(name)
+            for entity in entities:
+                print(entity.name)
 
         case 'opt-in':
             set_status(args.name, Status.OPTED_IN)
@@ -159,11 +159,11 @@ if __name__ == '__main__':
                                        LOG_LEVEL,
                                        LOG_FILE_SIZE,
                                        LOG_FILE_COUNT)
-    db_manager: DbMgr = DbMgr(logger)
-    entity_manager: EntityMgr = EntityMgr(db_manager, logger)
-    karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)
+    db_mgr: DbMgr = DbMgr(logger)
+    entity_manager: EntityMgr = EntityMgr(db_mgr, logger)
+    karma_manager: KarmaMgr = KarmaMgr(db_mgr, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
-    grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
+    grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_mgr)
 
     init_db()  # error handling is easier there's a DB guaranteed to be present
     main()
