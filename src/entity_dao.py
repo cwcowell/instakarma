@@ -5,6 +5,7 @@ from string_mgr import StringMgr
 
 from logging import Logger
 import sqlite3
+from typing import Final
 
 
 class EntityDAO:
@@ -59,7 +60,8 @@ class EntityDAO:
             name: str = result[0]
             entity: Entity = Entity(name=name)
             entities.append(entity)
-        return entities
+        return [Entity(name=result[0]) for result in results]
+
 
     def set_status(self, entity: Entity, new_status: Status) -> None:
         sql: str = f"""
@@ -79,3 +81,28 @@ class EntityDAO:
                                                    status=new_status.value,
                                                    e=e))
             raise
+
+    def list_by(self, order_by_field: str) -> list[Entity]:
+        # Define allowed columns and their default sort directions
+        VALID_COLUMNS: Final[dict[str, str]] = {
+            'created_at': 'ASC',
+            'karma': 'DESC',
+            'name': 'ASC'
+        }
+
+        # Validate the order_by_field
+        if order_by_field not in VALID_COLUMNS:
+            raise ValueError(f"Invalid order_by_field: '{order_by_field}'. "
+                             f"Must be one of: {', '.join(VALID_COLUMNS.keys())}")
+
+        sql: str = f"""
+                   SELECT name, user_id, karma, created_at
+                   FROM entities
+                   ORDER BY {order_by_field} {VALID_COLUMNS[order_by_field]};
+                   """
+        results: list[tuple] = self.db_mgr.execute_statement(sql)
+        return [Entity(name=result[0],
+                       user_id=result[1],
+                       karma=result[2],
+                       created_at=result[3])
+                for result in results]

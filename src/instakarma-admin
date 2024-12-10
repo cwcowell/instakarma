@@ -35,8 +35,7 @@ def init_db() -> None:
     try:
         result: str = db_mgr.init_db()
     except sqlite3.Error as e:
-        raise SystemExit(StringMgr.get_string(key_path='error.sqlite3',
-                                              e=e))
+        raise SystemExit(StringMgr.get_string(key_path='error.sqlite3', e=e))
     if not result.startswith('DB already exists'):
         print(result)
 
@@ -81,6 +80,7 @@ def main() -> None:
 
     subparsers.add_parser('backup-db', help=StringMgr.get_string('instakarma-admin.help.backup-db'))
     subparsers.add_parser('export-grants', help=StringMgr.get_string('instakarma-admin.help.export-grants'))
+    subparsers.add_parser('list-by-created-at', help=StringMgr.get_string('instakarma-admin.help.list-by-created-at'))
     subparsers.add_parser('list-by-karma', help=StringMgr.get_string('instakarma-admin.help.list-by-karma'))
     subparsers.add_parser('list-by-name', help=StringMgr.get_string('instakarma-admin.help.list-by-name'))
     subparsers.add_parser('list-opted-out', help=StringMgr.get_string('instakarma-admin.help.list-opted-out'))
@@ -124,22 +124,31 @@ def main() -> None:
             grant_manager.export_grants()
 
         case 'list-by-karma':
+            entity_dao: EntityDAO = EntityDAO(db_mgr, logger)
             try:
-                entities = entity_manager.list_entities('karma')
+                entities = entity_dao.list_by('karma')
             except sqlite3.Error as e:
-                raise SystemExit(StringMgr.get_string(key_path='error.sqlite3',
-                                                      e=e))
-            for name, karma in entities:
-                print(f"{karma},{name}")
+                raise SystemExit(StringMgr.get_string(key_path='error.sqlite3', e=e))
+            for entity in entities:
+                print(f"{entity.karma},{entity.name},{entity.user_id}")
 
         case 'list-by-name':
+            entity_dao: EntityDAO = EntityDAO(db_mgr, logger)
             try:
-                entities = entity_manager.list_entities('name')
+                entities = entity_dao.list_by('name')
             except sqlite3.Error as e:
-                raise SystemExit(StringMgr.get_string(key_path='error.sqlite3',
-                                                      e=e))
-            for name, karma in entities:
-                print(f"{name},{karma}")
+                raise SystemExit(StringMgr.get_string(key_path='error.sqlite3', e=e))
+            for entity in entities:
+                print(f"{entity.name},{entity.user_id},{entity.karma}")
+
+        case 'list-by-created-at':
+            entity_dao: EntityDAO = EntityDAO(db_mgr, logger)
+            try:
+                entities = entity_dao.list_by('created_at')
+            except sqlite3.Error as e:
+                raise SystemExit(StringMgr.get_string(key_path='error.sqlite3', e=e))
+            for entity in entities:
+                print(f"{entity.created_at},{entity.name},{entity.user_id},{entity.karma}")
 
         case 'list-opted-out':
             entity_dao = EntityDAO(db_mgr, logger)
