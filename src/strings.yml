@@ -10,7 +10,7 @@ action:
   my-stats:
     my-karma: "you have *{amount}* karma"
     my-karma-header: "*How much karma do I have?*"
-    opt-in-instructions: "opt in with */instakarma opt-in*"
+    opt-in-instructions: "to opt in, type */instakarma opt-in*"
     opted-out: "you opted out of instakarma, so you can't see karma stats"
     respond-text: "instakarma stats for {name}"
     top-granter: "• {amount} from {granter_name}"
@@ -64,7 +64,7 @@ error:
 
 grant:
   success: "{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma"
-  granter-opted-out: ":x: sorry, you can't grant karma because you've opted out of instakarma\nopt in with */instakarma opt-in*"
+  granter-opted-out: ":x: sorry, you can't grant karma because you've opted out of instakarma\nto opt in, type */instakarma opt-in*"
   grants-exported: "all grants exported to '{grants_export_file_path}'"
   invalid-person: ":x: sorry, user {recipient_name} isn't registered in Slack"
   log:
@@ -135,8 +135,8 @@ message-parser:
 response-blocks:
   change-status:
     current-status: "you're now {status}"
-    opt-in-instructions: "opt in with */instakarma opt-in*"
-    opt-out-instructions: "opt out with */instakarma opt-out*"
+    opt-in-instructions: "to opt in, type */instakarma opt-in*"
+    opt-out-instructions: "to opt out, type */instakarma opt-out*"
   help:
     header: "How do I use instakarma?"
     section: |
@@ -150,7 +150,7 @@ response-blocks:
       */instakarma help*   display this usage guide
       */instakarma leaderboard*   see the karma of all non-Slack users
       */instakarma my-stats*   see your karma and top granters and receivers
-      */instakarma opt-in*   participate in instakarma (default status)
+      */instakarma opt-in*   participate in instakarma (this is the default status)
       */instakarma opt-out*   don't participate in instakarma
       
       _contact christopher.cowell@instabase.com or <@chris cowell> with problems_

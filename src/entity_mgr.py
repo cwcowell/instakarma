@@ -1,6 +1,5 @@
 from db_mgr import DbMgr
 from enums import Status
-from exceptions import NoSlackApiMgrDefinedError
 from slack_api_mgr import SlackApiMgr
 from string_mgr import StringMgr
 
@@ -84,7 +83,7 @@ class EntityMgr:
             raise
 
     def get_name_from_user_id(self, user_id: str) -> str:
-        """ onvert an entity's user_id to its name.
+        """ Convert an entity's user_id to its name.
 
         Consult the DB and/or Slack API and add DB entries as needed.
 
@@ -107,44 +106,29 @@ class EntityMgr:
 
         if len(results):
             name: str = results[0][0]
-            return name
-
-        # else if row exists for that `user_id`, look up `name` in the API and update the row with `name`.
-        # Return `name`
-        try:
-            results: list = self.db_mgr.execute_statement("""
-                                                          SELECT *
-                                                          FROM entities
-                                                          WHERE user_id = ?;""",
-                                                          (user_id,))
-        except sqlite3.Error as e:
-            self.logger.error(StringMgr.get_string('entity.error.could-not-check-user-id',
-                                                   user_id=user_id,
-                                                   e=e))
-            raise
-
-        if results:
-            if self.slack_api_mgr is None:
-                raise NoSlackApiMgrDefinedError
-            try:
-                name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
-            except SlackApiError:
-                raise
-            try:
-                self.db_mgr.execute_statement("""
-                                              UPDATE entities
-                                              SET name = ?
-                                              WHERE user_id = ?;""",
-                                              (name, user_id))
-            except sqlite3.Error as e:
-                self.logger.error(StringMgr.get_string('entity.error.could-not-set-name',
-                                                       name=name,
-                                                       user_id=user_id,
-                                                       e=e))
-                raise
-            return name
-
-        # else look up name in the API and insert a row with name and user_id, and return name
+            if name:
+                return name
+            else:
+                # else if row exists for that `user_id` but it has no value for 'name',
+                # look up `name` in the API, update the row with `name`, and return the `name`
+                try:
+                    name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
+                except SlackApiError:
+                    raise
+                try:
+                    self.db_mgr.execute_statement("""
+                                                  UPDATE entities
+                                                  SET name = ?
+                                                  WHERE user_id = ?;""",
+                                                  (name, user_id))
+                except sqlite3.Error as e:
+                    self.logger.error(StringMgr.get_string('entity.error.could-not-set-name',
+                                                           name=name,
+                                                           user_id=user_id,
+                                                           e=e))
+                    raise
+                return name
+        # else insert a row with name and user_id and return name
         try:
             name: str = self.slack_api_mgr.get_name_from_slack_api(user_id)
         except SlackApiError:

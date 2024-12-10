@@ -55,7 +55,7 @@ class ActionMgr:
         If the user has opted out, don't display any stats.
         """
 
-        name: str = '@' + command['user_name']
+        name: str = entity_mgr.get_name_from_user_id(command['user_id'])
 
         if not entity_mgr.name_exists_in_db(name):
             your_karma_text: str = StringMgr.get_string('action.my-stats.your-karma-text-when-user-not-in-db')
@@ -124,7 +124,7 @@ class ActionMgr:
                    entity_mgr: EntityMgr) -> None:
         """Set an entity's status to either `opted-in` or `opted-out`."""
 
-        name: str = '@' + command['user_name']
+        name: str = entity_mgr.get_name_from_user_id(command['user_id'])
         entity_mgr.set_status(name, new_status)
         respond(text=StringMgr.get_string('action.set-status.respond-text',
                                           name=name,
