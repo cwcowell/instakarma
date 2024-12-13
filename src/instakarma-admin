@@ -80,7 +80,7 @@ def main() -> None:
 
     subparsers.add_parser('backup-db', help=StringMgr.get_string('instakarma-admin.help.backup-db'))
     subparsers.add_parser('export-grants', help=StringMgr.get_string('instakarma-admin.help.export-grants'))
-    subparsers.add_parser('list-by-created-at', help=StringMgr.get_string('instakarma-admin.help.list-by-created-at'))
+    subparsers.add_parser('list-by-creation-date', help=StringMgr.get_string('instakarma-admin.help.list-by-created-at'))
     subparsers.add_parser('list-by-karma', help=StringMgr.get_string('instakarma-admin.help.list-by-karma'))
     subparsers.add_parser('list-by-name', help=StringMgr.get_string('instakarma-admin.help.list-by-name'))
     subparsers.add_parser('list-opted-out', help=StringMgr.get_string('instakarma-admin.help.list-opted-out'))
@@ -141,7 +141,7 @@ def main() -> None:
             for entity in entities:
                 print(f"{entity.name},{entity.user_id},{entity.karma}")
 
-        case 'list-by-created-at':
+        case 'list-by-creation-date':
             entity_dao: EntityDAO = EntityDAO(db_mgr, logger)
             try:
                 entities = entity_dao.list_by('created_at')

@@ -106,3 +106,6 @@ class EntityDAO:
                        karma=result[2],
                        created_at=result[3])
                 for result in results]
+
+    def get_name_from_user_id(self, user_id: str) -> str:
+        """Retrieve an entity's name based on its user id."""
