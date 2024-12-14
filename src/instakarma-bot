@@ -11,7 +11,7 @@ from action_mgr import ActionMgr
 from constants import *
 from db_mgr import DbMgr
 from enums import *
-from entity_mgr import EntityMgr
+from entity_dao import EntityDao
 from grant_mgr import GrantMgr
 from karma_mgr import KarmaMgr
 from log_mgr import LogMgr
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     db_manager: DbMgr = DbMgr(logger)
     slack_api_manager: SlackApiMgr = SlackApiMgr(app, logger)
     action_manager: ActionMgr = ActionMgr(db_manager, logger)
-    entity_manager: EntityMgr = EntityMgr(db_manager, logger, slack_api_manager)
+    entity_manager: EntityDao = EntityDao(db_manager, logger, slack_api_manager)
     karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)
     message_parser: MessageParser = MessageParser(logger)
     grant_handler: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)

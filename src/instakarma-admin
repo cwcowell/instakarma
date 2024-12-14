@@ -9,7 +9,7 @@ if os.path.basename(os.getcwd()) != 'src':
 
 from constants import *
 from db_mgr import DbMgr
-from entity_mgr import EntityMgr
+from entity_dao import EntityDao
 from enums import Status
 from grant_mgr import GrantMgr
 from karma_mgr import KarmaMgr
@@ -52,14 +52,14 @@ def set_status(name: str, new_status: Status) -> None:
     """
 
     try:
-        if not entity_manager.name_exists_in_db(name):
+        if not entity_dao.name_exists_in_db(name):
             sys.exit(StringMgr.get_string('instakarma-admin.no-entity-exists', name=name))
-        entity_manager.set_status(name, new_status)
+        entity_dao.set_status(name, new_status)
     except sqlite3.Error as e:
         sys.exit(StringMgr.get_string('error.sqlite3', e=e))
     print(StringMgr.get_string('instakarma-admin.current-status',
                                name=name,
-                               status=entity_manager.get_status(name).value))
+                               status=entity_dao.get_status(name).value))
 
 
 def main() -> None:
@@ -107,9 +107,9 @@ def main() -> None:
         case 'add-entity':
             name: str = args.name
             try:
-                if entity_manager.name_exists_in_db(name):
+                if entity_dao.name_exists_in_db(name):
                     sys.exit(StringMgr.get_string('instakarma-admin.add-entity.failed', name=name))
-                entity_manager.add_entity(name, None)
+                entity_dao.add_entity(name, None)
             except sqlite3.Error as e:
                 sys.exit(StringMgr.get_string('error.sqlite3', e=e))
             print(StringMgr.get_string('instakarma-admin.add-entity.successful', name=name))
@@ -122,7 +122,7 @@ def main() -> None:
 
         case 'list-by-karma':
             try:
-                entities = entity_manager.list_entities('karma')
+                entities = entity_dao.list_entities('karma')
             except sqlite3.Error as e:
                 sys.exit(StringMgr.get_string('error.sqlite3', e=e))
             for name, karma in entities:
@@ -130,7 +130,7 @@ def main() -> None:
 
         case 'list-by-name':
             try:
-                entities = entity_manager.list_entities('name')
+                entities = entity_dao.list_entities('name')
             except sqlite3.Error as e:
                 sys.exit(StringMgr.get_string('error.sqlite3', e=e))
             for name, karma in entities:
@@ -138,7 +138,7 @@ def main() -> None:
 
         case 'list-opted-out':
             try:
-                entities = entity_manager.list_opted_out_entities()
+                entities = entity_dao.list_opted_out_entities()
             except sqlite3.Error as e:
                 sys.exit(StringMgr.get_string('error.sqlite3', e=e))
             if not entities:
@@ -160,10 +160,10 @@ if __name__ == '__main__':
                                        LOG_FILE_SIZE,
                                        LOG_FILE_COUNT)
     db_manager: DbMgr = DbMgr(logger)
-    entity_manager: EntityMgr = EntityMgr(db_manager, logger)
-    karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_manager, logger)
+    entity_dao: EntityDao = EntityDao(db_manager, logger)
+    karma_manager: KarmaMgr = KarmaMgr(db_manager, entity_dao, logger)
     message_parser: MessageParser = MessageParser(logger)
-    grant_manager: GrantMgr = GrantMgr(entity_manager, karma_manager, logger, message_parser, db_manager)
+    grant_manager: GrantMgr = GrantMgr(entity_dao, karma_manager, logger, message_parser, db_manager)
 
     init_db()  # error handling is easier there's a DB guaranteed to be present
     main()

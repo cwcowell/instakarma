@@ -1,6 +1,6 @@
 from constants import GRANTS_EXPORT_FILE
 from db_mgr import DbMgr
-from entity_mgr import EntityMgr
+from entity_dao import EntityDao
 from enums import Action
 from exceptions import OptedOutRecipientError, OptedOutGranterError
 from karma_mgr import KarmaMgr
@@ -20,7 +20,7 @@ class GrantMgr:
     """Handle all behavior relating to the granting of karma."""
 
     def __init__(self,
-                 entity_mgr: EntityMgr,
+                 entity_mgr: EntityDao,
                  karma_mgr: KarmaMgr,
                  logger: Logger,
                  message_parser: MessageParser,

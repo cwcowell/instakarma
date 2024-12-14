@@ -1,6 +1,6 @@
 from db_mgr import DbMgr
 from enums import Action, Status
-from entity_mgr import EntityMgr
+from entity_dao import EntityDao
 from karma_mgr import KarmaMgr
 import response_blocks
 from string_mgr import StringMgr
@@ -47,7 +47,7 @@ class ActionMgr:
     def my_stats(self,
                  command: dict,
                  respond,
-                 entity_mgr: EntityMgr,
+                 entity_mgr: EntityDao,
                  karma_mgr: KarmaMgr) -> None:
         """Respond to Slack with how much karma the user has, who they've given the most karma to,
         and who has given them the most karma.
@@ -121,7 +121,7 @@ class ActionMgr:
                    command: dict,
                    respond,
                    new_status: Status,
-                   entity_mgr: EntityMgr) -> None:
+                   entity_mgr: EntityDao) -> None:
         """Set an entity's status to either `opted-in` or `opted-out`."""
 
         name: str = entity_mgr.get_name_from_user_id(command['user_id'])

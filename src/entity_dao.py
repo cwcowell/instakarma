@@ -10,7 +10,7 @@ from typing import Literal
 from slack_sdk.errors import SlackApiError
 
 
-class EntityMgr:
+class EntityDao:
     def __init__(self,
                  db_mgr: DbMgr,
                  logger: Logger,

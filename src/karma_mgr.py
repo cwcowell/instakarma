@@ -1,6 +1,6 @@
 from constants import NUM_TOP_GRANTERS, NUM_TOP_RECIPIENTS
 from db_mgr import DbMgr
-from entity_mgr import EntityMgr
+from entity_dao import EntityDao
 from enums import Action, Status
 from exceptions import OptedOutGranterError, OptedOutRecipientError
 from string_mgr import StringMgr
@@ -14,7 +14,7 @@ class KarmaMgr:
 
     def __init__(self,
                  db_mgr: DbMgr,
-                 entity_mgr: EntityMgr,
+                 entity_mgr: EntityDao,
                  logger: Logger):
         self.db_mgr = db_mgr
         self.entity_mgr = entity_mgr
