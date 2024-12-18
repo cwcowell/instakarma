@@ -37,11 +37,12 @@ def get_secret(secret_id: str) -> str:
     try:
         get_secret_value_response = client.get_secret_value(SecretId=secret_id)
     except Exception as e:
-        sys.exit(f"Error retrieving secret with key {secret_id!r} from AWS Secret Manager: {e}\n" +
+        sys.exit(f"Error retrieving secret with id {secret_id!r} from AWS Secret Manager: {e}\n" +
                  traceback.format_exc())
     return get_secret_value_response['SecretString']
 
-SLACK_BOT_TOKEN: Final[str] = os.getenv('SLACK_BOT_TOKEN') or get_secret('SLACK_BOT_TOKEN')
+SLACK_BOT_TOKEN: Final[str] = (os.getenv('SLACK_BOT_TOKEN') or
+                               get_secret('instakarma/SANDBOX_SLACK_BOT_TOKEN'))
 app: App = App(token=SLACK_BOT_TOKEN)
 
 
@@ -112,7 +113,8 @@ def handle_message_events(body, logger):
         pass
 
 if __name__ == "__main__":
-    SLACK_APP_TOKEN: Final[str] = os.getenv('SLACK_APP_TOKEN') or get_secret('SLACK_APP_TOKEN')
+    SLACK_APP_TOKEN: Final[str] = (os.getenv('SLACK_APP_TOKEN') or
+                                   get_secret('instakarma/SANDBOX_SLACK_APP_TOKEN'))
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app,
                                                                  app_token=SLACK_APP_TOKEN)
     logger: Logger = LogMgr.get_logger(LOGGER_NAME,
