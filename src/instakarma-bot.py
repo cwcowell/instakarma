@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
 import os
 import sys
 
+# Run this before imports. If script is run from the wrong place, some imports fail.
 if os.path.basename(os.getcwd()) != 'src':
-    print("Error: 'instakarma-bot' must be run from the '<REPO-ROOT-DIR>/src/' directory")
-    sys.exit(1)
+    sys.exit("Error: 'instakarma-bot' must be run from the '<REPO-ROOT-DIR>/src/' directory")
 
 from action_mgr import ActionMgr
 from constants import *
@@ -20,12 +18,31 @@ from slack_api_mgr import SlackApiMgr
 from string_mgr import StringMgr
 
 from logging import Logger
+import traceback
 from threading import Lock
 
+import boto3
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
-app: App = App(token=os.environ.get("SLACK_BOT_TOKEN"))
+
+def get_secret(secret_id: str) -> str:
+    """Get secret from AWS Secrets Manager.
+
+    :returns str: Decrypted secret string
+    :raises SystemExit: If there are errors retrieving the secret
+    """
+    session = boto3.session.Session()
+    client = session.client(service_name='secretsmanager', region_name=AWS_REGION)
+    try:
+        get_secret_value_response = client.get_secret_value(SecretId=secret_id)
+    except Exception as e:
+        sys.exit(f"Error retrieving secret with key {secret_id!r} from AWS Secret Manager: {e}\n" +
+                 traceback.format_exc())
+    return get_secret_value_response['SecretString']
+
+SLACK_BOT_TOKEN: Final[str] = os.getenv('SLACK_BOT_TOKEN') or get_secret('SLACK_BOT_TOKEN')
+app: App = App(token=SLACK_BOT_TOKEN)
 
 
 @app.message(r'(\+\+)|(--)')
@@ -94,11 +111,10 @@ def handle_message_events(body, logger):
     with bot_lock:  # block other slash commands from processing until this one is done
         pass
 
-
 if __name__ == "__main__":
+    SLACK_APP_TOKEN: Final[str] = os.getenv('SLACK_APP_TOKEN') or get_secret('SLACK_APP_TOKEN')
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app,
-                                                                 app_token=os.environ["SLACK_APP_TOKEN"])
-    # slack_message_handler: SocketModeHandler = SocketModeHandler(app=app)
+                                                                 app_token=SLACK_APP_TOKEN)
     logger: Logger = LogMgr.get_logger(LOGGER_NAME,
                                        LOG_FILE,
                                        LOG_LEVEL,

@@ -2,6 +2,9 @@ from typing import Final
 
 """Collect all instakarma-related constants in one file for easy editing."""
 
+# for AWS operations
+AWS_REGION: Final[str] = 'us-east-2'
+
 # for db operations
 DB_DDL_FILE_NAME: Final[str] = '../db/instakarma_ddl.sql'
 DB_FILE_NAME: Final[str] = '../db/instakarma.db'
