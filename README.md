@@ -78,7 +78,7 @@ Here's how to get things set up.
 1. Set env vars
    * `export SLACK_APP_TOKEN=<SLACK-APP-TOKEN-THAT-STARTS-WITH-'xapp-'>`
    * `export SLACK_BOT_TOKEN=<SLACK-BOT-TOKEN-THAT-STARTS-WITH-'xoxb-'>`
-1. Make sure Python 3.13 is installed (it might work on earlier versions, but was only tested on 3.13)
+1. Make sure Python 3.12+ is installed (it might work on earlier versions, but was only tested on 3.12 and 3.13)
 1. `cd <REPO-ROOT-DIR>`
 1. `pip install -r requirements.txt` (you only have to do this once)
 1. `cd src`
@@ -87,7 +87,7 @@ Here's how to get things set up.
 
 ## Running `instakarma-admin`
 
-1. Make sure Python 3.13 is installed (it might work on earlier versions, but was only tested on 3.13)
+1. Make sure Python 3.12+ is installed (it might work on earlier versions, but was only tested on 3.12 and 3.13)
 1. `cd <REPO-ROOT-DIR>`
 1. `pip install -r requirements.txt` (you only have to do this once)
 1. `cd src`
@@ -103,20 +103,17 @@ Check with the contributors below before adding new features, since we want to k
 
 ### Prerequisites
 
-* Make sure Python 3.13 is installed (it might work on earlier versions, but was only tested on 3.13)
-* `pip install -r requirements.txt` -- to install 2 Python libraries
-   * `PyYAML` -- for parsing the YAML file that holds user-facing strings
-   * `slack_bolt` -- the Slack SDK
+* Python 3.12+ -- it might work on earlier versions, but was only tested on 3.12 and 3.13
+* `pip install -r requirements.txt` -- to install Python dependencies
 * A free [Slack API sandbox](https://api.slack.com/docs/developer-sandbox) -- for testing
 * A Slack app configured as described in the section above -- for testing
-
 
 
 ### FAQ
 
 * I launched the bot with `./instakarma-bot`, so why does nothing happen when I type `foo++` in a Slack channel? _Check `logs/instakarma.log` for errors. If there are no errors, did you invite the instakarma to the channel or DM you typed `foo++` in? If not, invite it by mentioning `@instakarma` in that channel or DM._
-* Is this spyware? _The `instakarma-bot` program uses regexes to look for certain phrases (like `++`) in text typed by users, but it doesn't store or forward any of the text it sees. It isn't spyware._
 * Where does instakarma work? _Public channels, private channels, and multiple-person DMs. It doesn't work in 1-to-1 DMs._
+* Is this spyware? _The `instakarma-bot` program uses regexes to look for certain phrases (like `++`) in text typed by users, but it doesn't store or forward any of the text it sees. It isn't spyware._
 
 
 ### Contributors
