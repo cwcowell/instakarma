@@ -34,7 +34,8 @@ class GrantMgr:
     def grant_to_valid_user(self,
                             say,
                             granter_user_id: str,
-                            recipient: tuple[str, Action]) -> None:
+                            recipient: tuple[str, Action],
+                            thread_ts: str | None = None) -> None:
         """Grant positive karma to a person already registered in Slack.
 
         Add granter and/or recipient to DB if they don't exist already.
@@ -68,14 +69,14 @@ class GrantMgr:
             self.logger.info(StringMgr.get_string('grant.log.info.remove-karma-from-person',
                                                   granter_name=granter_name,
                                                   recipient_name=recipient_name))
-            say(StringMgr.get_string('grant.remove-karma-from-person'))
+            say(StringMgr.get_string('grant.remove-karma-from-person'), thread_ts=thread_ts)
             return
 
         if recipient_name == granter_name:
             self.logger.info(StringMgr.get_string('grant.log.info.self-grant',
                                                   granter_name=granter_name,
                                                   amount=amount))
-            say(StringMgr.get_string('grant.self-grant'))
+            say(StringMgr.get_string('grant.self-grant'), thread_ts=thread_ts)
             return
 
         try:
@@ -91,12 +92,14 @@ class GrantMgr:
                                  emoji=emoji,
                                  recipient_name=recipient_name,
                                  verb=verb,
-                                 recipient_total_karma=recipient_total_karma))
+                                 recipient_total_karma=recipient_total_karma),
+            thread_ts=thread_ts)
 
     def grant_to_invalid_user(self,
                               say: callable,
                               granter_user_id: str,
-                              recipient: tuple[str, Action]) -> None:
+                              recipient: tuple[str, Action],
+                              thread_ts: str | None = None) -> None:
         """Respond to Slack channel saying it can't grant karma to a user that Slack doesn't recognize.
 
         :param say: Any text passed to this callback will be displayed to the user in Slack
@@ -119,12 +122,14 @@ class GrantMgr:
                                               granter_name=granter_name,
                                               amount=amount,
                                               recipient_name=recipient_name))
-        say(StringMgr.get_string('grant.invalid-person', recipient_name=recipient_name))
+        say(StringMgr.get_string('grant.invalid-person', recipient_name=recipient_name), 
+            thread_ts=thread_ts)
 
     def grant_to_object(self,
                         say,
                         granter_user_id,
-                        recipient) -> None:
+                        recipient,
+                        thread_ts: str | None = None) -> None:
         """ Grant positive/negative karma to an object, not a person.
 
         Add recipient to DB if they don't exist already.
@@ -144,11 +149,14 @@ class GrantMgr:
         try:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
             recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
-            say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma")
+            say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma",
+                thread_ts=thread_ts)
         except OptedOutRecipientError:
-            say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name))
+            say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name),
+                thread_ts=thread_ts)
         except OptedOutGranterError:
-            say(StringMgr.get_string('grant.granter-opted-out', name=recipient_name))
+            say(StringMgr.get_string('grant.granter-opted-out', name=recipient_name),
+                thread_ts=thread_ts)
 
     def export_grants(self) -> None:
         """ Dump a history of all grants that are in the DB into a local CSV file.

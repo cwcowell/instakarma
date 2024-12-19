@@ -61,6 +61,7 @@ def handle_karma_grants(message: dict, say) -> None:
     with bot_lock:  # block other slash commands from processing until this one is done
         granter_user_id: str = message['user']
         msg_text: str = message['text']
+        thread_ts: str | None = message.get('thread_ts', None)  # set if grant occurred in a thread, None otherwise
 
         valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
         invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
