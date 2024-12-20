@@ -120,6 +120,8 @@ karma:
     recipient-opted-out: "{granter_name!r} can't grant {amount!r} karma to opted-out {recipient_name!r}"
     sql-error: "{granter_name!r} couldn't grant {amount!r} karma to {recipient_name!r}: {e}"
 
+maintenance-mode: "instakarma is down for maintenance -- try again later"
+
 message-parser:
   decrement:
     emoji: ":dumpster_fire:"

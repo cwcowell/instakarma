@@ -63,6 +63,10 @@ def handle_karma_grants(message: dict, say) -> None:
         msg_text: str = message['text']
         thread_ts: str | None = message.get('thread_ts', None)  # set if grant occurred in a thread, None otherwise
 
+        if MAINTENANCE_MODE:
+            say(StringMgr.get_string('maintenance-mode'), thread_ts=thread_ts)
+            return
+
         valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
         invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
         object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
@@ -86,6 +90,12 @@ def handle_instakarma_command(ack, respond, command) -> None:
 
     with bot_lock:  # block other slash commands from processing until this one is done
         ack()  # required by Slack SDK
+        thread_ts: str | None = command.get('thread_ts', None)  # set if command occurred in a thread, None otherwise
+
+        if MAINTENANCE_MODE:
+            respond(StringMgr.get_string('maintenance-mode'), thread_ts=thread_ts)
+            return
+
         subcommand = command['text'].lower()
         match subcommand:
             case 'help' | '':

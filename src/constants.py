@@ -4,6 +4,9 @@ from typing import Final
 
 """Collect all instakarma-related constants in one file for easy editing."""
 
+# set to True to display maintenance banner to users instead of doing anything
+MAINTENANCE_MODE: Final[bool] = False
+
 # which Slack instance this bot should connect to
 ENVIRONMENT: Final[Environment] = Environment.PROD
 # ENVIRONMENT: Final[Environment] = Environment.SANDBOX
