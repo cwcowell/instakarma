@@ -42,7 +42,7 @@ def get_secret(secret_id: str) -> str:
     return get_secret_value_response['SecretString']
 
 SLACK_BOT_TOKEN: Final[str] = (os.getenv('SLACK_BOT_TOKEN') or
-                               get_secret('instakarma/SANDBOX_SLACK_BOT_TOKEN'))
+                               get_secret(SLACK_BOT_TOKEN_SECRET_ID))
 app: App = App(token=SLACK_BOT_TOKEN)
 
 
@@ -115,7 +115,7 @@ def handle_message_events(body, logger):
 
 if __name__ == "__main__":
     SLACK_APP_TOKEN: Final[str] = (os.getenv('SLACK_APP_TOKEN') or
-                                   get_secret('instakarma/SANDBOX_SLACK_APP_TOKEN'))
+                                   get_secret(SLACK_APP_TOKEN_SECRET_ID))
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app,
                                                                  app_token=SLACK_APP_TOKEN)
     logger: Logger = LogMgr.get_logger(LOGGER_NAME,

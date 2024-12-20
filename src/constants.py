@@ -1,9 +1,17 @@
+from enums import Environment
+
 from typing import Final
 
 """Collect all instakarma-related constants in one file for easy editing."""
 
+# which Slack instance this bot should connect to
+ENVIRONMENT: Final[Environment] = Environment.PROD
+# ENVIRONMENT: Final[Environment] = Environment.SANDBOX
+
 # for AWS operations
 AWS_REGION: Final[str] = 'us-east-2'
+SLACK_APP_TOKEN_SECRET_ID: Final[str] = f'instakarma/{ENVIRONMENT.value}_SLACK_APP_TOKEN'
+SLACK_BOT_TOKEN_SECRET_ID: Final[str] = f'instakarma/{ENVIRONMENT.value}_SLACK_BOT_TOKEN'
 
 # for db operations
 DB_DDL_FILE_NAME: Final[str] = '../db/instakarma_ddl.sql'

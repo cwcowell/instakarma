@@ -7,8 +7,8 @@ class Action(Enum):
     """Every attempt to grant karma must have an Action associated with it,
     so we know if the grant increases or decreases the recipient's karma."""
 
-    INCREMENT = '++'
     DECREMENT = '--'
+    INCREMENT = '++'
 
 
 class Status(Enum):
@@ -16,3 +16,9 @@ class Status(Enum):
 
     OPTED_IN: str = 'opted-in'
     OPTED_OUT: str = 'opted-out'
+
+class Environment(Enum):
+    """Choose whether this bot should connect to a prod or sandbox Slack instance."""
+
+    PROD: str = 'prod'
+    SANDBOX: str = 'sandbox'
