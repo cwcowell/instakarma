@@ -20,5 +20,5 @@ class Status(Enum):
 class Environment(Enum):
     """Choose whether this bot should connect to a prod or sandbox Slack instance."""
 
-    PROD: str = 'prod'
-    SANDBOX: str = 'sandbox'
+    PROD: str = 'PROD'
+    SANDBOX: str = 'SANDBOX'
