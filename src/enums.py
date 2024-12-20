@@ -7,8 +7,8 @@ class Action(Enum):
     """Every attempt to grant karma must have an Action associated with it,
     so we know if the grant increases or decreases the recipient's karma."""
 
-    DECREMENT = '--'
-    INCREMENT = '++'
+    DECREMENT: str = '--'
+    INCREMENT: str = '++'
 
 
 class Status(Enum):
