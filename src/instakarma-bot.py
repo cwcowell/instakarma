@@ -68,11 +68,11 @@ def handle_karma_grants(message: dict, say) -> None:
         object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
 
         for recipient in valid_user_recipients:
-            grant_handler.grant_to_valid_user(say, granter_user_id, recipient)
+            grant_handler.grant_to_valid_user(say, granter_user_id, recipient, thread_ts)
         for recipient in invalid_user_recipients:
-            grant_handler.grant_to_invalid_user(say, granter_user_id, recipient)
+            grant_handler.grant_to_invalid_user(say, granter_user_id, recipient, thread_ts)
         for recipient in object_recipients:
-            grant_handler.grant_to_object(say, granter_user_id, recipient)
+            grant_handler.grant_to_object(say, granter_user_id, recipient, thread_ts)
 
 
 @app.command('/instakarma')

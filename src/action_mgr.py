@@ -16,7 +16,7 @@ class ActionMgr:
         self.db_mgr = db_mgr
         self.logger = logger
 
-    def help(self, respond):
+    def help(self, respond) -> None:
         """Print usage info."""
 
         respond(text=StringMgr.get_string('action.help.respond-text'),

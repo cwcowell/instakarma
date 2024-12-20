@@ -82,10 +82,12 @@ class GrantMgr:
         try:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
         except OptedOutRecipientError:
-            say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name))
+            say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name),
+                thread_ts=thread_ts)
             return
         except OptedOutGranterError:
-            say(StringMgr.get_string('grant.granter-opted-out'))
+            say(StringMgr.get_string('grant.granter-opted-out'),
+                thread_ts=thread_ts)
             return
         recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
         say(StringMgr.get_string('grant.success',
@@ -129,7 +131,7 @@ class GrantMgr:
                         say,
                         granter_user_id,
                         recipient,
-                        thread_ts: str | None = None) -> None:
+                        thread_ts: str | None) -> None:
         """ Grant positive/negative karma to an object, not a person.
 
         Add recipient to DB if they don't exist already.
