@@ -129,9 +129,9 @@ class GrantMgr:
 
     def grant_to_object(self,
                         say,
-                        granter_user_id,
-                        recipient,
-                        thread_ts: str | None) -> None:
+                        granter_user_id: str,
+                        recipient: tuple[str, Action],
+                        thread_timestamp: str | None) -> None:
         """ Grant positive/negative karma to an object, not a person.
 
         Add recipient to DB if they don't exist already.
@@ -141,6 +141,8 @@ class GrantMgr:
         :param granter_user_id: User ID of the person granting karma
         :param recipient: Tuple containing the name of the recipient and the Action
                           (so we know whether to increment or decrement the recipient's karma)
+        :param thread_timestamp: The timestamp of the thread where the grant occurred or None
+                                 if it occurred in a channel instead of a thread
         """
 
         granter_name: str = self.entity_mgr.get_name_from_user_id(granter_user_id)
@@ -152,13 +154,13 @@ class GrantMgr:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
             recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
             say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma",
-                thread_ts=thread_ts)
+                thread_ts=thread_timestamp)
         except OptedOutRecipientError:
             say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name),
-                thread_ts=thread_ts)
+                thread_ts=thread_timestamp)
         except OptedOutGranterError:
             say(StringMgr.get_string('grant.granter-opted-out', name=recipient_name),
-                thread_ts=thread_ts)
+                thread_ts=thread_timestamp)
 
     def export_grants(self) -> None:
         """ Dump a history of all grants that are in the DB into a local CSV file.

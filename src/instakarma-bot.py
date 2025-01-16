@@ -1,9 +1,8 @@
 import os
-import sys
 
-# Run this before imports. If script is run from the wrong place, some imports fail.
+# Run this before imports. If this script is run from the wrong place, some imports fail.
 if os.path.basename(os.getcwd()) != 'src':
-    sys.exit("Error: 'instakarma-bot' must be run from the '<REPO-ROOT-DIR>/src/' directory")
+    raise SystemExit("Error: 'instakarma-bot' must be run from the '<REPO-ROOT-DIR>/src/' directory")
 
 from action_mgr import ActionMgr
 from constants import *
@@ -37,7 +36,7 @@ def get_secret(secret_id: str) -> str:
     try:
         get_secret_value_response = client.get_secret_value(SecretId=secret_id)
     except Exception as e:
-        sys.exit(f"Error retrieving secret with id {secret_id!r} from AWS Secret Manager: {e}\n" +
+        raise SystemExit(f"Error retrieving secret with id {secret_id!r} from AWS Secret Manager: {e}\n" +
                  traceback.format_exc())
     return get_secret_value_response['SecretString']
 
@@ -46,13 +45,14 @@ SLACK_BOT_TOKEN: Final[str] = (os.getenv('SLACK_BOT_TOKEN') or
 app: App = App(token=SLACK_BOT_TOKEN)
 
 
-@app.message(r'(\+\+)|(--)')
+@app.message(r'(\+\+|--)')
 def handle_karma_grants(message: dict, say) -> None:
-    """Handle "++" or "--" in any message in any channel the bot is a member of.
+    """Look for "++" or "--" in any message in any channel the bot is a member of.
 
-    Parse the message looking for "++" or "--", and figure out whether each instance of that text is aimed
-    at a registered Slack user (valid user like `@bob`), an unregistered Slack user (invalid user like `@foo`)
-    or an object (like `pie` or `elvis-presley`).
+    This is a quick check to filter out the 99% of messages that don't contain "++" or "--".
+
+    Then more sophisticated regexes in `message_parser.py` will parse the message more carefully to figure out
+    who the karma recipient(s) is, if any.
 
     :param message: The incoming Slack message
     :param say: any text passed to this callback function will be displayed to the user in Slack
@@ -61,7 +61,8 @@ def handle_karma_grants(message: dict, say) -> None:
     with bot_lock:  # block other slash commands from processing until this one is done
         granter_user_id: str = message['user']
         msg_text: str = message['text']
-        thread_ts: str | None = message.get('thread_ts', None)  # set if grant occurred in a thread, None otherwise
+        # capture the timestamp if grant occurred in a thread, None otherwise
+        thread_timestamp: str | None = message.get('thread_ts', None)
 
         if MAINTENANCE_MODE:
             say(StringMgr.get_string('maintenance-mode'), thread_ts=thread_ts)
@@ -72,11 +73,11 @@ def handle_karma_grants(message: dict, say) -> None:
         object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
 
         for recipient in valid_user_recipients:
-            grant_handler.grant_to_valid_user(say, granter_user_id, recipient, thread_ts)
+            grant_handler.grant_to_valid_user(say, granter_user_id, recipient, thread_timestamp)
         for recipient in invalid_user_recipients:
-            grant_handler.grant_to_invalid_user(say, granter_user_id, recipient, thread_ts)
+            grant_handler.grant_to_invalid_user(say, granter_user_id, recipient, thread_timestamp)
         for recipient in object_recipients:
-            grant_handler.grant_to_object(say, granter_user_id, recipient, thread_ts)
+            grant_handler.grant_to_object(say, granter_user_id, recipient, thread_timestamp)
 
 
 @app.command('/instakarma')
@@ -117,13 +118,14 @@ def handle_instakarma_command(ack, respond, command) -> None:
 def handle_message_events(body, logger):
     """Accept all messages but do nothing.
 
-    This suppresses console output that normally appears after every message.
+    This suppresses the console output that normally appears after every message.
     """
-
+    print(body)
     with bot_lock:  # block other slash commands from processing until this one is done
         pass
 
 if __name__ == "__main__":
+    # TODO: remove unnecessary layers of error handling. Handle at error location and also at user-facing level
     SLACK_APP_TOKEN: Final[str] = (os.getenv('SLACK_APP_TOKEN') or
                                    get_secret(SLACK_APP_TOKEN_SECRET_ID))
     slack_message_handler: SocketModeHandler = SocketModeHandler(app=app,

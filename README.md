@@ -82,8 +82,12 @@ Here's how to get things set up.
 1. `cd <REPO-ROOT-DIR>`
 1. `pip install -r requirements.txt` (you only have to do this once)
 1. `cd src`
-1. `./instakarma-bot`
-
+1. Run it locally (the development environment):
+    * To run with console output (for debugging): `./instakarma-bot`
+    * To run in the background with no output: `nohup ./instakarma-bot.py &`
+1. Run it on an AWS VM (the production environment):
+   * To run with console output (for debugging): `python3.12 instakarma-bot.py`
+   * To run in the background with no output: `nohup python3.12 instakarma-bot.py &`
 
 ## Running `instakarma-admin`
 

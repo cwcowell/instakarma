@@ -1,11 +1,13 @@
 # User-facing text lives in this file for easy editing
 
+# TODO: remove any strings that are no longer used
+
 action:
   help:
     respond-text: "instakarma usage"
   leaderboard:
     leader-text-when-no-karma: "no objects have karma"
-    respond-text: "show karma of objects"
+    respond-text: "show karma of things"
     sqlite3-error: "couldn't get karma of all objects: {e}"
   my-stats:
     my-karma: "you have *{amount}* karma"
@@ -66,7 +68,7 @@ grant:
   success: "{emoji} <{recipient_name}> {verb}, now has {recipient_total_karma} karma"
   granter-opted-out: ":x: sorry, you can't grant karma because you've opted out of instakarma\nto opt in, type */instakarma opt-in*"
   grants-exported: "all grants exported to '{grants_export_file_path}'"
-  invalid-person: ":x: sorry, user {recipient_name} isn't registered in Slack"
+  invalid-person: ":x: sorry, {recipient_name} isn't a registered Slack user"
   log:
     error:
       export-file-exists: "aborted export because '{grants_export_file_path}' already exists"
@@ -129,10 +131,6 @@ message-parser:
   increment:
     emoji: ":thumbsup_all:"
     verb: "leveled up"
-  unrecognized:
-    emoji: ':question:'
-    log-msg: "unrecognized action: {action!r}"
-    verb: 'unrecognized'
 
 response-blocks:
   change-status:
@@ -142,12 +140,11 @@ response-blocks:
   help:
     header: "How do I use instakarma?"
     section: |
-      *@robin++*   give 1 karma to Slack user *@robin*
-      *python++*   give 1 karma to non-Slack user *python*
-      *python--*   remove 1 karma from non-Slack user *python*
-      
-      _optionally add a space between *recipient* and *++* or *--*_
       _you must invite *@instakarma* to channels or multi-person DMs in order to give karma_
+
+      *@robin++* or *@robin ++*   give 1 karma to Slack user *@robin*
+      *python++*   give 1 karma to *python*
+      *python--*   remove 1 karma from *python*
       
       */instakarma help*   display this usage guide
       */instakarma leaderboard*   see the karma of all non-Slack users
@@ -155,9 +152,9 @@ response-blocks:
       */instakarma opt-in*   participate in instakarma (this is the default status)
       */instakarma opt-out*   don't participate in instakarma
       
-      _contact christopher.cowell@instabase.com or <@chris cowell> with problems_
+      _Slack or email Chris Cowell with problems or suggestions_
   leaderboard:
-    header: "How much karma do objects and non-users have?"
+    header: "How much karma do things (not Slack users) have?"
   my-stats:
     header: "Instakarma stats for {name}"
 
