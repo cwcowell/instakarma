@@ -25,6 +25,7 @@ DB_BACKUP_FILE_NAME: Final[str] = f'{DB_FILE_NAME}.backup'
 GRANTS_EXPORT_FILE: Final[str] = 'grants.csv'
 
 # for `instakarma-bot`
+CHANNEL_NAMES_TO_IGNORE = ['discuss-general']  # instakarma won't respond to messages in these channels
 LOG_FILE: Final[str] = '../logs/instakarma.log'
 LOG_FILE_SIZE: Final[int] = 1024 * 1024 * 10  # 10MB
 LOG_FILE_COUNT: Final[int] = 5

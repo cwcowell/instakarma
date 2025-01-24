@@ -50,8 +50,6 @@ class MessageParser:
                                               INCREMENT_OPERATOR +  # group 1
                                               NO_EXTRA_OPERATORS)
 
-    print("object regex: " + OBJECT_RECIPIENT_REGEX)
-
     INVALID_USER_RECIPIENT_PATTERN: Final[Pattern] = re.compile(INVALID_USER_RECIPIENT_REGEX)
     OBJECT_RECIPIENT_PATTERN: Final[Pattern] = re.compile(OBJECT_RECIPIENT_REGEX)
     VALID_USER_RECIPIENT_PATTERN: Final[Pattern] = re.compile(VALID_USER_RECIPIENT_REGEX)

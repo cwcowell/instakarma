@@ -59,13 +59,17 @@ def handle_karma_grants(message: dict, say) -> None:
     """
 
     with bot_lock:  # block other slash commands from processing until this one is done
+        if message['channel'] in ignored_channel_ids:
+            logger.info(f"Ignored message in channel {message['channel']!r}")
+            return
+
         granter_user_id: str = message['user']
         msg_text: str = message['text']
         # capture the timestamp if grant occurred in a thread, None otherwise
         thread_timestamp: str | None = message.get('thread_ts', None)
 
         if MAINTENANCE_MODE:
-            say(StringMgr.get_string('maintenance-mode'), thread_ts=thread_ts)
+            say(StringMgr.get_string('maintenance-mode'), thread_ts=thread_timestamp)
             return
 
         valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
@@ -120,7 +124,6 @@ def handle_message_events(body, logger):
 
     This suppresses the console output that normally appears after every message.
     """
-    print(body)
     with bot_lock:  # block other slash commands from processing until this one is done
         pass
 
@@ -145,4 +148,6 @@ if __name__ == "__main__":
 
     db_manager.init_db()
     bot_lock: Lock = Lock()  # bot isn't thread-safe, so prevent concurrent operations
+    ignored_channel_ids: list[str] = slack_api_manager.gather_ignored_channel_ids(app)
+
     slack_message_handler.start()  # launch the Slack listener
