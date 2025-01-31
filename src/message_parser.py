@@ -136,7 +136,7 @@ class MessageParser:
                              for user_id, action in object_recipients]
         return object_recipients
 
-    def get_amount_verb_emoji(self, action: Action) -> tuple[int, str, str]:
+    def get_amount_verb_emoji(self, action: Action) -> tuple[int, str, str] | None:
         """ Convert an action into three elements of a Slack message: karma amount, verb, and emoji.
 
         :returns: Tuple with the karma amount, verb, and emoji

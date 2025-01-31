@@ -46,12 +46,11 @@ class DbMgr:
                                                        parms=parms, e=e))
                 raise
 
-    def init_db(self) -> str:
+    def init_db(self) -> None:
         """Create an empty DB if it doesn't already exist.
 
         No-op if there is already a DB.
 
-        :returns: Message explaining what happened, so `instakarma-admin` can print it to the console
         :raises sqlite3.Error: If anything goes wrong with the DB
         """
 
@@ -59,9 +58,8 @@ class DbMgr:
         db_ddl_path: Path = Path(DB_DDL_FILE_NAME)
 
         if db_path.exists():
-            msg: str = StringMgr.get_string('db.exists', db_path=db_path.resolve())
-            self.logger.info(msg)
-            return msg
+            return
+
         with self.get_db_connection() as conn:
             with open(db_ddl_path) as ddl_file:
                 ddl: str = ddl_file.read()
@@ -71,12 +69,11 @@ class DbMgr:
             except sqlite3.Error as e:
                 msg: str = StringMgr.get_string('db.error.could-not-create', e=e)
                 self.logger.critical(msg)
-                return msg
+                raise SystemExit(msg)
             msg: str = StringMgr.get_string('db.created-new',
                                             db_path=db_path.resolve(),
                                             db_ddl_path=db_ddl_path.resolve())
             self.logger.info(msg)
-            return msg
 
     def format_statement_for_log(self, statement: str) -> str:
         """Format a statement as a single line for logging.

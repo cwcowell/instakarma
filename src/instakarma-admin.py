@@ -32,11 +32,9 @@ def init_db() -> None:
 
     result: str = ''
     try:
-        result: str = db_manager.init_db()
+        db_manager.init_db()
     except sqlite3.Error as e:
-        sys.exit(StringMgr.get_string('error.sqlite3', e=e))
-    if not result.startswith('DB already exists'):
-        print(result)
+        raise SystemExit(StringMgr.get_string('error.sqlite3', e=e))
 
 
 def set_status(name: str, new_status: Status) -> None:

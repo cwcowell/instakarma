@@ -30,7 +30,6 @@ action:
 db:
   backed-up: "'{db_file_path}' backed up to '{db_backup_file_path}'"
   created-new: "created new DB at '{db_path}' using DDL '{db_ddl_path}'"
-  exists: "DB already exists at '{db_path}', so no changes were made"
   error:
     connection: "error: couldn't connect to database file {db_file_name!r}: {e}"
     could-not-backup: "error: DB backup failed: {e}"

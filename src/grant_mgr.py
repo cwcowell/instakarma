@@ -10,7 +10,6 @@ from string_mgr import StringMgr
 from logging import Logger
 from pathlib import Path
 import sqlite3
-import sys
 from typing import Final
 
 from slack_sdk.errors import SlackApiError
@@ -35,7 +34,7 @@ class GrantMgr:
                             say,
                             granter_user_id: str,
                             recipient: tuple[str, Action],
-                            thread_ts: str | None = None) -> None:
+                            thread_timestamp: str | None = None) -> None:
         """Grant positive karma to a person already registered in Slack.
 
         Add granter and/or recipient to DB if they don't exist already.
@@ -46,6 +45,8 @@ class GrantMgr:
         :param granter_user_id: User ID of the person granting karma
         :param recipient: Tuple containing the name of the recipient and the Action
                           (so we know whether to increment or decrement the recipient's karma)
+        :param thread_timestamp: The timestamp of the thread where the grant occurred or None
+                                 if it occurred in a channel instead of a thread
         """
 
         recipient_user_id: str = recipient[0]
@@ -69,25 +70,25 @@ class GrantMgr:
             self.logger.info(StringMgr.get_string('grant.log.info.remove-karma-from-person',
                                                   granter_name=granter_name,
                                                   recipient_name=recipient_name))
-            say(StringMgr.get_string('grant.remove-karma-from-person'), thread_ts=thread_ts)
+            say(StringMgr.get_string('grant.remove-karma-from-person'), thread_ts=thread_timestamp)
             return
 
         if recipient_name == granter_name:
             self.logger.info(StringMgr.get_string('grant.log.info.self-grant',
                                                   granter_name=granter_name,
                                                   amount=amount))
-            say(StringMgr.get_string('grant.self-grant'), thread_ts=thread_ts)
+            say(StringMgr.get_string('grant.self-grant'), thread_ts=thread_timestamp)
             return
 
         try:
             self.karma_mgr.grant_karma(granter_name, recipient_name, amount)
         except OptedOutRecipientError:
             say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name),
-                thread_ts=thread_ts)
+                thread_ts=thread_timestamp)
             return
         except OptedOutGranterError:
             say(StringMgr.get_string('grant.granter-opted-out'),
-                thread_ts=thread_ts)
+                thread_ts=thread_timestamp)
             return
         recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
         say(StringMgr.get_string('grant.success',
@@ -95,19 +96,21 @@ class GrantMgr:
                                  recipient_name=recipient_name,
                                  verb=verb,
                                  recipient_total_karma=recipient_total_karma),
-            thread_ts=thread_ts)
+            thread_ts=thread_timestamp)
 
     def grant_to_invalid_user(self,
                               say: callable,
                               granter_user_id: str,
                               recipient: tuple[str, Action],
-                              thread_ts: str | None = None) -> None:
+                              thread_timestamp: str | None = None) -> None:
         """Respond to Slack channel saying it can't grant karma to a user that Slack doesn't recognize.
 
         :param say: Any text passed to this callback will be displayed to the user in Slack
         :param granter_user_id: User ID of the person granting karma
         :param recipient: Tuple containing the name of the recipient and the Action
                           (so we know whether to increment or decrement the recipient's karma)
+        :param thread_timestamp: The timestamp of the thread where the grant occurred or None
+                                 if it occurred in a channel instead of a thread
         """
 
         try:
@@ -124,8 +127,8 @@ class GrantMgr:
                                               granter_name=granter_name,
                                               amount=amount,
                                               recipient_name=recipient_name))
-        say(StringMgr.get_string('grant.invalid-person', recipient_name=recipient_name), 
-            thread_ts=thread_ts)
+        say(StringMgr.get_string('grant.invalid-person', recipient_name=recipient_name),
+            thread_ts=thread_timestamp)
 
     def grant_to_object(self,
                         say,
@@ -155,9 +158,11 @@ class GrantMgr:
             recipient_total_karma: int = self.karma_mgr.get_karma(recipient_name)
             say(f"{emoji} {recipient_name} {verb}, now has {recipient_total_karma} karma",
                 thread_ts=thread_timestamp)
+
         except OptedOutRecipientError:
             say(StringMgr.get_string('grant.recipient-opted-out', name=recipient_name),
                 thread_ts=thread_timestamp)
+
         except OptedOutGranterError:
             say(StringMgr.get_string('grant.granter-opted-out', name=recipient_name),
                 thread_ts=thread_timestamp)
@@ -174,7 +179,7 @@ class GrantMgr:
 
         grants_export_file_path: Final[Path] = Path(GRANTS_EXPORT_FILE)
         if grants_export_file_path.exists():
-            sys.exit(StringMgr.get_string('grant.log.error.export-file-exists',
+            raise SystemExit(StringMgr.get_string('grant.log.error.export-file-exists',
                                           grants_export_file_path=grants_export_file_path.resolve()))
         try:
             results: list = self.db_mgr.execute_statement(
@@ -189,15 +194,15 @@ class GrantMgr:
                 ORDER BY gr.timestamp;""",
                 ())
         except sqlite3.Error as e:
-            sys.exit(f"error: {e}")
+            raise SystemExit(f"error: {e}")
         try:
             with open(grants_export_file_path, 'w') as file:
                 file.write('TIMESTAMP,GRANTER,AMOUNT,RECIPIENT\n')
                 for recipient_name, granter_name, delta, timestamp in results:
                     file.write(f"{timestamp},{granter_name},{delta},{recipient_name}\n")
         except Exception as e:
-            sys.exit(StringMgr.get_string('grants.log.error.write-file',
-                                          grants_export_file_path=grants_export_file_path.resolve(),
-                                          e=e))
+            raise SystemExit(StringMgr.get_string('grants.log.error.write-file',
+                                                  grants_export_file_path=grants_export_file_path.resolve(),
+                                                  e=e))
         print(StringMgr.get_string('grant.grants-exported',
                                    grants_export_file_path=grants_export_file_path.resolve()))

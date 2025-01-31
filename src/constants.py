@@ -1,15 +1,16 @@
+from channel import Channel
 from enums import Environment
 
 from typing import Final
 
 """Collect all instakarma-related constants in one file for easy editing."""
 
-# set to True to display maintenance banner to users instead of doing anything
+# set to True to display a maintenance banner to users instead of doing anything
 MAINTENANCE_MODE: Final[bool] = False
 
 # which Slack instance this bot should connect to
-ENVIRONMENT: Final[Environment] = Environment.PROD
-# ENVIRONMENT: Final[Environment] = Environment.SANDBOX
+# ENVIRONMENT: Final[Environment] = Environment.PROD
+ENVIRONMENT: Final[Environment] = Environment.SANDBOX
 
 # for AWS operations
 AWS_REGION: Final[str] = 'us-east-2'
@@ -25,7 +26,17 @@ DB_BACKUP_FILE_NAME: Final[str] = f'{DB_FILE_NAME}.backup'
 GRANTS_EXPORT_FILE: Final[str] = 'grants.csv'
 
 # for `instakarma-bot`
-CHANNEL_NAMES_TO_IGNORE = ['discuss-general']  # instakarma won't respond to messages in these channels
+
+# instakarma won't respond to messages in these channels
+# find channel ID by right-clicking channel in Slack and selecting *View channel details*
+
+if ENVIRONMENT == Environment.PROD:
+    IGNORED_CHANNELS: Final[list[Channel]] = [Channel(name='discuss-general', id='C06FA5MBN')]
+else:
+    IGNORED_CHANNELS: Final[list[Channel]] = [Channel(name='mushrooms', id='C080AKZJBH7'),
+                                              Channel(name='cats', id='C07SHR3JBQD')]
+
+
 LOG_FILE: Final[str] = '../logs/instakarma.log'
 LOG_FILE_SIZE: Final[int] = 1024 * 1024 * 10  # 10MB
 LOG_FILE_COUNT: Final[int] = 5
