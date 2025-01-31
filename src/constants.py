@@ -29,13 +29,11 @@ GRANTS_EXPORT_FILE: Final[str] = 'grants.csv'
 
 # instakarma won't respond to messages in these channels
 # find channel ID by right-clicking channel in Slack and selecting *View channel details*
-
 if ENVIRONMENT == Environment.PROD:
     IGNORED_CHANNELS: Final[list[Channel]] = [Channel(name='discuss-general', id='C06FA5MBN')]
 else:
     IGNORED_CHANNELS: Final[list[Channel]] = [Channel(name='mushrooms', id='C080AKZJBH7'),
                                               Channel(name='cats', id='C07SHR3JBQD')]
-
 
 LOG_FILE: Final[str] = '../logs/instakarma.log'
 LOG_FILE_SIZE: Final[int] = 1024 * 1024 * 10  # 10MB

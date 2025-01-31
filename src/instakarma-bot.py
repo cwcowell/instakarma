@@ -78,11 +78,6 @@ def handle_karma_grants(message: dict, say, client) -> None:
                                       thread_ts=thread_timestamp)
             return
 
-        # if MAINTENANCE_MODE:
-        #     say(StringMgr.get_string('maintenance-mode'),
-        #         thread_ts=thread_timestamp)
-        #     return
-
         valid_user_recipients: list[tuple[str, Action]] = message_parser.detect_valid_user_recipients(msg_text)
         invalid_user_recipients: list[tuple[str, Action]] = message_parser.detect_invalid_user_recipients(msg_text)
         object_recipients: list[tuple[str, Action]] = message_parser.detect_object_recipients(msg_text)
