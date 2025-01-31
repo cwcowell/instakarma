@@ -103,10 +103,6 @@ def handle_instakarma_command(ack, respond, command) -> None:
         ack()  # required by Slack SDK
         thread_timestamp: str | None = command.get('thread_ts', None)  # set if command occurred in a thread, None otherwise
 
-        if MAINTENANCE_MODE:
-            respond(StringMgr.get_string('maintenance-mode'), thread_ts=thread_timestamp)
-            return
-
         subcommand = command['text'].lower()
         match subcommand:
             case 'help' | '':
