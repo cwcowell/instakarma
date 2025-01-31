@@ -9,8 +9,8 @@ from typing import Final
 MAINTENANCE_MODE: Final[bool] = False
 
 # which Slack instance this bot should connect to
-# ENVIRONMENT: Final[Environment] = Environment.PROD
-ENVIRONMENT: Final[Environment] = Environment.SANDBOX
+ENVIRONMENT: Final[Environment] = Environment.PROD
+# ENVIRONMENT: Final[Environment] = Environment.SANDBOX
 
 # for AWS operations
 AWS_REGION: Final[str] = 'us-east-2'
